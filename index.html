@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Auragram</title>
+    <style>
+    /* Global Styles */
+    * { 
+        margin: 0; padding: 0; box-sizing: border-box; 
+        font-family: -apple-system, system-ui, sans-serif; 
+        -webkit-user-select: none; user-select: none;
+        -webkit-tap-highlight-color: transparent; 
+    }
+    input { -webkit-user-select: text; user-select: text; }
+    :root {
+        --bg-color: #051a24; --input-bg: #11232d; --input-border: #2a3a44;
+        --btn-blue: #0064e0; --text-secondary: #a0abb4; --text-main: #ffffff;
+        --success-green: #00d26a; --error-red: #fa3e3e;
+    }
+    body, html { height: 100%; background-color: var(--bg-color); color: var(--text-main); overflow: hidden; }
+
+    /* VIEWPORT SLIDER */
+    #viewport { width: 100%; height: 100%; overflow: hidden; position: relative; transition: opacity 0.5s ease, transform 0.5s ease; }
+    #app-slider { 
+        display: flex; width: 500%; height: 100%; 
+        transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
+    }
+    .screen { width: 20%; height: 100%; display: flex; flex-direction: column; max-width: 450px; margin: 0 auto; }
+
+    /* UI STYLES */
+    .login-screen { justify-content: space-between; padding: 20px 24px; text-align: center; }
+    .middle-content { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%; }
+    .logo-text { font-size: 38px; font-weight: bold; font-style: italic; margin-bottom: 40px; background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .login-input { width: 100%; height: 56px; background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 12px; padding: 0 16px; color: white; font-size: 16px; outline: none; margin-bottom: 12px; }
+    .login-btn { width: 100%; height: 46px; background: var(--btn-blue); color: white; border: none; border-radius: 23px; font-size: 16px; font-weight: 600; cursor: pointer;}
+    .create-btn { width: 100%; height: 44px; background: transparent; color: #4faaff; border: 1px solid var(--btn-blue); border-radius: 22px; font-weight: 600; margin-bottom: 15px; cursor: pointer; }
+    
+    #loginError { color: var(--error-red); font-size: 13px; margin-bottom: 10px; display: none; }
+    #forgotPassLink { color: #4faaff; font-size: 13px; margin-top: 5px; display: none; cursor: pointer; text-decoration: none;}
+
+    .content-screen { padding: 12px 20px; }
+    .top-nav { height: 48px; display: flex; align-items: center; margin-bottom: 15px; }
+    .close-icon { font-size: 26px; cursor: pointer; }
+    .header-title { font-size: 24px; font-weight: 700; margin-bottom: 12px; }
+    .header-sub { color: var(--text-secondary); font-size: 14.5px; line-height: 1.5; margin-bottom: 20px; text-align: left; }
+    .header-sub b { color: white; }
+    .header-sub a { color: #4faaff; text-decoration: none; }
+    
+    .insta-input-container { position: relative; background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 12px; padding: 10px 16px; height: 62px; display: flex; flex-direction: column; justify-content: center; }
+    .field-label { color: var(--text-secondary); font-size: 12px; margin-bottom: 2px; }
+    .main-input { background: transparent; border: none; color: white; font-size: 16px; outline: none; width: 85%; }
+    .eye-icon { position: absolute; right: 16px; width: 22px; opacity: 0.7; filter: invert(1); cursor: pointer; }
+    .status-indicator { position: absolute; right: 16px; width: 24px; height: 24px; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; }
+    .valid { border: 1.5px solid var(--success-green); color: var(--success-green); display: flex !important; }
+    .invalid { border: 1.5px solid var(--error-red); color: var(--error-red); display: flex !important; }
+    .error-message { color: var(--error-red); font-size: 13px; margin-top: 10px; display: none; line-height: 1.4; }
+    
+    .next-btn-main { width: 100%; height: 48px; background: var(--btn-blue); color: white; border: none; border-radius: 24px; font-size: 16px; font-weight: 600; margin-top: 10px; cursor: pointer; }
+    .next-btn-main:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* MODALS */
+    #picker-modal, #forgot-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px;}
+    .picker-box, .forgot-box { background: #1c2d38; width: 100%; max-width: 320px; border-radius: 12px; padding: 25px; text-align: center; }
+    .wheel-wrap { display: flex; justify-content: space-around; height: 120px; position: relative; overflow: hidden; border-top: 1px solid #2d3d48; border-bottom: 1px solid #2d3d48; }
+    .wheel { flex: 1; height: 100%; overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none; text-align: center; }
+    .wheel::-webkit-scrollbar { display: none; }
+    .wheel div { height: 40px; display: flex; align-items: center; justify-content: center; scroll-snap-align: center; color: #a0abb4; font-size: 16px; }
+    .wheel div.selected { color: white; font-weight: bold; font-size: 18px; }
+    .selection-highlight { position: absolute; top: 40px; left: 0; width: 100%; height: 40px; pointer-events: none; }
+    .picker-btns { display: flex; justify-content: flex-end; gap: 30px; margin-top: 20px; color: white; font-weight: bold; font-size: 14px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div id="viewport">
+    <div id="app-slider">
+        <div class="screen login-screen">
+            <div style="color: var(--text-secondary); font-size: 14px; margin-top: 10px;">English (UK)</div>
+            <div class="middle-content">
+                <div class="logo-text">Auragram</div>
+                <div style="width: 100%;">
+                    <input type="text" id="loginUser" placeholder="Username" class="login-input">
+                    <input type="password" id="loginPass" placeholder="Password" class="login-input">
+                    <div id="loginError">No user exists in this username</div>
+                    <button class="login-btn" id="handleLogin">Log in</button>
+                    <div id="forgotPassLink">Forgot password?</div>
+                </div>
+            </div>
+            <div style="padding-bottom: 20px; width: 100%;">
+                <button id="startSignUp" class="create-btn">Create new account</button>
+                <div style="color: var(--text-secondary); font-size: 14px;">© Auragram</div>
+            </div>
+        </div>
+
+        <div class="screen content-screen">
+            <div class="top-nav"><div class="close-icon" onclick="location.reload()">✕</div></div>
+            <h1 class="header-title">Create a username</h1>
+            <div id="inputBox" class="insta-input-container">
+                <div class="field-label">Username</div>
+                <input type="text" id="usernameInput" class="main-input">
+                <div id="statusIcon" class="status-indicator"></div>
+            </div>
+            <div id="errorMessage" class="error-message"></div>
+            <button id="submitUsername" class="next-btn-main" disabled>Next</button>
+        </div>
+
+        <div class="screen content-screen">
+            <div class="top-nav"><div class="close-icon" onclick="location.reload()">✕</div></div>
+            <h1 class="header-title">Create a password</h1>
+            <div class="insta-input-container">
+                <input type="password" id="passwordInput" class="main-input" placeholder="Password">
+                <img src="https://cdn-icons-png.flaticon.com/512/2767/2767146.png" class="eye-icon" id="togglePass">
+            </div>
+            <button id="finalSubmit" class="next-btn-main" disabled>Next</button>
+        </div>
+
+        <div class="screen content-screen">
+            <div class="top-nav"><div class="close-icon" onclick="location.reload()">✕</div></div>
+            <h1 class="header-title">What's your date of birth?</h1>
+            <div class="insta-input-container" style="cursor: pointer;" id="openPickerTrigger">
+                <div class="field-label" id="ageLabel">Birthday (0 years old)</div>
+                <div id="dobValueDisplay" style="font-size: 16px; color: white;">Select Date</div>
+            </div>
+            <div id="ageError" class="error-message">You must be between 8 and 50 years old.</div>
+            <button id="nextToTerms" class="next-btn-main" disabled>Next</button>
+        </div>
+
+        <div class="screen content-screen">
+            <div class="top-nav"><div class="close-icon" onclick="location.reload()">✕</div></div>
+            <h1 class="header-title" style="font-size: 26px;">Agree to Instagram's terms and policies</h1>
+            <p class="header-sub">People who use our service may have uploaded your contact information to Instagram. <a href="#">Learn more</a></p>
+            <p class="header-sub">By tapping <b>I agree</b>, you agree to create an account and to Instagram's <a href="#">Terms</a>, <a href="#">Privacy Policy</a> and <a href="#">Cookies Policy</a>.</p>
+            <p class="header-sub">The <a href="#">Privacy Policy</a> describes the ways we can use the information we collect when you create an account. For example, we use this information to provide, personalise and improve our products, including ads.</p>
+            <button id="finishAccount" class="next-btn-main">I agree</button>
+        </div>
+    </div>
+</div>
+
+<div id="picker-modal">
+    <div class="picker-box">
+        <h3>Set date</h3>
+        <div class="wheel-wrap">
+            <div class="selection-highlight"></div>
+            <div class="wheel" id="dayWheel"></div>
+            <div class="wheel" id="monthWheel"></div>
+            <div class="wheel" id="yearWheel"></div>
+        </div>
+        <div class="picker-btns">
+            <div onclick="document.getElementById('picker-modal').style.display='none'">CANCEL</div>
+            <div onclick="confirmDate()" style="color: #4faaff">SET</div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyAHjilh7jAlS0e5qDKxbDZq3nbe3pFe4nE",
+        authDomain: "instagram-e8c7a.firebaseapp.com",
+        projectId: "instagram-e8c7a",
+        storageBucket: "instagram-e8c7a.firebasestorage.app",
+        messagingSenderId: "270990839800",
+        appId: "1:270990839800:web:7f56ea2ea8d941219fd00d"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const provider = new GoogleAuthProvider();
+
+    const slider = document.getElementById('app-slider');
+    const viewport = document.getElementById('viewport');
+    const slideTo = (index) => slider.style.transform = `translateX(-${index * 20}%)`;
+
+    // 1. LOGIN LOGIC
+    document.getElementById('handleLogin').onclick = async () => {
+        const u = document.getElementById('loginUser').value.trim().toLowerCase();
+        const p = document.getElementById('loginPass').value;
+        const err = document.getElementById('loginError');
+        if(!u || !p) return;
+        err.style.display = 'none';
+        const docSnap = await getDoc(doc(db, "users", u));
+        if (docSnap.exists() && docSnap.data().password === p) {
+            localStorage.setItem('loggedUser', u);
+            viewport.style.opacity = '0';
+            setTimeout(() => { window.location.href = "auragram.html"; }, 500);
+        } else {
+            err.style.display = 'block';
+            document.getElementById('forgotPassLink').style.display = 'block';
+        }
+    };
+
+    // 2. SIGNUP LOGIC
+    document.getElementById('startSignUp').onclick = async () => {
+        try {
+            const result = await signInWithPopup(auth, provider);
+            slideTo(1);
+            document.getElementById('usernameInput').value = result.user.displayName.split(' ')[0].toLowerCase() + Math.floor(100+Math.random()*899);
+            checkAvailability();
+        } catch (err) { alert("Login Error"); }
+    };
+
+    const checkAvailability = async () => {
+        const val = document.getElementById('usernameInput').value.trim().toLowerCase();
+        if (val.length < 3) { updateUI(false); return; }
+        const docSnap = await getDoc(doc(db, "users", val));
+        updateUI(!docSnap.exists());
+    };
+
+    function updateUI(isOk) {
+        document.getElementById('statusIcon').className = isOk ? "status-indicator valid" : "status-indicator invalid";
+        document.getElementById('statusIcon').innerHTML = isOk ? "✓" : "✕";
+        document.getElementById('statusIcon').style.display = "flex";
+        document.getElementById('submitUsername').disabled = !isOk;
+    }
+
+    document.getElementById('usernameInput').addEventListener('input', checkAvailability);
+    document.getElementById('submitUsername').onclick = () => slideTo(2);
+    document.getElementById('passwordInput').oninput = () => { document.getElementById('finalSubmit').disabled = document.getElementById('passwordInput').value.length < 6; };
+    document.getElementById('togglePass').onclick = () => { document.getElementById('passwordInput').type = document.getElementById('passwordInput').type === 'password' ? 'text' : 'password'; };
+    
+    // Open Picker with Default Date
+    document.getElementById('finalSubmit').onclick = () => { 
+        slideTo(3); 
+        openPicker();
+    };
+    document.getElementById('nextToTerms').onclick = () => slideTo(4);
+
+    // 3. DATE PICKER SYSTEM
+    const today = new Date(2026, 0, 24); // Today: Jan 24, 2026
+    const days = Array.from({length: 31}, (_, i) => i + 1);
+    const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const years = Array.from({length: 100}, (_, i) => 2026 - i);
+
+    function populateWheel(id, items) {
+        const wheel = document.getElementById(id);
+        wheel.innerHTML = '<div></div>' + items.map(item => `<div>${item}</div>`).join('') + '<div></div>';
+        wheel.addEventListener('scroll', () => highlightSelection(wheel));
+    }
+
+    function highlightSelection(wheel) {
+        const index = Math.round(wheel.scrollTop / 40);
+        Array.from(wheel.children).forEach((child, i) => {
+            child.className = (i === index + 1) ? 'selected' : '';
+        });
+    }
+
+    populateWheel('dayWheel', days);
+    populateWheel('monthWheel', months.map(m => m.substring(0, 3)));
+    populateWheel('yearWheel', years);
+
+    function openPicker() {
+        document.getElementById('picker-modal').style.display = 'flex';
+        // Set to Current Date Defaults
+        setTimeout(() => {
+            document.getElementById('dayWheel').scrollTop = (today.getDate() - 1) * 40;
+            document.getElementById('monthWheel').scrollTop = today.getMonth() * 40;
+            document.getElementById('yearWheel').scrollTop = 0; // 2026 is index 0
+            
+            highlightSelection(document.getElementById('dayWheel'));
+            highlightSelection(document.getElementById('monthWheel'));
+            highlightSelection(document.getElementById('yearWheel'));
+        }, 10);
+    }
+
+    window.confirmDate = () => {
+        const dIdx = Math.round(document.getElementById('dayWheel').scrollTop / 40);
+        const mIdx = Math.round(document.getElementById('monthWheel').scrollTop / 40);
+        const yIdx = Math.round(document.getElementById('yearWheel').scrollTop / 40);
+
+        const selDay = days[dIdx] || today.getDate();
+        const selMonth = mIdx; 
+        const selYear = years[yIdx] || 2026;
+
+        let age = today.getFullYear() - selYear;
+        if (today.getMonth() < selMonth || (today.getMonth() === selMonth && today.getDate() < selDay)) {
+            age--;
+        }
+
+        document.getElementById('dobValueDisplay').innerText = `${selDay} ${months[selMonth]} ${selYear}`;
+        document.getElementById('ageLabel').innerText = `Birthday (${age} years old)`;
+        
+        const isOk = age >= 8 && age <= 50;
+        document.getElementById('nextToTerms').disabled = !isOk;
+        document.getElementById('ageError').style.display = isOk ? 'none' : 'block';
+        document.getElementById('picker-modal').style.display = 'none';
+    };
+
+    document.getElementById('openPickerTrigger').onclick = openPicker;
+
+    // 4. FINAL ACCOUNT CREATION
+    document.getElementById('finishAccount').onclick = async () => {
+        const u = document.getElementById('usernameInput').value.trim().toLowerCase();
+        try {
+            localStorage.setItem('loggedUser', u);
+            await setDoc(doc(db, "users", u), {
+                username: u, 
+                password: document.getElementById('passwordInput').value,
+                dob: document.getElementById('dobValueDisplay').innerText,
+                email: auth.currentUser.email, 
+                createdAt: new Date()
+            });
+            window.location.href = "auragram.html";
+        } catch (e) { alert("Error"); }
+    };
+</script>
+</body>
+</html>
+
