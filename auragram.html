@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Auragram</title>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <style>
+        /* ALL YOUR ORIGINAL CSS REMAINS EXACTLY THE SAME */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { background-color: #000; color: white; overflow-x: hidden; }
+        nav { height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; position: sticky; top: 0; background-color: #000; z-index: 10; border-bottom: 0.1px solid #262626; }
+        .nav-center { display: flex; align-items: center; gap: 4px; position: absolute; left: 50%; transform: translateX(-50%); }
+        .nav-center span { font-size: 18px; font-weight: bold; }
+        .red-dot { width: 7px; height: 7px; background: #ed4956; border-radius: 50%; border: 1.5px solid black; }
+        .profile-padding { padding: 0 16px; }
+        .profile-header { display: flex; align-items: center; margin: 10px 0 20px 0; }
+        .profile-img-container { position: relative; width: 80px; height: 80px; margin-right: 25px; }
+        .profile-main-pic { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 1px solid #333; }
+        .add-story-btn { position: absolute; bottom: 0; right: 0; background: #0095f6; border-radius: 50%; width: 22px; height: 22px; border: 2px solid black; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; }
+        .profile-stats { display: flex; flex-grow: 1; justify-content: space-around; text-align: center; }
+        .stat-num { font-weight: bold; font-size: 18px; display: block; }
+        .stat-label { font-size: 13px; color: #a8a8a8; }
+        .profile-info { margin-bottom: 20px; }
+        .actual-name { font-size: 14px; font-weight: bold; display: block; }
+        .actual-bio { font-size: 14px; color: #f5f5f5; display: block; margin-top: 2px; white-space: pre-wrap; }
+        .add-bio-link { font-size: 14px; color: #0095f6; font-weight: 500; cursor: pointer; }
+        .edit-buttons { display: flex; gap: 8px; margin-bottom: 20px; }
+        .btn-gray { background: #262626; border: none; color: white; padding: 8px; flex: 1; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; }
+        .grid-tabs { display: flex; border-top: 0.5px solid #262626; }
+        .tab { flex: 1; text-align: center; padding: 12px; opacity: 0.5; }
+        .tab.active { border-bottom: 2px solid white; opacity: 1; }
+        .tab img { width: 22px; filter: invert(1); }
+        #post-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; padding-bottom: 60px; display: none; }
+        .grid-item { aspect-ratio: 1/1; background: #111; }
+        .grid-item img { width: 100%; height: 100%; object-fit: cover; }
+        .empty-grid { text-align: left; padding: 40px 30px; }
+        .empty-grid h2 { font-size: 28px; font-weight: 800; line-height: 1.1; margin-bottom: 25px; letter-spacing: -0.5px; }
+        .create-post-btn { background: #0064e0; color: white; border: none; width: 100%; padding: 10px; border-radius: 10px; font-weight: 600; font-size: 14px; cursor: pointer; }
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; height: 50px; background: #000; border-top: 0.5px solid #262626; display: flex; justify-content: space-around; align-items: center; z-index: 50; }
+        .bottom-nav img { width: 24px; filter: invert(1); }
+        .user-thumb { width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid white; object-fit: cover; filter: none !important; }
+        #new-post-view { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 5000; overflow-y: auto; }
+        .np-nav { height: 55px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 0.1px solid #262626; position: sticky; top: 0; background: #000; }
+        .np-nav span { font-size: 18px; font-weight: bold; }
+        .np-preview-container { width: 100%; background: #000; text-align: center; padding: 20px 0; }
+        .np-preview-img { width: 100%; max-height: 400px; object-fit: contain; }
+        .np-list-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-bottom: 0.1px solid #262626; font-size: 15px; }
+        .np-list-item input { background: transparent; border: none; color: white; outline: none; flex: 1; font-size: 15px; }
+        .np-list-item .arrow { width: 16px; filter: invert(1) opacity(0.5); }
+        .np-share-footer { position: fixed; bottom: 0; width: 100%; padding: 12px 16px; background: #000; border-top: 0.1px solid #262626; }
+        .share-btn { background: #0064e0; color: white; border: none; width: 100%; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 14px; }
+        .share-btn:disabled { background: #555; }
+        #edit-profile-view { display: none; background: #000; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1000; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        .edit-nav { position: sticky; top: 0; width: 100%; height: 55px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; background: #000; border-bottom: 0.1px solid #262626; z-index: 1001; }
+        .edit-nav span { font-size: 16px; font-weight: bold; }
+        .edit-nav .blue-text { color: #0095f6; font-weight: bold; cursor: pointer; }
+        .edit-content { padding: 20px 16px 100px 16px; }
+        .edit-avatar-section { text-align: center; margin-bottom: 25px; }
+        .edit-pics-row { display: flex; justify-content: center; gap: 12px; margin-bottom: 12px; }
+        .edit-pic-circle { width: 70px; height: 70px; border-radius: 50%; border: 1px solid #333; object-fit: cover; }
+        .edit-pic-placeholder { width: 70px; height: 70px; border-radius: 50%; background: #1c1c1c; display: flex; align-items: center; justify-content: center; font-size: 30px; }
+        .blue-action-text { color: #0095f6; font-size: 13px; font-weight: 600; cursor: pointer; }
+        .input-box { width: 100%; background: #000; border: 1px solid #363636; border-radius: 12px; padding: 12px; margin-bottom: 15px; }
+        .input-box label { display: block; color: #a8a8a8; font-size: 11px; margin-bottom: 4px; }
+        .input-box input, .input-box textarea { width: 100%; background: transparent; border: none; color: white; font-size: 15px; outline: none; resize: none; }
+        .list-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-top: 0.1px solid #262626; font-size: 15px; cursor: pointer; }
+        .list-item .val { color: #a8a8a8; font-size: 14px; }
+        .list-item .arrow-r { width: 14px; filter: opacity(0.5) invert(1); }
+        #gender-view { display: none; background: #000; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2000; padding: 0 16px; }
+        .gender-header { height: 55px; display: flex; align-items: center; justify-content: space-between; }
+        .gender-header .close-btn { font-size: 26px; cursor: pointer; }
+        .gender-header .title { font-size: 18px; font-weight: bold; flex-grow: 1; margin-left: 20px; }
+        .gender-header .check-btn { width: 24px; filter: invert(39%) sepia(93%) saturate(1352%) hue-rotate(187deg) brightness(100%) contrast(101%); cursor: pointer; }
+        .gender-subtext { color: #a8a8a8; font-size: 12px; margin: 10px 0 20px 0; line-height: 1.4; }
+        .gender-option { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; cursor: pointer; font-size: 16px; }
+        .radio-circle { width: 20px; height: 20px; border: 2px solid #555; border-radius: 50%; position: relative; }
+        .gender-option.selected .radio-circle { border-color: white; }
+        .gender-option.selected .radio-circle::after { content: ''; width: 10px; height: 10px; background: white; border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        .custom-input-box { display: none; margin-top: 5px; border-bottom: 1px solid #0095f6; padding-bottom: 8px; }
+        .custom-input-box input { background: transparent; border: none; color: white; width: 100%; outline: none; font-size: 16px; }
+        .blue-link-item { color: #0095f6; font-size: 14px; font-weight: 500; margin-top: 18px; cursor: pointer; }
+        #sheet-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 3000; }
+        #sheet { position: fixed; bottom: -100%; left: 0; width: 100%; background: #262626; border-radius: 15px 15px 0 0; z-index: 3001; transition: bottom 0.3s ease; padding-bottom: 20px; }
+        #sheet.open { bottom: 0; }
+        .sheet-handle { width: 35px; height: 4px; background: #555; border-radius: 2px; margin: 10px auto; }
+        .sheet-tabs { display: flex; border-bottom: 0.1px solid #3d3d3d; margin-bottom: 10px; }
+        .sheet-tab { flex: 1; text-align: center; padding: 12px; opacity: 0.4; border-bottom: 2px solid transparent; }
+        .sheet-tab.active { opacity: 1; border-bottom: 2px solid white; }
+        .sheet-tab img { width: 22px; filter: invert(1); }
+        .sheet-option { display: flex; align-items: center; gap: 15px; padding: 14px 20px; font-size: 16px; cursor: pointer; }
+        .sheet-option img { width: 24px; filter: invert(1); }
+        .sheet-option.danger { color: #ed4956; }
+        .sheet-footer { font-size: 12px; color: #a8a8a8; padding: 10px 20px; line-height: 1.4; }
+    </style>
+</head>
+<body>
+
+    <div id="main-view">
+        <nav>
+            <div style="font-size:28px; width:40px; cursor:pointer;" onclick="triggerPostSelect()">+</div>
+            <div class="nav-center"><span id="headerUser">zephyrax140</span><img src="https://cdn-icons-png.flaticon.com/512/2722/2722987.png" style="width:10px; filter:invert(1);"><div class="red-dot"></div></div>
+            <div style="display:flex; gap:18px;">
+                <img src="https://cdn-icons-png.flaticon.com/512/11513/11513067.png" style="width:24px; filter:invert(1);">
+                <img src="https://cdn-icons-png.flaticon.com/512/151/151917.png" style="width:24px; filter:invert(1);">
+            </div>
+        </nav>
+
+        <div class="profile-padding">
+            <div class="profile-header">
+                <div class="profile-img-container">
+                    <img id="mainProfPic" src="https://www.w3schools.com/howto/img_avatar.png" class="profile-main-pic">
+                    <div class="add-story-btn">+</div>
+                </div>
+                <div class="profile-stats">
+                    <div><span id="postCount" class="stat-num">0</span><span class="stat-label">posts</span></div>
+                    <div><span class="stat-num">0</span><span class="stat-label">followers</span></div>
+                    <div><span class="stat-num">0</span><span class="stat-label">following</span></div>
+                </div>
+            </div>
+            <div class="profile-info">
+                <span id="profName" class="actual-name"></span>
+                <span id="profBio" class="actual-bio"></span>
+                <div id="bluePrompt" class="add-bio-link" onclick="openEdit()">Add your name and bio</div>
+            </div>
+            <div class="edit-buttons">
+                <button class="btn-gray" onclick="openEdit()">Edit profile</button>
+                <button class="btn-gray">Share profile</button>
+            </div>
+        </div>
+
+        <div class="grid-tabs">
+            <div class="tab active"><img src="https://cdn-icons-png.flaticon.com/512/6245/6245413.png"></div>
+            <div class="tab"><img src="https://cdn-icons-png.flaticon.com/512/1077/1077063.png"></div>
+        </div>
+
+        <div id="empty-state" class="empty-grid">
+            <h2>Capture the moment<br>with a friend</h2>
+            <button class="create-post-btn" onclick="triggerPostSelect()">Create your first post</button>
+        </div>
+
+        <div id="post-grid"></div>
+
+        <div id="main-bottom-nav" class="bottom-nav">
+            <img src="https://cdn-icons-png.flaticon.com/512/1946/1946436.png">
+            <img src="https://cdn-icons-png.flaticon.com/512/122/122635.png">
+            <img src="https://cdn-icons-png.flaticon.com/512/3161/3161837.png" onclick="triggerPostSelect()">
+            <img src="https://cdn-icons-png.flaticon.com/512/1077/1077035.png">
+            <img id="navThumb" src="https://www.w3schools.com/howto/img_avatar.png" class="user-thumb">
+        </div>
+    </div>
+
+    <div id="new-post-view">
+        <div class="np-nav">
+            <img src="https://cdn-icons-png.flaticon.com/512/271/271218.png" style="width:20px; filter:invert(1);" onclick="closePostView()">
+            <span>New post</span>
+            <div style="width:20px;"></div>
+        </div>
+        <div class="np-preview-container"><img id="np-preview-img" class="np-preview-img"></div>
+        <div class="np-list-item"><input type="text" id="postCaptionInput" placeholder="Add a caption..."></div>
+        <div class="np-list-item"><span>Add audio</span><img src="https://cdn-icons-png.flaticon.com/512/271/271228.png" class="arrow"></div>
+        <div class="np-list-item"><span>Tag people</span><img src="https://cdn-icons-png.flaticon.com/512/271/271228.png" class="arrow"></div>
+        <div class="np-list-item"><span>Add location</span><img src="https://cdn-icons-png.flaticon.com/512/271/271228.png" class="arrow"></div>
+        <div class="np-share-footer"><button id="finalShareBtn" class="share-btn" onclick="finishPost()">Share</button></div>
+    </div>
+
+    <div id="edit-profile-view">
+        <div class="edit-nav">
+            <img src="https://cdn-icons-png.flaticon.com/512/271/271218.png" style="width:20px; filter:invert(1); cursor:pointer;" onclick="closeEdit()">
+            <span>Edit profile</span>
+            <span class="blue-text" onclick="saveData()">Done</span>
+        </div>
+        <div class="edit-content">
+            <div class="edit-avatar-section">
+                <div class="edit-pics-row">
+                    <img id="editProfPic" src="https://www.w3schools.com/howto/img_avatar.png" class="edit-pic-circle">
+                    <div class="edit-pic-placeholder">👤</div>
+                </div>
+                <div class="blue-action-text" onclick="toggleSheet(true)">Edit picture or avatar</div>
+            </div>
+            <div class="input-box"><label>Name</label><input type="text" id="inName" placeholder="Name"></div>
+            <div class="input-box"><label>Username</label><input type="text" id="inUser"></div>
+            <div class="input-box"><label>Pronouns</label><input type="text" placeholder="Pronouns"></div>
+            <div class="input-box"><label>Bio</label><textarea id="inBio" placeholder="Bio" rows="2"></textarea></div>
+            <div class="list-item"><span>Add link</span><img src="https://cdn-icons-png.flaticon.com/512/271/271228.png" class="arrow-r"></div>
+            <div class="list-item"><span>Add banners</span><img src="https://cdn-icons-png.flaticon.com/512/271/271228.png" class="arrow-r"></div>
+            <div class="list-item" onclick="openGender()"><span>Gender</span><div style="display:flex;align-items:center;gap:5px;"><span id="genderLabel" class="val">Prefer not to say</span><img src="https://cdn-icons-png.flaticon.com/512/271/271228.png" class="arrow-r"></div></div>
+            <div class="list-item"><span>Music</span><div style="display:flex;align-items:center;gap:5px;"><span class="val">Add music to your profile</span><img src="https://cdn-icons-png.flaticon.com/512/271/271228.png" class="arrow-r"></div></div>
+            <div class="blue-link-item">Switch to professional account</div>
+            <div class="blue-link-item">Personal information settings</div>
+        </div>
+    </div>
+
+    <div id="gender-view">
+        <div class="gender-header">
+            <span class="close-btn" onclick="closeGender()">✕</span>
+            <span class="title">Gender</span>
+            <img src="https://cdn-icons-png.flaticon.com/512/190/190411.png" class="check-btn" onclick="saveGender()">
+        </div>
+        <p class="gender-subtext">This won't be part of your public profile.</p>
+        <div class="gender-option" onclick="selectGender('Female', this)"><span>Female</span><div class="radio-circle"></div></div>
+        <div class="gender-option" onclick="selectGender('Male', this)"><span>Male</span><div class="radio-circle"></div></div>
+        <div class="gender-option" onclick="selectGender('Custom', this)"><span>Custom</span><div class="radio-circle"></div></div>
+        <div id="custom-gender-box" class="custom-input-box"><input type="text" id="customGenderInput" placeholder="Gender"></div>
+        <div class="gender-option" onclick="selectGender('Prefer not to say', this)"><span>Prefer not to say</span><div class="radio-circle"></div></div>
+    </div>
+
+    <div id="sheet-overlay" onclick="toggleSheet(false)"></div>
+    <div id="sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-tabs">
+            <div class="sheet-tab active"><img src="https://cdn-icons-png.flaticon.com/512/1077/1077063.png"></div>
+            <div class="sheet-tab"><img src="https://cdn-icons-png.flaticon.com/512/9333/9333990.png"></div>
+        </div>
+        <div class="sheet-option" onclick="triggerFileSelect()"><img src="https://cdn-icons-png.flaticon.com/512/833/833453.png"><span>Choose from library</span></div>
+        <div class="sheet-option"><img src="https://cdn-icons-png.flaticon.com/512/124/124010.png"><span>Import from Facebook</span></div>
+        <div class="sheet-option"><img src="https://cdn-icons-png.flaticon.com/512/685/685655.png"><span>Take photo</span></div>
+        <div id="removePicBtn" class="sheet-option danger" style="display:none;" onclick="removePhoto()"><img src="https://cdn-icons-png.flaticon.com/512/1214/1214428.png" style="filter:none;"><span>Remove current picture</span></div>
+        <div class="sheet-footer">Your profile picture and avatar are visible to everyone. <a href="#" style="color:#0095f6; text-decoration:none;">Learn more</a></div>
+    </div>
+
+    <input type="file" id="fileIn" hidden accept="image/*" onchange="handleImage(event)">
+    <input type="file" id="postFileIn" hidden accept="image/*" onchange="handlePostSelection(event)">
+
+    <script>
+        const LOGGED_USER = localStorage.getItem('loggedUser');
+        if(!LOGGED_USER) window.location.href = "instagramm.html";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAHjilh7jAlS0e5qDKxbDZq3nbe3pFe4nE",
+            authDomain: "instagram-e8c7a.firebaseapp.com",
+            projectId: "instagram-e8c7a",
+            storageBucket: "instagram-e8c7a.firebasestorage.app",
+            messagingSenderId: "270990839800",
+            appId: "1:270990839800:web:7f56ea2ea8d941219fd00d"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        const DEFAULT_IMG = "https://www.w3schools.com/howto/img_avatar.png";
+        let currentTempGender = "Prefer not to say";
+        let tempPostData = "";
+
+        // --- POSTING SYSTEM ---
+        function triggerPostSelect() { 
+            // Fix: Clear input value so selecting the same image twice still triggers 'onchange'
+            const fileInput = document.getElementById('postFileIn');
+            fileInput.value = ""; 
+            fileInput.click(); 
+        }
+
+        function handlePostSelection(e) {
+            const file = e.target.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                tempPostData = ev.target.result;
+                document.getElementById('np-preview-img').src = tempPostData;
+                document.getElementById('new-post-view').style.display = 'block';
+                document.getElementById('main-view').style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function closePostView() { 
+            document.getElementById('new-post-view').style.display = 'none'; 
+            document.getElementById('main-view').style.display = 'block'; 
+            document.getElementById('postCaptionInput').value = "";
+        }
+
+        async function finishPost() {
+            const shareBtn = document.getElementById('finalShareBtn');
+            const caption = document.getElementById('postCaptionInput').value;
+            
+            // Prevent double-clicking
+            shareBtn.disabled = true;
+            shareBtn.innerText = "Posting...";
+
+            try {
+                await db.collection('users').doc(LOGGED_USER).collection('posts').add({
+                    image: tempPostData,
+                    caption: caption,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                // Cleanup and return to profile
+                closePostView();
+                await updateUI();
+            } catch (error) {
+                console.error("Post failed:", error);
+                alert("Upload failed. Try again.");
+            } finally {
+                shareBtn.disabled = false;
+                shareBtn.innerText = "Share";
+            }
+        }
+
+        // --- PROFILE LOGIC ---
+        function openEdit() {
+            document.getElementById('edit-profile-view').style.display = 'block';
+            document.getElementById('main-bottom-nav').style.display = 'none';
+            document.body.style.overflow = 'hidden'; 
+        }
+        function closeEdit() { 
+            document.getElementById('edit-profile-view').style.display = 'none'; 
+            document.getElementById('main-bottom-nav').style.display = 'flex'; 
+            document.body.style.overflow = 'auto'; 
+        }
+
+        async function saveData() {
+            const name = document.getElementById('inName').value;
+            const bio = document.getElementById('inBio').value;
+            const user = document.getElementById('inUser').value;
+            await db.collection('users').doc(LOGGED_USER).set({
+                name: name,
+                bio: bio,
+                username: user
+            }, { merge: true });
+            closeEdit();
+            updateUI();
+        }
+
+        // --- GENDER LOGIC ---
+        function openGender() { document.getElementById('gender-view').style.display = 'block'; }
+        function closeGender() { document.getElementById('gender-view').style.display = 'none'; }
+        function selectGender(val, el) {
+            currentTempGender = val;
+            document.querySelectorAll('.gender-option').forEach(opt => opt.classList.remove('selected'));
+            el.classList.add('selected');
+            document.getElementById('custom-gender-box').style.display = (val === 'Custom') ? 'block' : 'none';
+        }
+        async function saveGender() {
+            let val = currentTempGender;
+            if(val === 'Custom') val = document.getElementById('customGenderInput').value || "Custom";
+            await db.collection('users').doc(LOGGED_USER).set({ gender: val }, { merge: true });
+            updateUI();
+            closeGender();
+        }
+
+        // --- AVATAR SHEET ---
+        function toggleSheet(show) {
+            const sheet = document.getElementById('sheet');
+            const overlay = document.getElementById('sheet-overlay');
+            if(show) { overlay.style.display = 'block'; setTimeout(() => sheet.classList.add('open'), 10); } 
+            else { sheet.classList.remove('open'); setTimeout(() => overlay.style.display = 'none', 300); }
+        }
+        function triggerFileSelect() { document.getElementById('fileIn').click(); }
+        function handleImage(e) {
+            const file = e.target.files[0]; if(!file) return;
+            const reader = new FileReader();
+            reader.onload = async (event) => { 
+                await db.collection('users').doc(LOGGED_USER).set({ profileImg: event.target.result }, { merge: true });
+                updateUI(); 
+                toggleSheet(false); 
+            };
+            reader.readAsDataURL(file);
+        }
+        async function removePhoto() { 
+            await db.collection('users').doc(LOGGED_USER).set({ profileImg: null }, { merge: true });
+            updateUI(); 
+            toggleSheet(false); 
+        }
+
+        // --- MAIN DATA SYNC ---
+        async function updateUI() {
+            const userSnap = await db.collection('users').doc(LOGGED_USER).get();
+            if(userSnap.exists) {
+                const data = userSnap.data();
+                const name = data.name || "";
+                const bio = data.bio || "";
+                const img = data.profileImg || DEFAULT_IMG;
+                const gender = data.gender || "Prefer not to say";
+                
+                document.getElementById('headerUser').innerText = LOGGED_USER;
+                document.getElementById('inUser').value = LOGGED_USER;
+                document.getElementById('profName').innerText = name;
+                document.getElementById('profBio').innerText = bio;
+                document.getElementById('inName').value = name;
+                document.getElementById('inBio').value = bio;
+                document.getElementById('mainProfPic').src = img;
+                document.getElementById('editProfPic').src = img;
+                document.getElementById('navThumb').src = img;
+                document.getElementById('genderLabel').innerText = gender;
+                document.getElementById('bluePrompt').style.display = (name.trim() || bio.trim()) ? 'none' : 'block';
+                document.getElementById('removePicBtn').style.display = (img !== DEFAULT_IMG) ? 'flex' : 'none';
+            }
+
+            const postSnap = await db.collection('users').doc(LOGGED_USER).collection('posts').orderBy('timestamp', 'desc').get();
+            const grid = document.getElementById('post-grid');
+            const empty = document.getElementById('empty-state');
+            grid.innerHTML = "";
+            
+            if(!postSnap.empty) {
+                empty.style.display = "none";
+                grid.style.display = "grid";
+                postSnap.forEach(doc => {
+                    grid.innerHTML += `<div class="grid-item"><img src="${doc.data().image}"></div>`;
+                });
+            } else {
+                empty.style.display = "block";
+                grid.style.display = "none";
+            }
+            document.getElementById('postCount').innerText = postSnap.size;
+        }
+
+        updateUI();
+    </script>
+</body>
+</html>
