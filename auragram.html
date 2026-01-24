@@ -7,9 +7,11 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <style>
-        /* ALL YOUR ORIGINAL CSS REMAINS EXACTLY THE SAME */
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
         body { background-color: #000; color: white; overflow-x: hidden; }
+        /* Flicker Fix: Hide main view initially */
+        #main-view { display: none; }
+        
         nav { height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; position: sticky; top: 0; background-color: #000; z-index: 10; border-bottom: 0.1px solid #262626; }
         .nav-center { display: flex; align-items: center; gap: 4px; position: absolute; left: 50%; transform: translateX(-50%); }
         .nav-center span { font-size: 18px; font-weight: bold; }
@@ -93,6 +95,10 @@
         .sheet-option img { width: 24px; filter: invert(1); }
         .sheet-option.danger { color: #ed4956; }
         .sheet-footer { font-size: 12px; color: #a8a8a8; padding: 10px 20px; line-height: 1.4; }
+
+        /* Logout Menu Style */
+        #logout-menu-sheet { position: fixed; bottom: -100%; left: 0; width: 100%; background: #262626; border-radius: 15px 15px 0 0; z-index: 4001; transition: bottom 0.3s ease; padding: 10px 0 30px 0; }
+        #logout-menu-sheet.open { bottom: 0; }
     </style>
 </head>
 <body>
@@ -100,10 +106,10 @@
     <div id="main-view">
         <nav>
             <div style="font-size:28px; width:40px; cursor:pointer;" onclick="triggerPostSelect()">+</div>
-            <div class="nav-center"><span id="headerUser">zephyrax140</span><img src="https://cdn-icons-png.flaticon.com/512/2722/2722987.png" style="width:10px; filter:invert(1);"><div class="red-dot"></div></div>
+            <div class="nav-center"><span id="headerUser"></span><img src="https://cdn-icons-png.flaticon.com/512/2722/2722987.png" style="width:10px; filter:invert(1);"><div class="red-dot"></div></div>
             <div style="display:flex; gap:18px;">
                 <img src="https://cdn-icons-png.flaticon.com/512/11513/11513067.png" style="width:24px; filter:invert(1);">
-                <img src="https://cdn-icons-png.flaticon.com/512/151/151917.png" style="width:24px; filter:invert(1);">
+                <img src="https://cdn-icons-png.flaticon.com/512/151/151917.png" style="width:24px; filter:invert(1); cursor:pointer;" onclick="toggleLogoutMenu(true)">
             </div>
         </nav>
 
@@ -206,7 +212,7 @@
         <div class="gender-option" onclick="selectGender('Prefer not to say', this)"><span>Prefer not to say</span><div class="radio-circle"></div></div>
     </div>
 
-    <div id="sheet-overlay" onclick="toggleSheet(false)"></div>
+    <div id="sheet-overlay" onclick="closeAllSheets()"></div>
     <div id="sheet">
         <div class="sheet-handle"></div>
         <div class="sheet-tabs">
@@ -217,7 +223,12 @@
         <div class="sheet-option"><img src="https://cdn-icons-png.flaticon.com/512/124/124010.png"><span>Import from Facebook</span></div>
         <div class="sheet-option"><img src="https://cdn-icons-png.flaticon.com/512/685/685655.png"><span>Take photo</span></div>
         <div id="removePicBtn" class="sheet-option danger" style="display:none;" onclick="removePhoto()"><img src="https://cdn-icons-png.flaticon.com/512/1214/1214428.png" style="filter:none;"><span>Remove current picture</span></div>
-        <div class="sheet-footer">Your profile picture and avatar are visible to everyone. <a href="#" style="color:#0095f6; text-decoration:none;">Learn more</a></div>
+        <div class="sheet-footer">Your profile picture and avatar are visible to everyone.</div>
+    </div>
+
+    <div id="logout-menu-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-option" onclick="logout()"><img src="https://cdn-icons-png.flaticon.com/512/1286/1286853.png" style="filter:invert(1); width:20px;"><span>Log out</span></div>
     </div>
 
     <input type="file" id="fileIn" hidden accept="image/*" onchange="handleImage(event)">
@@ -242,9 +253,26 @@
         let currentTempGender = "Prefer not to say";
         let tempPostData = "";
 
+        // --- LOGOUT LOGIC ---
+        function toggleLogoutMenu(show) {
+            const sheet = document.getElementById('logout-menu-sheet');
+            const overlay = document.getElementById('sheet-overlay');
+            if(show) { overlay.style.display = 'block'; setTimeout(() => sheet.classList.add('open'), 10); } 
+            else { sheet.classList.remove('open'); setTimeout(() => overlay.style.display = 'none', 300); }
+        }
+
+        function logout() {
+            localStorage.removeItem('loggedUser');
+            window.location.href = "instagramm.html";
+        }
+
+        function closeAllSheets() {
+            toggleLogoutMenu(false);
+            toggleSheet(false);
+        }
+
         // --- POSTING SYSTEM ---
         function triggerPostSelect() { 
-            // Fix: Clear input value so selecting the same image twice still triggers 'onchange'
             const fileInput = document.getElementById('postFileIn');
             fileInput.value = ""; 
             fileInput.click(); 
@@ -272,25 +300,17 @@
         async function finishPost() {
             const shareBtn = document.getElementById('finalShareBtn');
             const caption = document.getElementById('postCaptionInput').value;
-            
-            // Prevent double-clicking
             shareBtn.disabled = true;
             shareBtn.innerText = "Posting...";
-
             try {
                 await db.collection('users').doc(LOGGED_USER).collection('posts').add({
                     image: tempPostData,
                     caption: caption,
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
-                
-                // Cleanup and return to profile
                 closePostView();
                 await updateUI();
-            } catch (error) {
-                console.error("Post failed:", error);
-                alert("Upload failed. Try again.");
-            } finally {
+            } catch (error) { alert("Upload failed."); } finally {
                 shareBtn.disabled = false;
                 shareBtn.innerText = "Share";
             }
@@ -402,6 +422,9 @@
                 grid.style.display = "none";
             }
             document.getElementById('postCount').innerText = postSnap.size;
+
+            // SHOW VIEW after first load
+            document.getElementById('main-view').style.display = 'block';
         }
 
         updateUI();
