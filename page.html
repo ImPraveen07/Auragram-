@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Explore - Auragram</title>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, sans-serif; }
+        body { background-color: #000; color: white; overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
+
+        /* Search Layout */
+        .search-header { position: sticky; top: 0; background: #000; padding: 10px 16px; z-index: 1000; }
+        .search-box { background: #262626; border-radius: 10px; display: flex; align-items: center; padding: 8px 12px; gap: 10px; position: relative; }
+        .search-box input { background: transparent; border: none; color: white; outline: none; width: 100%; font-size: 16px; }
+        
+        #clearSearch { 
+            display: none; width: 18px; height: 18px; background: #363636; 
+            color: #999; border-radius: 50%; text-align: center; 
+            line-height: 18px; font-size: 12px; font-weight: bold; cursor: pointer;
+        }
+
+        #search-results { display: none; padding-top: 10px; background: #000; min-height: 100vh; }
+        .user-result { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 0.1px solid #1a1a1a; cursor: pointer; }
+        .user-result img { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; }
+
+        /* Explore Grid */
+        #explore-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; padding-bottom: 60px; }
+        .grid-item { aspect-ratio: 1/1; background: #111; overflow: hidden; }
+        .grid-item img { width: 100%; height: 100%; object-fit: cover; }
+
+        /* Overlays */
+        #feed-overlay, #profile-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: #000; z-index: 2000; overflow-y: scroll; 
+            scroll-snap-type: y mandatory;
+        }
+        .feed-post { width: 100%; height: 100vh; scroll-snap-align: start; scroll-snap-stop: always; position: relative; display: flex; align-items: center; background: #000; }
+        .feed-img { width: 100%; max-height: 85vh; object-fit: contain; }
+        
+        .feed-ui { position: absolute; bottom: 80px; left: 16px; right: 60px; }
+        .feed-user { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-weight: 600; }
+        .feed-user img { width: 32px; height: 32px; border-radius: 50%; }
+
+        .feed-actions { position: absolute; right: 15px; bottom: 100px; display: flex; flex-direction: column; gap: 22px; align-items: center; }
+        .action-icon { width: 28px; filter: invert(1); }
+        .liked { filter: invert(24%) sepia(87%) saturate(6871%) hue-rotate(345deg) brightness(96%) contrast(108%) !important; }
+
+        /* Profile Style */
+        .profile-header { padding: 16px; }
+        .profile-stats { flex: 1; display: flex; justify-content: space-evenly; text-align: center; }
+        .btn-container { display: flex; gap: 8px; margin-top: 15px; }
+        .btn-follow { flex: 1; background: #0095f6; color: white; border: none; padding: 8px; border-radius: 8px; font-weight: 600; }
+        .btn-following { flex: 1; background: #363636; color: white; border: none; padding: 8px; border-radius: 8px; font-weight: 600; }
+
+        .back-btn { position: fixed; top: 15px; left: 15px; z-index: 3000; width: 25px; filter: invert(1); }
+
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; height: 50px; background: #000; border-top: 0.5px solid #262626; display: flex; justify-content: space-around; align-items: center; z-index: 1500; }
+        .bottom-nav img { width: 24px; filter: invert(1); }
+        .nav-pfp { width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid white; object-fit: cover; filter: none !important; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div class="search-header">
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Search" oninput="handleSearch(this.value)">
+            <div id="clearSearch" onclick="clearInput()">✕</div>
+        </div>
+        <div id="search-results"></div>
+    </div>
+
+    <div id="explore-grid"></div>
+
+    <div id="feed-overlay">
+        <img src="https://cdn-icons-png.flaticon.com/512/271/271218.png" class="back-btn" onclick="closeOverlays()">
+        <div id="feed-container"></div>
+    </div>
+
+    <div id="profile-overlay">
+        <img src="https://cdn-icons-png.flaticon.com/512/271/271218.png" class="back-btn" onclick="closeOverlays()">
+        <div id="profile-content"></div>
+    </div>
+
+    <div class="bottom-nav">
+        <img src="https://cdn-icons-png.flaticon.com/512/1946/1946436.png" onclick="window.location.href='profile.html'">
+        <img src="https://cdn-icons-png.flaticon.com/512/622/622669.png" style="border-bottom: 2px solid white; padding-bottom: 2px;">
+        <img src="https://cdn-icons-png.flaticon.com/512/3161/3161837.png"> 
+        <img src="https://cdn-icons-png.flaticon.com/512/1077/1077035.png"> 
+        <img id="navThumb" src="https://www.w3schools.com/howto/img_avatar.png" class="nav-pfp" onclick="window.location.href='profile.html'">
+    </div>
+
+    <script>
+        const LOGGED_USER = localStorage.getItem('loggedUser') || "guest";
+        const firebaseConfig = {
+            apiKey: "AIzaSyAHjilh7jAlS0e5qDKxbDZq3nbe3pFe4nE",
+            authDomain: "instagram-e8c7a.firebaseapp.com",
+            projectId: "instagram-e8c7a",
+            storageBucket: "instagram-e8c7a.firebasestorage.app",
+            messagingSenderId: "270990839800",
+            appId: "1:270990839800:web:7f56ea2ea8d941219fd00d"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        let allPosts = [];
+        let allUsers = [];
+
+        async function init() {
+            const mySnap = await db.collection('users').doc(LOGGED_USER).get();
+            if(mySnap.exists && mySnap.data().profileImg) document.getElementById('navThumb').src = mySnap.data().profileImg;
+
+            const usersSnapshot = await db.collection('users').get();
+            const grid = document.getElementById('explore-grid');
+            grid.innerHTML = "";
+            allPosts = []; allUsers = [];
+            
+            usersSnapshot.forEach(async userDoc => {
+                const userData = userDoc.data();
+                allUsers.push({ id: userDoc.id, ...userData });
+
+                const postsSnap = await db.collection('users').doc(userDoc.id).collection('posts').get();
+                postsSnap.forEach(postDoc => {
+                    const postData = { ...postDoc.data(), id: postDoc.id, owner: userDoc.id, userPic: userData.profileImg };
+                    allPosts.push(postData);
+                    
+                    const item = document.createElement('div');
+                    item.className = 'grid-item';
+                    item.innerHTML = `<img src="${postData.image}">`;
+                    item.onclick = () => openFeed(allPosts.length - 1);
+                    grid.appendChild(item);
+                });
+            });
+        }
+
+        function handleSearch(val) {
+            const grid = document.getElementById('explore-grid');
+            const results = document.getElementById('search-results');
+            const xBtn = document.getElementById('clearSearch');
+            xBtn.style.display = val.length > 0 ? "block" : "none";
+
+            if(val.length > 0) {
+                grid.style.display = 'none';
+                results.style.display = 'block';
+                const filtered = allUsers.filter(u => u.id.toLowerCase().includes(val.toLowerCase()));
+                results.innerHTML = filtered.map(u => `
+                    <div class="user-result" onclick="openProfile('${u.id}')">
+                        <img src="${u.profileImg || 'https://www.w3schools.com/howto/img_avatar.png'}">
+                        <b>${u.id}</b>
+                    </div>
+                `).join('');
+            } else {
+                grid.style.display = 'grid';
+                results.style.display = 'none';
+            }
+        }
+
+        function clearInput() {
+            const input = document.getElementById('searchInput');
+            input.value = "";
+            handleSearch("");
+        }
+
+        async function openProfile(userId) {
+            const userRef = db.collection('users').doc(userId);
+            const userSnap = await userRef.get();
+            const userData = userSnap.data();
+            
+            const mySnap = await db.collection('users').doc(LOGGED_USER).get();
+            const myFollowing = mySnap.data().followingList || [];
+            const isFollowing = myFollowing.includes(userId);
+
+            const postsSnap = await userRef.collection('posts').get();
+            const followerList = userData.followerList || [];
+            const followingList = userData.followingList || [];
+
+            let postHtml = `<div style="display:grid; grid-template-columns:repeat(3,1fr); gap:2px; margin-top:20px;">`;
+            postsSnap.forEach(p => postHtml += `<div class="grid-item"><img src="${p.data().image}"></div>`);
+            postHtml += `</div>`;
+
+            document.getElementById('profile-content').innerHTML = `
+                <div class="profile-header">
+                    <div style="display:flex; align-items:center;">
+                        <img src="${userData.profileImg || 'https://www.w3schools.com/howto/img_avatar.png'}" style="width:85px; height:85px; border-radius:50%; object-fit:cover;">
+                        <div class="profile-stats">
+                            <div><b>${postsSnap.size}</b><br><span style="color:#a8a8a8; font-size:12px;">posts</span></div>
+                            <div><b id="f-count">${followerList.length}</b><br><span style="color:#a8a8a8; font-size:12px;">followers</span></div>
+                            <div><b>${followingList.length}</b><br><span style="color:#a8a8a8; font-size:12px;">following</span></div>
+                        </div>
+                    </div>
+                    <div style="margin-top:10px;"><b>${userId}</b><p style="font-size:14px;">${userData.bio || ""}</p></div>
+                    <div class="btn-container">
+                        <button id="followBtn" class="${isFollowing ? 'btn-following' : 'btn-follow'}" onclick="toggleFollow('${userId}')">${isFollowing ? 'Following' : 'Follow'}</button>
+                        <button class="btn-following" style="flex:1;">Message</button>
+                    </div>
+                </div>
+                ${postHtml}
+            `;
+            document.getElementById('profile-overlay').style.display = 'block';
+        }
+
+        async function toggleFollow(targetId) {
+            const btn = document.getElementById('followBtn');
+            const fText = document.getElementById('f-count');
+            
+            const myRef = db.collection('users').doc(LOGGED_USER);
+            const targetRef = db.collection('users').doc(targetId);
+
+            const mySnap = await myRef.get();
+            const targetSnap = await targetRef.get();
+
+            let myFollowing = mySnap.data().followingList || [];
+            let targetFollowers = targetSnap.data().followerList || [];
+
+            if (myFollowing.includes(targetId)) {
+                // UNFOLLOW
+                myFollowing = myFollowing.filter(id => id !== targetId);
+                targetFollowers = targetFollowers.filter(id => id !== LOGGED_USER);
+                btn.innerText = "Follow"; btn.className = "btn-follow";
+            } else {
+                // FOLLOW
+                myFollowing.push(targetId);
+                targetFollowers.push(LOGGED_USER);
+                btn.innerText = "Following"; btn.className = "btn-following";
+            }
+
+            // INSTANT UI SYNC
+            fText.innerText = targetFollowers.length;
+
+            // UPDATE DATABASE
+            await myRef.update({ followingList: myFollowing });
+            await targetRef.update({ followerList: targetFollowers });
+
+            // Sync with local User array for search persistence
+            const userIdx = allUsers.findIndex(u => u.id === targetId);
+            if(userIdx !== -1) allUsers[userIdx].followerList = targetFollowers;
+        }
+
+        function openFeed(index) {
+            const container = document.getElementById('feed-container');
+            const list = [...allPosts.slice(index), ...allPosts.slice(0, index)];
+            container.innerHTML = list.map(post => `
+                <div class="feed-post">
+                    <img src="${post.image}" class="feed-img">
+                    <div class="feed-ui">
+                        <div class="feed-user"><img src="${post.userPic || 'https://www.w3schools.com/howto/img_avatar.png'}"><span>${post.owner}</span></div>
+                        <p>${post.caption || ""}</p>
+                    </div>
+                    <div class="feed-actions">
+                        <img id="l-${post.owner}-${post.id}" src="https://cdn-icons-png.flaticon.com/512/1077/1077035.png" 
+                             class="action-icon ${post.likes?.includes(LOGGED_USER) ? 'liked' : ''}" 
+                             onclick="toggleLike('${post.owner}', '${post.id}')">
+                        <img src="https://cdn-icons-png.flaticon.com/512/5948/5948565.png" class="action-icon">
+                    </div>
+                </div>
+            `).join('');
+            document.getElementById('feed-overlay').style.display = 'block';
+        }
+
+        async function toggleLike(owner, id) {
+            const icon = document.getElementById(`l-${owner}-${id}`);
+            const ref = db.collection('users').doc(owner).collection('posts').doc(id);
+            const snap = await ref.get();
+            let likes = snap.data().likes || [];
+            if (likes.includes(LOGGED_USER)) {
+                likes = likes.filter(u => u !== LOGGED_USER);
+                icon.classList.remove('liked');
+            } else {
+                likes.push(LOGGED_USER);
+                icon.classList.add('liked');
+            }
+            await ref.update({ likes: likes });
+        }
+
+        function closeOverlays() { document.querySelectorAll('#feed-overlay, #profile-overlay').forEach(el => el.style.display = 'none'); }
+        init();
+    </script>
+</body>
+</html>

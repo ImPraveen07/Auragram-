@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Auragram | Profile</title>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { background-color: #000; color: white; overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
+        
+        /* Navigation & Views */
+        #main-view, #edit-profile-view, #list-view, #gender-view, #new-post-view, #single-post-view { display: none; }
+        nav { height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; position: sticky; top: 0; background-color: #000; z-index: 10; border-bottom: 0.1px solid #262626; }
+        .nav-center { display: flex; align-items: center; gap: 4px; position: absolute; left: 50%; transform: translateX(-50%); }
+        .nav-center span { font-size: 18px; font-weight: bold; }
+        .red-dot { width: 7px; height: 7px; background: #ed4956; border-radius: 50%; border: 1.5px solid black; }
+        
+        /* Profile Section */
+        .profile-padding { padding: 0 16px; }
+        .profile-header { display: flex; align-items: center; margin: 10px 0 20px 0; }
+        .profile-img-container { position: relative; width: 80px; height: 80px; margin-right: 25px; }
+        .profile-main-pic { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 1px solid #333; }
+        .add-story-btn { position: absolute; bottom: 0; right: 0; background: #0095f6; border-radius: 50%; width: 22px; height: 22px; border: 2px solid black; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; }
+        
+        .profile-stats { display: flex; flex-grow: 1; justify-content: space-around; text-align: center; }
+        .stat-item { cursor: pointer; }
+        .stat-num { font-weight: bold; font-size: 18px; display: block; }
+        .stat-label { font-size: 13px; color: #a8a8a8; }
+        
+        .profile-info { margin-bottom: 20px; }
+        .actual-name { font-size: 14px; font-weight: bold; display: block; }
+        .actual-bio { font-size: 14px; color: #f5f5f5; display: block; margin-top: 2px; white-space: pre-wrap; }
+        .add-bio-link { font-size: 14px; color: #0095f6; font-weight: 500; cursor: pointer; }
+        
+        .edit-buttons { display: flex; gap: 8px; margin-bottom: 20px; }
+        .btn-gray { background: #262626; border: none; color: white; padding: 8px; flex: 1; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; }
+        
+        /* Grid Fix: PORTRAIT 4:5 RATIO with Zoom Effect */
+        .grid-tabs { display: flex; border-top: 0.5px solid #262626; }
+        .tab { flex: 1; text-align: center; padding: 12px; opacity: 0.5; }
+        .tab.active { border-bottom: 2px solid white; opacity: 1; }
+        .tab img { width: 22px; filter: invert(1); }
+        
+        #post-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; padding-bottom: 60px; }
+        .grid-item { 
+            aspect-ratio: 4 / 5; /* Instagram Portrait Ratio */
+            background: #111; 
+            position: relative; 
+            overflow: hidden; 
+            cursor: pointer; 
+        }
+        .grid-item img { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover; /* Zoom to fit ratio without stretching */
+        }
+        .delete-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(237, 73, 86, 0.85); color: white; display: none; align-items: center; justify-content: center; font-weight: bold; z-index: 5; }
+
+        /* Full View (Exact Ratio) */
+        #single-post-view { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 6000; overflow-y: auto; }
+        .sp-nav { height: 55px; display: flex; align-items: center; padding: 0 16px; border-bottom: 0.1px solid #262626; background: #000; position: sticky; top: 0; }
+        #sp-content { width: 100%; display: flex; flex-direction: column; align-items: center; }
+        .sp-img { width: 100%; height: auto; display: block; object-fit: contain; } /* Full view, no crop */
+        .sp-caption { width: 100%; padding: 12px 16px; font-size: 14px; }
+
+        /* List View */
+        #list-view { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 2000; overflow-y: auto; }
+        .list-header { height: 55px; display: flex; align-items: center; padding: 0 16px; border-bottom: 0.1px solid #262626; position: sticky; top: 0; background: #000; z-index: 10; }
+        .list-tabs { display: flex; border-bottom: 0.1px solid #262626; }
+        .l-tab { flex: 1; text-align: center; padding: 14px; color: #a8a8a8; font-weight: 600; font-size: 14px; }
+        .l-tab.active { color: white; border-bottom: 2px solid white; }
+        .user-row { display: flex; align-items: center; padding: 12px 16px; }
+        .user-row img { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; margin-right: 12px; }
+        .user-meta { flex-grow: 1; }
+        .u-id { font-weight: 600; font-size: 14px; display: block; }
+        .u-name { color: #a8a8a8; font-size: 13px; }
+        .action-btn { padding: 6px 14px; border-radius: 8px; font-weight: 600; font-size: 13px; border: none; }
+        .btn-blue { background: #0095f6; color: white; }
+        .btn-grey-outline { background: #363636; color: white; }
+
+        /* Edit Profile Styles */
+        #edit-profile-view { background: #000; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1000; overflow-y: auto; }
+        .edit-nav { height: 55px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 0.1px solid #262626; background: #000; position: sticky; top: 0; }
+        .edit-avatar-section { text-align: center; padding: 20px 0; }
+        .edit-pic-circle { width: 75px; height: 75px; border-radius: 50%; object-fit: cover; }
+        .input-box { width: 100%; border-bottom: 0.1px solid #262626; padding: 12px 16px; }
+        .input-box label { color: #a8a8a8; font-size: 12px; display: block; margin-bottom: 4px; }
+        .input-box input, .input-box textarea { width: 100%; background: transparent; border: none; color: white; font-size: 16px; outline: none; }
+        .edit-row { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 0.1px solid #262626; font-size: 16px; }
+
+        /* Gender Select */
+        #gender-view { background: #000; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 3000; }
+        .gender-option { display: flex; justify-content: space-between; padding: 18px 16px; border-bottom: 0.1px solid #262626; }
+        .radio-circle { width: 22px; height: 22px; border: 2px solid #555; border-radius: 50%; position: relative; }
+        .selected .radio-circle::after { content: ''; position: absolute; width: 12px; height: 12px; background: white; border-radius: 50%; top: 3px; left: 3px; }
+
+        /* Sheets */
+        #sheet-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 4000; }
+        #sheet { position: fixed; bottom: -100%; left: 0; width: 100%; background: #262626; border-radius: 15px 15px 0 0; z-index: 4001; transition: bottom 0.2s ease-out; padding: 10px 0 30px 0; }
+        #sheet.open { bottom: 0; }
+        .sheet-option { display: flex; align-items: center; gap: 15px; padding: 15px 20px; font-size: 16px; }
+        .sheet-option img { width: 24px; filter: invert(1); }
+
+        /* New Post */
+        #new-post-view { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 5000; overflow-y: auto; }
+        .np-preview-container { width: 100%; background: #111; display: flex; justify-content: center; align-items: center; min-height: 350px; }
+        .np-preview-img { width: 100%; height: auto; max-height: 70vh; object-fit: contain; }
+
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; height: 50px; background: #000; border-top: 0.5px solid #262626; display: flex; justify-content: space-around; align-items: center; z-index: 50; }
+        .bottom-nav img { width: 24px; filter: invert(1); }
+        .user-thumb { width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid white; object-fit: cover; }
+        #compression-toast { display: none; position: fixed; top: 70px; left: 50%; transform: translateX(-50%); background: #0095f6; color: white; padding: 8px 16px; border-radius: 20px; font-size: 12px; z-index: 7000; }
+    </style>
+</head>
+<body>
+
+    <div id="compression-toast">Optimizing...</div>
+
+    <div id="main-view">
+        <nav>
+            <div style="font-size:28px; width:40px;" onclick="triggerPostSelect()">+</div>
+            <div class="nav-center"><span id="headerUser"></span><div class="red-dot"></div></div>
+            <img src="https://cdn-icons-png.flaticon.com/512/151/151917.png" style="width:24px; filter:invert(1);" onclick="logout()">
+        </nav>
+
+        <div class="profile-padding">
+            <div class="profile-header">
+                <div class="profile-img-container">
+                    <img id="mainProfPic" src="" class="profile-main-pic">
+                    <div class="add-story-btn">+</div>
+                </div>
+                <div class="profile-stats">
+                    <div class="stat-item"><span id="postCount" class="stat-num">0</span><span class="stat-label">posts</span></div>
+                    <div class="stat-item" onclick="openList('followers')"><span id="followerCount" class="stat-num">0</span><span class="stat-label">followers</span></div>
+                    <div class="stat-item" onclick="openList('following')"><span id="followingCount" class="stat-num">0</span><span class="stat-label">following</span></div>
+                </div>
+            </div>
+            <div class="profile-info">
+                <span id="profName" class="actual-name"></span>
+                <span id="profBio" class="actual-bio"></span>
+                <div id="bluePrompt" class="add-bio-link" onclick="openEdit()">Add your name and bio</div>
+            </div>
+            <div class="edit-buttons">
+                <button class="btn-gray" onclick="openEdit()">Edit profile</button>
+                <button class="btn-gray">Share profile</button>
+            </div>
+        </div>
+
+        <div class="grid-tabs">
+            <div class="tab active"><img src="https://cdn-icons-png.flaticon.com/512/6245/6245413.png"></div>
+            <div class="tab"><img src="https://cdn-icons-png.flaticon.com/512/1077/1077063.png"></div>
+        </div>
+
+        <div id="post-grid"></div>
+
+        <div class="bottom-nav">
+            <img src="https://cdn-icons-png.flaticon.com/512/1946/1946436.png">
+            <img src="https://cdn-icons-png.flaticon.com/512/122/122635.png">
+            <img src="https://cdn-icons-png.flaticon.com/512/3161/3161837.png" onclick="triggerPostSelect()">
+            <img src="https://cdn-icons-png.flaticon.com/512/622/622669.png" onclick="window.location.href='page.html'">
+            <img id="navThumb" src="" class="user-thumb">
+        </div>
+    </div>
+
+    <div id="single-post-view">
+        <div class="sp-nav">
+            <img src="https://cdn-icons-png.flaticon.com/512/271/271218.png" style="width:20px; filter:invert(1);" onclick="closeSinglePost()">
+            <span style="margin-left:30px; font-weight:bold;">Posts</span>
+        </div>
+        <div id="sp-content"></div>
+    </div>
+
+    <div id="new-post-view">
+        <div class="edit-nav">
+            <span onclick="closePostView()">Cancel</span>
+            <span style="font-weight:bold;">New post</span>
+            <span style="color:#0095f6; font-weight:bold;" onclick="finishPost()">Share</span>
+        </div>
+        <div class="np-preview-container"><img id="np-preview-img" class="np-preview-img"></div>
+        <input type="text" id="postCaptionInput" class="np-input" placeholder="Add a caption...">
+    </div>
+
+    <div id="list-view">
+        <div class="list-header">
+            <img src="https://cdn-icons-png.flaticon.com/512/271/271218.png" style="width:20px; filter:invert(1);" onclick="closeList()">
+            <span id="listHeaderUser" style="margin-left: 20px; font-weight: bold;"></span>
+        </div>
+        <div class="list-tabs">
+            <div id="tab-followers" class="l-tab" onclick="switchListTab('followers')">Followers</div>
+            <div id="tab-following" class="l-tab" onclick="switchListTab('following')">Following</div>
+        </div>
+        <div id="list-content"></div>
+        <div id="sug-header" style="padding: 16px; font-weight: bold; display:none;">Suggested for you</div>
+        <div id="suggestions-content"></div>
+    </div>
+
+    <div id="edit-profile-view">
+        <div class="edit-nav">
+            <span onclick="closeEdit()">Cancel</span>
+            <span style="font-weight:bold;">Edit profile</span>
+            <span style="color:#0095f6; font-weight:bold;" onclick="saveData()">Done</span>
+        </div>
+        <div class="edit-avatar-section">
+            <img id="editProfPic" src="" class="edit-pic-circle">
+            <div style="color:#0095f6; margin-top:10px; font-weight:bold;" onclick="toggleSheet(true)">Edit picture</div>
+        </div>
+        <div class="input-box"><label>Name</label><input type="text" id="inName"></div>
+        <div class="input-box"><label>Username</label><input type="text" id="inUser" disabled></div>
+        <div class="input-box"><label>Bio</label><textarea id="inBio" rows="2"></textarea></div>
+        <div class="edit-row" onclick="openGender()"><span>Gender</span><span id="genderLabel" style="color:#a8a8a8;"></span></div>
+    </div>
+
+    <div id="gender-view">
+        <div class="edit-nav">
+            <span onclick="closeGender()">✕</span>
+            <span style="font-weight:bold;">Gender</span>
+            <span style="color:#0095f6; font-weight:bold;" onclick="saveGender()">Done</span>
+        </div>
+        <div style="padding-top:10px;">
+            <div class="gender-option" onclick="selectGender('Female', this)"><span>Female</span><div class="radio-circle"></div></div>
+            <div class="gender-option" onclick="selectGender('Male', this)"><span>Male</span><div class="radio-circle"></div></div>
+            <div class="gender-option" onclick="selectGender('Prefer not to say', this)"><span>Prefer not to say</span><div class="radio-circle"></div></div>
+        </div>
+    </div>
+
+    <div id="sheet-overlay" onclick="closeAllSheets()"></div>
+    <div id="sheet">
+        <div class="sheet-option" onclick="triggerFileSelect()"><span>Choose from gallery</span></div>
+        <div class="sheet-option" onclick="triggerCamera()"><span>Camera</span></div>
+    </div>
+
+    <input type="file" id="fileIn" hidden accept="image/*" onchange="handleImage(event)">
+    <input type="file" id="cameraIn" hidden accept="image/*" capture="user" onchange="handleImage(event)">
+    <input type="file" id="postFileIn" hidden accept="image/*" onchange="handlePostSelection(event)">
+
+    <script>
+        const LOGGED_USER = localStorage.getItem('loggedUser');
+        const firebaseConfig = { apiKey: "AIzaSyAHjilh7jAlS0e5qDKxbDZq3nbe3pFe4nE", authDomain: "instagram-e8c7a.firebaseapp.com", projectId: "instagram-e8c7a", storageBucket: "instagram-e8c7a.firebasestorage.app", messagingSenderId: "270990839800", appId: "1:270990839800:web:7f56ea2ea8d941219fd00d" };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const DEFAULT_IMG = "https://www.w3schools.com/howto/img_avatar.png";
+        
+        let tempPostData = "";
+        let longPressTimer;
+        let activeGender = "";
+        let hiddenSug = JSON.parse(localStorage.getItem('hiddenSug') || "[]");
+
+        async function updateUI() {
+            const snap = await db.collection('users').doc(LOGGED_USER).get();
+            if(!snap.exists) return;
+            const d = snap.data();
+            const pfp = d.profileImg || DEFAULT_IMG;
+
+            document.getElementById('headerUser').innerText = LOGGED_USER;
+            document.getElementById('profName').innerText = d.name || "";
+            document.getElementById('profBio').innerText = d.bio || "";
+            document.getElementById('mainProfPic').src = pfp;
+            document.getElementById('navThumb').src = pfp;
+            document.getElementById('editProfPic').src = pfp;
+            document.getElementById('inName').value = d.name || "";
+            document.getElementById('inUser').value = LOGGED_USER;
+            document.getElementById('inBio').value = d.bio || "";
+            activeGender = d.gender || "Prefer not to say";
+            document.getElementById('genderLabel').innerText = activeGender + " >";
+
+            document.getElementById('followerCount').innerText = (d.followerList || []).length;
+            document.getElementById('followingCount').innerText = (d.followingList || []).length;
+            document.getElementById('bluePrompt').style.display = (d.name || d.bio) ? 'none' : 'block';
+
+            const posts = await db.collection('users').doc(LOGGED_USER).collection('posts').orderBy('timestamp', 'desc').get();
+            const grid = document.getElementById('post-grid');
+            grid.innerHTML = "";
+            posts.forEach(doc => { 
+                const p = doc.data(); const id = doc.id;
+                grid.innerHTML += `
+                    <div class="grid-item">
+                        <img src="${p.image}" ontouchstart="startPress('${id}')" ontouchend="endPress()" onmousedown="startPress('${id}')" onmouseup="endPress()" onclick="openSinglePost('${p.image}', '${p.caption}')">
+                        <div id="del-${id}" class="delete-overlay" onclick="deletePost('${id}')">DELETE</div>
+                    </div>`;
+            });
+            document.getElementById('postCount').innerText = posts.size;
+            document.getElementById('main-view').style.display = 'block';
+        }
+
+        // --- IMAGE LOGIC (Preserve Aspect Ratio) ---
+        async function compress(s, maxWidth = 1080) {
+            document.getElementById('compression-toast').style.display = 'block';
+            return new Promise(r => {
+                const i = new Image(); i.src = s;
+                i.onload = () => {
+                    const c = document.createElement('canvas');
+                    let w = i.width, h = i.height;
+                    if (w > maxWidth) { h = (maxWidth / w) * h; w = maxWidth; }
+                    c.width = w; c.height = h;
+                    c.getContext('2d').drawImage(i, 0, 0, w, h);
+                    const res = c.toDataURL('image/jpeg', 0.8);
+                    document.getElementById('compression-toast').style.display = 'none';
+                    r(res);
+                };
+            });
+        }
+
+        // --- POSTING ---
+        function triggerPostSelect() { document.getElementById('postFileIn').click(); }
+        async function handlePostSelection(e) {
+            const file = e.target.files[0]; if(!file) return;
+            const reader = new FileReader();
+            reader.onload = async (ev) => {
+                tempPostData = await compress(ev.target.result);
+                document.getElementById('np-preview-img').src = tempPostData;
+                document.getElementById('new-post-view').style.display = 'block';
+                document.getElementById('main-view').style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function finishPost() {
+            await db.collection('users').doc(LOGGED_USER).collection('posts').add({
+                image: tempPostData,
+                caption: document.getElementById('postCaptionInput').value,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            closePostView(); updateUI();
+        }
+
+        // --- LIST VIEW LOGIC ---
+        let currentTab = 'followers';
+        function openList(tab) {
+            currentTab = tab;
+            document.getElementById('list-view').style.display = 'block';
+            document.getElementById('main-view').style.display = 'none';
+            document.getElementById('listHeaderUser').innerText = LOGGED_USER;
+            switchListTab(tab);
+        }
+
+        async function switchListTab(tab) {
+            currentTab = tab;
+            document.getElementById('tab-followers').className = tab === 'followers' ? 'l-tab active' : 'l-tab';
+            document.getElementById('tab-following').className = tab === 'following' ? 'l-tab active' : 'l-tab';
+            
+            const snap = await db.collection('users').doc(LOGGED_USER).get();
+            const d = snap.data();
+            const uids = (tab === 'followers' ? d.followerList : d.followingList) || [];
+            const container = document.getElementById('list-content');
+            container.innerHTML = "";
+
+            for(let uid of uids) {
+                const uDoc = await db.collection('users').doc(uid).get();
+                const ud = uDoc.data();
+                container.innerHTML += `
+                    <div class="user-row">
+                        <img src="${ud.profileImg || DEFAULT_IMG}">
+                        <div class="user-meta"><span class="u-id">${uid}</span><span class="u-name">${ud.name || ''}</span></div>
+                        <button class="action-btn btn-grey-outline" onclick="removeUser('${uid}')">${tab === 'followers' ? 'Remove' : 'Following'}</button>
+                    </div>`;
+            }
+            renderSuggestions(d.followingList || []);
+        }
+
+        async function renderSuggestions(following) {
+            const users = await db.collection('users').limit(15).get();
+            const container = document.getElementById('suggestions-content'); container.innerHTML = "";
+            let count = 0;
+            users.forEach(doc => {
+                const uid = doc.id;
+                if(uid !== LOGGED_USER && !following.includes(uid) && !hiddenSug.includes(uid)) {
+                    count++;
+                    container.innerHTML += `
+                        <div class="user-row">
+                            <img src="${doc.data().profileImg || DEFAULT_IMG}">
+                            <div class="user-meta"><span class="u-id">${uid}</span><span class="u-name">Suggested for you</span></div>
+                            <button class="action-btn btn-blue" onclick="follow('${uid}')">Follow</button>
+                        </div>`;
+                }
+            });
+            document.getElementById('sug-header').style.display = count > 0 ? 'block' : 'none';
+        }
+
+        async function follow(target) {
+            await db.collection('users').doc(LOGGED_USER).update({ followingList: firebase.firestore.FieldValue.arrayUnion(target) });
+            await db.collection('users').doc(target).update({ followerList: firebase.firestore.FieldValue.arrayUnion(LOGGED_USER) });
+            switchListTab('following'); updateUI();
+        }
+
+        // --- EDITING ---
+        function openEdit() { document.getElementById('edit-profile-view').style.display = 'block'; }
+        function closeEdit() { document.getElementById('edit-profile-view').style.display = 'none'; }
+        async function saveData() {
+            await db.collection('users').doc(LOGGED_USER).update({
+                name: document.getElementById('inName').value,
+                bio: document.getElementById('inBio').value,
+                gender: activeGender
+            });
+            closeEdit(); updateUI();
+        }
+
+        // --- GENDER ---
+        function openGender() { document.getElementById('gender-view').style.display = 'block'; }
+        function closeGender() { document.getElementById('gender-view').style.display = 'none'; }
+        function selectGender(val, el) {
+            activeGender = val;
+            document.querySelectorAll('.gender-option').forEach(o => o.classList.remove('selected'));
+            el.classList.add('selected');
+        }
+        function saveGender() { 
+            document.getElementById('genderLabel').innerText = activeGender + " >";
+            closeGender(); 
+        }
+
+        // --- HELPERS ---
+        function openSinglePost(img, cap) {
+            document.getElementById('sp-content').innerHTML = `<img src="${img}" class="sp-img"><div class="sp-caption"><b>${LOGGED_USER}</b> ${cap || ""}</div>`;
+            document.getElementById('single-post-view').style.display = 'block';
+            document.getElementById('main-view').style.display = 'none';
+        }
+        function closeSinglePost() { document.getElementById('single-post-view').style.display = 'none'; document.getElementById('main-view').style.display = 'block'; }
+        function closePostView() { document.getElementById('new-post-view').style.display = 'none'; document.getElementById('main-view').style.display = 'block'; }
+        function closeList() { document.getElementById('list-view').style.display = 'none'; document.getElementById('main-view').style.display = 'block'; }
+        function startPress(id) { longPressTimer = setTimeout(() => { document.getElementById('del-'+id).style.display = 'flex'; }, 800); }
+        function endPress() { clearTimeout(longPressTimer); }
+        async function deletePost(id) { if(confirm("Delete post?")) { await db.collection('users').doc(LOGGED_USER).collection('posts').doc(id).delete(); updateUI(); } }
+        function toggleSheet(s) {
+            const sh = document.getElementById('sheet'), o = document.getElementById('sheet-overlay');
+            if(s) { o.style.display = 'block'; setTimeout(() => sh.classList.add('open'), 10); }
+            else { sh.classList.remove('open'); setTimeout(() => o.style.display = 'none', 300); }
+        }
+        function closeAllSheets() { toggleSheet(false); document.querySelectorAll('.delete-overlay').forEach(d => d.style.display = 'none'); }
+        function triggerFileSelect() { document.getElementById('fileIn').click(); }
+        function triggerCamera() { document.getElementById('cameraIn').click(); }
+        async function handleImage(e) {
+            const reader = new FileReader();
+            reader.onload = async (ev) => {
+                const data = await compress(ev.target.result, 300);
+                await db.collection('users').doc(LOGGED_USER).update({ profileImg: data });
+                updateUI(); toggleSheet(false);
+            };
+            reader.readAsDataURL(e.target.files[0]);
+        }
+        function logout() { localStorage.clear(); window.location.reload(); }
+
+        updateUI();
+    </script>
+</body>
+</html>
