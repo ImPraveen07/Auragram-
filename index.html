@@ -21,7 +21,7 @@
     body, html { height: 100%; background-color: var(--bg-color); color: var(--text-main); overflow: hidden; }
 
     /* VIEWPORT SLIDER */
-    #viewport { width: 100%; height: 100%; overflow: hidden; position: relative; transition: opacity 0.5s ease, transform 0.5s ease; }
+    #viewport { width: 100%; height: 100%; overflow: hidden; position: relative; transition: opacity 0.3s ease; }
     #app-slider { 
         display: flex; width: 500%; height: 100%; 
         transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
@@ -60,8 +60,8 @@
     .next-btn-main:disabled { opacity: 0.5; cursor: not-allowed; }
 
     /* MODALS */
-    #picker-modal, #forgot-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px;}
-    .picker-box, .forgot-box { background: #1c2d38; width: 100%; max-width: 320px; border-radius: 12px; padding: 25px; text-align: center; }
+    #picker-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px;}
+    .picker-box { background: #1c2d38; width: 100%; max-width: 320px; border-radius: 12px; padding: 25px; text-align: center; }
     .wheel-wrap { display: flex; justify-content: space-around; height: 120px; position: relative; overflow: hidden; border-top: 1px solid #2d3d48; border-bottom: 1px solid #2d3d48; }
     .wheel { flex: 1; height: 100%; overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none; text-align: center; }
     .wheel::-webkit-scrollbar { display: none; }
@@ -131,7 +131,7 @@
             <h1 class="header-title" style="font-size: 26px;">Agree to Instagram's terms and policies</h1>
             <p class="header-sub">People who use our service may have uploaded your contact information to Instagram. <a href="#">Learn more</a></p>
             <p class="header-sub">By tapping <b>I agree</b>, you agree to create an account and to Instagram's <a href="#">Terms</a>, <a href="#">Privacy Policy</a> and <a href="#">Cookies Policy</a>.</p>
-            <p class="header-sub">The <a href="#">Privacy Policy</a> describes the ways we can use the information we collect when you create an account. For example, we use this information to provide, personalise and improve our products, including ads.</p>
+            <p class="header-sub">The <a href="#">Privacy Policy</a> describes the ways we can use the information we collect when you create an account.</p>
             <button id="finishAccount" class="next-btn-main">I agree</button>
         </div>
     </div>
@@ -176,18 +176,32 @@
     const viewport = document.getElementById('viewport');
     const slideTo = (index) => slider.style.transform = `translateX(-${index * 20}%)`;
 
+    // --- INSTANT LOCAL STORAGE CHECK ---
+    const status = localStorage.getItem('loginStatus');
+    const loggedUser = localStorage.getItem('loggedUser');
+
+    if (status === 'logone' && loggedUser) {
+        viewport.style.display = 'none'; // Instant hide
+        window.location.href = "profile.html";
+    }
+
     // 1. LOGIN LOGIC
     document.getElementById('handleLogin').onclick = async () => {
         const u = document.getElementById('loginUser').value.trim().toLowerCase();
         const p = document.getElementById('loginPass').value;
         const err = document.getElementById('loginError');
         if(!u || !p) return;
+        
         err.style.display = 'none';
         const docSnap = await getDoc(doc(db, "users", u));
+        
         if (docSnap.exists() && docSnap.data().password === p) {
+            // Re-modify local storage
             localStorage.setItem('loggedUser', u);
+            localStorage.setItem('loginStatus', 'logone');
+            
             viewport.style.opacity = '0';
-            setTimeout(() => { window.location.href = "auragram.html"; }, 500);
+            setTimeout(() => { window.location.href = "profile.html"; }, 300);
         } else {
             err.style.display = 'block';
             document.getElementById('forgotPassLink').style.display = 'block';
@@ -201,7 +215,7 @@
             slideTo(1);
             document.getElementById('usernameInput').value = result.user.displayName.split(' ')[0].toLowerCase() + Math.floor(100+Math.random()*899);
             checkAvailability();
-        } catch (err) { alert("Login Error"); }
+        } catch (err) { console.log("Signup process started"); }
     };
 
     const checkAvailability = async () => {
@@ -212,26 +226,26 @@
     };
 
     function updateUI(isOk) {
-        document.getElementById('statusIcon').className = isOk ? "status-indicator valid" : "status-indicator invalid";
-        document.getElementById('statusIcon').innerHTML = isOk ? "✓" : "✕";
-        document.getElementById('statusIcon').style.display = "flex";
+        const icon = document.getElementById('statusIcon');
+        icon.className = isOk ? "status-indicator valid" : "status-indicator invalid";
+        icon.innerHTML = isOk ? "✓" : "✕";
+        icon.style.display = "flex";
         document.getElementById('submitUsername').disabled = !isOk;
     }
 
     document.getElementById('usernameInput').addEventListener('input', checkAvailability);
     document.getElementById('submitUsername').onclick = () => slideTo(2);
     document.getElementById('passwordInput').oninput = () => { document.getElementById('finalSubmit').disabled = document.getElementById('passwordInput').value.length < 6; };
-    document.getElementById('togglePass').onclick = () => { document.getElementById('passwordInput').type = document.getElementById('passwordInput').type === 'password' ? 'text' : 'password'; };
-    
-    // Open Picker with Default Date
-    document.getElementById('finalSubmit').onclick = () => { 
-        slideTo(3); 
-        openPicker();
+    document.getElementById('togglePass').onclick = () => { 
+        const pass = document.getElementById('passwordInput');
+        pass.type = pass.type === 'password' ? 'text' : 'password'; 
     };
+    
+    document.getElementById('finalSubmit').onclick = () => { slideTo(3); openPicker(); };
     document.getElementById('nextToTerms').onclick = () => slideTo(4);
 
     // 3. DATE PICKER SYSTEM
-    const today = new Date(2026, 0, 24); // Today: Jan 24, 2026
+    const today = new Date(2026, 2, 19); 
     const days = Array.from({length: 31}, (_, i) => i + 1);
     const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     const years = Array.from({length: 100}, (_, i) => 2026 - i);
@@ -239,13 +253,11 @@
     function populateWheel(id, items) {
         const wheel = document.getElementById(id);
         wheel.innerHTML = '<div></div>' + items.map(item => `<div>${item}</div>`).join('') + '<div></div>';
-        wheel.addEventListener('scroll', () => highlightSelection(wheel));
-    }
-
-    function highlightSelection(wheel) {
-        const index = Math.round(wheel.scrollTop / 40);
-        Array.from(wheel.children).forEach((child, i) => {
-            child.className = (i === index + 1) ? 'selected' : '';
+        wheel.addEventListener('scroll', () => {
+            const index = Math.round(wheel.scrollTop / 40);
+            Array.from(wheel.children).forEach((child, i) => {
+                child.className = (i === index + 1) ? 'selected' : '';
+            });
         });
     }
 
@@ -255,15 +267,10 @@
 
     function openPicker() {
         document.getElementById('picker-modal').style.display = 'flex';
-        // Set to Current Date Defaults
         setTimeout(() => {
             document.getElementById('dayWheel').scrollTop = (today.getDate() - 1) * 40;
             document.getElementById('monthWheel').scrollTop = today.getMonth() * 40;
-            document.getElementById('yearWheel').scrollTop = 0; // 2026 is index 0
-            
-            highlightSelection(document.getElementById('dayWheel'));
-            highlightSelection(document.getElementById('monthWheel'));
-            highlightSelection(document.getElementById('yearWheel'));
+            document.getElementById('yearWheel').scrollTop = 0;
         }, 10);
     }
 
@@ -272,14 +279,12 @@
         const mIdx = Math.round(document.getElementById('monthWheel').scrollTop / 40);
         const yIdx = Math.round(document.getElementById('yearWheel').scrollTop / 40);
 
-        const selDay = days[dIdx] || today.getDate();
+        const selDay = days[dIdx];
         const selMonth = mIdx; 
-        const selYear = years[yIdx] || 2026;
+        const selYear = years[yIdx];
 
         let age = today.getFullYear() - selYear;
-        if (today.getMonth() < selMonth || (today.getMonth() === selMonth && today.getDate() < selDay)) {
-            age--;
-        }
+        if (today.getMonth() < selMonth || (today.getMonth() === selMonth && today.getDate() < selDay)) age--;
 
         document.getElementById('dobValueDisplay').innerText = `${selDay} ${months[selMonth]} ${selYear}`;
         document.getElementById('ageLabel').innerText = `Birthday (${age} years old)`;
@@ -296,18 +301,22 @@
     document.getElementById('finishAccount').onclick = async () => {
         const u = document.getElementById('usernameInput').value.trim().toLowerCase();
         try {
+            // Save status to local
             localStorage.setItem('loggedUser', u);
+            localStorage.setItem('loginStatus', 'logone');
+
             await setDoc(doc(db, "users", u), {
                 username: u, 
                 password: document.getElementById('passwordInput').value,
                 dob: document.getElementById('dobValueDisplay').innerText,
-                email: auth.currentUser.email, 
-                createdAt: new Date()
+                email: auth.currentUser ? auth.currentUser.email : "guest", 
+                createdAt: new Date(),
+                followerList: [],
+                followingList: []
             });
-            window.location.href = "auragram.html";
-        } catch (e) { alert("Error"); }
+            window.location.href = "profile.html";
+        } catch (e) { alert("Error saving account."); }
     };
 </script>
 </body>
 </html>
-
