@@ -1,127 +1,87 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Auragram | Unmuted Reels</title>
+    <title>Auragram | Snap Fix</title>
     <script async src="https://www.snapchat.com/js/embed.js"></script>
     
     <style>
         * { margin:0; padding:0; box-sizing:border-box; font-family: sans-serif; }
-        body { background:#000; color:#fff; overflow:hidden; height: 100vh; }
-
-        /* THE STARTER OVERLAY (Required for Unmuted Audio) */
-        #unmute-overlay {
-            position: fixed; top:0; left:0; width:100%; height:100%;
-            background: rgba(0,0,0,0.9); z-index: 9999;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-        }
-        .start-btn {
-            background: #FFFC00; color: #000; padding: 20px 40px;
-            border-radius: 50px; font-weight: 900; font-size: 1.2rem; border: none;
-        }
+        body { background:#000; color:#fff; overflow:hidden; }
 
         .top-nav {
             position: fixed; top:0; width:100%; padding:15px;
-            background:rgba(0,0,0,0.8); z-index: 100; display:flex; gap:10px;
+            background:rgba(0,0,0,0.8); z-index:100; display:flex; gap:10px;
         }
-        input { flex:1; padding:12px; border-radius:10px; border:none; background:#222; color:#fff; outline: none; }
-        button#add-btn { padding:12px; border-radius:10px; border:none; background:#FFFC00; color:#000; font-weight:bold; }
+        input { flex:1; padding:10px; border-radius:8px; border:none; background:#222; color:#fff; }
+        button { padding:10px 20px; border-radius:8px; border:none; background:#FFFC00; color:#000; font-weight:bold; }
 
         #feed { height:100vh; overflow-y:scroll; scroll-snap-type:y mandatory; scrollbar-width:none; }
-        #feed::-webkit-scrollbar { display:none; }
-
         .reel { 
             height:100vh; width:100%; scroll-snap-align:start; 
             display:flex; align-items:center; justify-content:center; position:relative;
         }
-        .snap-box { width:100%; height:100%; }
+
+        /* The Fix: Ensuring the container has height */
+        .snap-box { width:100%; height:90vh; display:flex; justify-content:center; }
+        
         iframe, video { width:100%; height:100%; border:none; }
+        
+        .loading-text { position:absolute; z-index:-1; color:#444; }
     </style>
 </head>
 <body>
 
-    <div id="unmute-overlay">
-        <button class="start-btn" onclick="unlockAudio()">TAP TO START REELS</button>
-        <p style="margin-top:15px; color:#888; font-size:12px;">Unmutes Audio Automatically</p>
-    </div>
-
     <div class="top-nav">
-        <input type="text" id="urlInput" placeholder="Paste Snap / YT Short Link...">
-        <button id="add-btn" onclick="addReel()">ADD</button>
+        <input type="text" id="link" placeholder="Paste Snap Spotlight Link...">
+        <button onclick="addSnap()">ADD</button>
     </div>
 
     <div id="feed"></div>
 
     <script>
-        let isAudioUnlocked = false;
-
-        // Unlocks the browser's audio policy
-        function unlockAudio() {
-            isAudioUnlocked = true;
-            document.getElementById('unmute-overlay').style.display = 'none';
-            // Pre-load Snap SDK if not ready
-            if(window.snapchat) window.snapchat.embed();
-        }
-
-        function addReel() {
-            let url = document.getElementById('urlInput').value.trim();
+        function addSnap() {
+            let url = document.getElementById('link').value.trim();
             if(!url) return;
+
+            // Clean the URL (removes tracking junk)
             if(url.includes('?')) url = url.split('?')[0];
 
             const feed = document.getElementById('feed');
             const div = document.createElement('div');
             div.className = 'reel';
 
-            let type = "video";
-            if(url.includes("snapchat.com")) type = "snap";
-            if(url.includes("youtube.com") || url.includes("youtu.be")) type = "yt";
+            // We use a clean Embed format
+            div.innerHTML = `
+                <div class="loading-text">Loading Video...</div>
+                <div class="snap-box">
+                    <blockquote class="snapchat-embed" 
+                        data-snapchat-embed-url="${url}" 
+                        data-snapchat-embed-width="100%" 
+                        data-snapchat-embed-height="100%">
+                    </blockquote>
+                </div>
+            `;
 
-            let content = "";
-            if(type === "snap") {
-                content = `<blockquote class="snapchat-embed" data-snapchat-embed-url="${url}"></blockquote>`;
-            } else if(type === "yt") {
-                let id = url.split('shorts/')[1] || url.split('v=')[1] || url.split('/').pop();
-                // YT embed with autoplay=1 and MUTE=0 (unmuted)
-                content = `<iframe src="https://www.youtube.com/embed/${id}?autoplay=1&mute=0&controls=0&loop=1&playlist=${id}" allow="autoplay"></iframe>`;
-            } else {
-                content = `<video src="${url}" loop playsinline autoplay></video>`;
-            }
-
-            div.innerHTML = `<div class="snap-box">${content}</div>`;
             feed.prepend(div);
-            document.getElementById('urlInput').value = "";
-
-            if(window.snapchat) window.snapchat.embed();
+            document.getElementById('link').value = "";
             div.scrollIntoView({behavior:'smooth'});
-            
-            setupObserver();
-        }
 
-        function setupObserver() {
-            const obs = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    const video = entry.target.querySelector('video');
-                    const iframe = entry.target.querySelector('iframe');
-                    
-                    if(entry.isIntersecting) {
-                        if(video) {
-                            video.muted = false; // Force Unmute
-                            video.play();
-                        }
-                        // For YT, the iframe src already has mute=0
-                        if(iframe) {
-                            iframe.contentWindow.postMessage('{"event":"command","func":"unMute","args":""}', '*');
-                            iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
-                        }
-                    } else {
-                        if(video) video.pause();
-                        if(iframe) iframe.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
-                    }
-                });
-            }, { threshold: 0.8 });
+            // 1. Tell Snapchat to render
+            if(window.snapchat) window.snapchat.embed();
 
-            document.querySelectorAll('.reel').forEach(r => obs.observe(r));
+            // 2. THE ULTIMATE FALLBACK
+            // If it's still black/empty after 3 seconds, we force an iframe
+            setTimeout(() => {
+                const box = div.querySelector('.snap-box');
+                // Check if the SDK actually put an iframe inside
+                if (box.innerHTML.includes('blockquote') && !box.querySelector('iframe')) {
+                    console.log("SDK Failed. Switching to Iframe Fallback...");
+                    box.innerHTML = `<iframe src="${url.replace('snapchat.com', 'snapchat.com/embed')}" allow="autoplay"></iframe>`;
+                }
+            }, 3000);
         }
     </script>
 </body>
