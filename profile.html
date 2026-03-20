@@ -907,31 +907,52 @@
             render();
             switchTab('posts');
         }
+async function shareReel() {
+    const url = document.getElementById("rv-url").value;
+    const cap = document.getElementById("rv-cap").value;
+    if(!url) return alert("Please enter a URL");
+    
+    let ytId = "";
+    const match = url.match(/(?:shorts\/|v=|youtu\.be\/)([^&?\n]+)/);
+    if(match && match[1]) ytId = match[1];
+    else return alert("Invalid YouTube URL");
 
-        async function shareReel() {
-            const url = document.getElementById("rv-url").value;
-            const cap = document.getElementById("rv-cap").value;
-            if(!url) return alert("Please enter a URL");
-            let ytId = "";
-            const match = url.match(/(?:shorts\/|v=|youtu\.be\/)([^&?\n]+)/);
-            if(match && match[1]) ytId = match[1];
-            else return alert("Invalid YouTube URL");
+    const thumb = `https://i.ytimg.com/vi/${ytId}/hqdefault.jpg`;
+    
+    // UI Cleanup
+    document.getElementById("new-reel-view").style.display="none";
+    document.getElementById("rv-url").value="";
+    document.getElementById("rv-cap").value="";
+    toast("Uploading Reel...");
 
-            const thumb = `https://i.ytimg.com/vi/${ytId}/hqdefault.jpg`;
-            document.getElementById("new-reel-view").style.display="none";
-            document.getElementById("rv-url").value="";
-            document.getElementById("rv-cap").value="";
+    const newReel = {
+        ytId: ytId,
+        thumbnail: thumb,
+        caption: cap,
+        likes: [],
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    };
 
-            await db.collection("users").doc(LOG).collection("reels").add({
-                ytId: ytId,
-                thumbnail: thumb,
-                caption: cap,
-                likes: [],
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            render();
-            switchTab('reels');
-        }
+    try {
+        // 1. Save to Firestore
+        const docRef = await db.collection("users").doc(LOG).collection("reels").add(newReel);
+        
+        // 2. Manually push to local data so playReel can see it immediately
+        reelsData.unshift({ id: docRef.id, ...newReel }); 
+
+        // 3. Force re-render of the reels grid
+        await render(); 
+        
+        // 4. Switch to reels tab to show success
+        switchTab('reels');
+        toast("Reel shared successfully!");
+    } catch (e) {
+        console.error("Error sharing reel: ", e);
+        toast("Failed to share reel.");
+    }
+}
+
+        
 
         function openSh(t, e, n) {
             const i = document.getElementById("sh");
