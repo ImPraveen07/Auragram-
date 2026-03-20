@@ -368,61 +368,59 @@
         
         let VIEW = LOG, curG = "", postsData = [], reelsData = [], curPostId = null, curCommType = "posts", lastT = 0, reelLastT = 0, replyingToCid = null, replyingToUser = null, tempPostImg = null;
         let reelObserver = null; 
-async function uploadReelToCloudinary(event) {
-    const file = event.target.files[0];
-    if (!file) return;
 
-    const CLOUD_NAME = "ditmmz5hk"; 
-    const UPLOAD_PRESET = "my_video_preset"; 
+        async function uploadReelToCloudinary(event) {
+            const file = event.target.files[0];
+            if (!file) return;
 
-    document.getElementById("load").innerText = "Uploading Video...";
-    document.getElementById("load").style.display = "block";
-    closeCreateSheet();
+            const CLOUD_NAME = "ditmmz5hk"; 
+            const UPLOAD_PRESET = "my_video_preset"; 
 
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("upload_preset", UPLOAD_PRESET);
+            document.getElementById("load").innerText = "Uploading Video...";
+            document.getElementById("load").style.display = "block";
+            closeCreateSheet();
 
-    try {
-        const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/video/upload`, {
-            method: "POST",
-            body: formData
-        });
+            const formData = new FormData();
+            formData.append("file", file);
+            formData.append("upload_preset", UPLOAD_PRESET);
 
-        const data = await response.json();
+            try {
+                const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/video/upload`, {
+                    method: "POST",
+                    body: formData
+                });
 
-        if (data.secure_url) {
-            // THE PART YOU WERE LOOKING FOR:
-            // This transforms the .mp4 URL into a .jpg URL for the thumbnail
-            const videoUrl = data.secure_url;
-            const thumbUrl = videoUrl.substring(0, videoUrl.lastIndexOf(".")) + ".jpg";
+                const data = await response.json();
 
-            const caption = prompt("Add a caption for your Reel:");
-            
-            await db.collection("users").doc(LOG).collection("reels").add({
-                videoUrl: videoUrl, 
-                thumbnail: thumbUrl, // This is the generated JPG
-                caption: caption || "",
-                isCloudinary: true, 
-                likes: [],
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            });
+                if (data.secure_url) {
+                    const videoUrl = data.secure_url;
+                    const thumbUrl = videoUrl.substring(0, videoUrl.lastIndexOf(".")) + ".jpg";
 
-            toast("Gallery Reel Uploaded!");
-            render();
-            switchTab('reels');
-        } else {
-            alert("Upload failed: " + data.error.message);
+                    const caption = prompt("Add a caption for your Reel:");
+                    
+                    await db.collection("users").doc(LOG).collection("reels").add({
+                        videoUrl: videoUrl, 
+                        thumbnail: thumbUrl, 
+                        caption: caption || "",
+                        isCloudinary: true, 
+                        likes: [],
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+
+                    toast("Gallery Reel Uploaded!");
+                    render();
+                    switchTab('reels');
+                } else {
+                    alert("Upload failed: " + data.error.message);
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Network error during upload.");
+            } finally {
+                document.getElementById("load").style.display = "none";
+                document.getElementById("load").innerText = "Processing...";
+            }
         }
-    } catch (err) {
-        console.error(err);
-        alert("Network error during upload.");
-    } finally {
-        document.getElementById("load").style.display = "none";
-        document.getElementById("load").innerText = "Processing...";
-    }
-}
-
 
         async function init() {
             window.isFollowingView = false;
@@ -566,19 +564,19 @@ async function uploadReelToCloudinary(event) {
             if (reelObserver) reelObserver.disconnect();
             
             const container = document.getElementById('reels-scroll-container');
-            // Threshold dropped to 0.4 so it plays quickly on slight scroll
             const options = { root: container, threshold: 0.4 };
             
             reelObserver = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     const iframe = entry.target.querySelector('.yt-reel-iframe');
-                    if (entry.isIntersecting) {
-                        // Instant play
-                        iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
-                    } else {
-                        // Pause and Restart to 0 so it's fresh when scrolled back
-                        iframe.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
-                        iframe.contentWindow.postMessage('{"event":"command","func":"seekTo","args":[0, true]}', '*');
+                    // Ensure the iframe exists before trying to post messages to it
+                    if (iframe && iframe.contentWindow) {
+                        if (entry.isIntersecting) {
+                            iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+                        } else {
+                            iframe.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+                            iframe.contentWindow.postMessage('{"event":"command","func":"seekTo","args":[0, true]}', '*');
+                        }
                     }
                 });
             }, options);
@@ -617,56 +615,65 @@ async function uploadReelToCloudinary(event) {
                 const isLiked = !!LOG && (reel.likes || []).includes(LOG);
                 const capText = (reel.caption || "").replace(/(#[a-zA-Z0-9_]+)/g, '<span style="color:#e0f1ff; font-weight:600;">$1</span>');
                 
-                // Realtime follow logic injected directly
                 const followBtnHtml = (LOG && LOG !== VIEW) ? `<button id="r-fol-${reel.id}" onclick="toggleFolReel('${VIEW}', this)" style="background:transparent; border:1px solid #fff; color:#fff; padding:4px 10px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; pointer-events:auto;">${window.isFollowingView ? 'Following' : 'Follow'}</button>` : '';
-// Determine if it's a Cloudinary video or a YouTube iframe
-let mediaElement = '';
-if (reel.videoUrl) {
-    // Cloudinary/Gallery Video
-    mediaElement = `<video class="yt-reel-iframe" src="${reel.videoUrl}" loop muted playsinline autoplay style="width:100%; height:100%; object-fit:cover;"></video>`;
-} else {
-    // YouTube Shorts Link
-    mediaElement = `<iframe class="yt-reel-iframe" onload="if(this.parentElement.parentElement.getBoundingClientRect().top >= 0 && this.parentElement.parentElement.getBoundingClientRect().top < window.innerHeight){ this.contentWindow.postMessage('{\&quot;event\&quot;:\&quot;command\&quot;,\&quot;func\&quot;:\&quot;playVideo\&quot;,\&quot;args\&quot;:\&quot;\&quot;}', '*'); }" src="https://www.youtube.com/embed/${reel.ytId}?enablejsapi=1&loop=1&playlist=${reel.ytId}&controls=0&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3&disablekb=1" allow="autoplay; encrypted-media"></iframe>`;
-}
 
-container.innerHTML += `
-<div class="reel-item" id="reel-cont-${reel.id}">
-    <div class="reel-iframe-wrapper">
-        ${mediaElement}
-    </div>
-    <div class="reel-overlay" onclick="handleReelTap('${reel.id}')">
-        <img src="https://cdn-icons-png.flaticon.com/512/833/833472.png" class="heart-pop" id="rhp-${reel.id}">
-    </div>
-    <div class="reel-ui">
-        <div class="reel-actions" style="position:absolute; bottom:80px; right:15px; display:flex; flex-direction:column; gap:22px; align-items:center;">
-            <div class="r-act" onclick="toggleReelL('${reel.id}')">
-                <img id="r-hi-${reel.id}" src="${isLiked ? 'https://cdn-icons-png.flaticon.com/512/833/833472.png' : 'https://cdn-icons-png.flaticon.com/512/1077/1077035.png'}" style="width:28px; filter:${isLiked ? 'invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%)' : 'invert(1)'};">
-                <span id="r-lc-${reel.id}" style="font-size:12px; font-weight:700; text-shadow:1px 1px 2px #000;">${(reel.likes || []).length}</span>
-            </div>
-            <div class="r-act" onclick="openComm('${reel.id}', 'reels')">
-                <img src="https://cdn-icons-png.flaticon.com/512/1380/1380338.png" style="width:28px; filter:invert(1);">
-                <span id="r-cc-${reel.id}" style="font-size:12px; font-weight:700; text-shadow:1px 1px 2px #000;">...</span>
-            </div>
-            <div class="r-act" onclick="copyReel('${reel.id}')">
-                <img src="https://cdn-icons-png.flaticon.com/512/2099/2099085.png" style="width:28px; filter:invert(1);">
-                <span style="font-size:12px; font-weight:700; text-shadow:1px 1px 2px #000; margin-top:4px;">Share</span>
-            </div>
-            <div class="r-act" onclick="location.href='?u=${VIEW}'">
-                <img src="${profImg}" style="width:28px; height:28px; border-radius:5px; object-fit:cover; border:2px solid #fff;">
-            </div>
-        </div>
-        <div style="position:absolute; bottom:35px; left:15px; max-width:75%; text-shadow:1px 1px 2px rgba(0,0,0,0.8);">
-            <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
-                <img src="${profImg}" style="width:34px; height:34px; border-radius:50%; object-fit:cover; border:1px solid #fff; cursor:pointer; pointer-events:auto;" onclick="location.href='?u=${VIEW}'">
-                <b style="font-size:14.5px; cursor:pointer; pointer-events:auto;" onclick="location.href='?u=${VIEW}'">${VIEW}</b>
-                ${followBtnHtml}
-            </div>
-            <div style="font-size:14px; line-height:1.4; max-width:100%; pointer-events:auto;">
-                <span id="cap-text-${reel.id}" class="cap-text" onclick="toggleCap('${reel.id}')">${capText}</span>
-            </div>
-        </div>
-    </div>
-</div>`;
+                let mediaElement = '';
+                if (reel.videoUrl) {
+                    // FULL MOBILE FIX INJECTED HERE
+                    mediaElement = `
+                        <video class="yt-reel-iframe" 
+                               loop 
+                               muted 
+                               playsinline 
+                               webkit-playsinline 
+                               autoplay 
+                               preload="auto"
+                               style="width:100%; height:100%; object-fit:cover;">
+                            <source src="${reel.videoUrl}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>`;
+                } else {
+                    mediaElement = `<iframe class="yt-reel-iframe" onload="if(this.parentElement.parentElement.getBoundingClientRect().top >= 0 && this.parentElement.parentElement.getBoundingClientRect().top < window.innerHeight){ this.contentWindow.postMessage('{\\&quot;event\&quot;:\&quot;command\&quot;,\&quot;func\&quot;:\&quot;playVideo\&quot;,\&quot;args\&quot;:\&quot;\&quot;}', '*'); }" src="https://www.youtube.com/embed/${reel.ytId}?enablejsapi=1&loop=1&playlist=${reel.ytId}&controls=0&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3&disablekb=1" allow="autoplay; encrypted-media"></iframe>`;
+                }
+
+                container.innerHTML += `
+                <div class="reel-item" id="reel-cont-${reel.id}">
+                    <div class="reel-iframe-wrapper">
+                        ${mediaElement}
+                    </div>
+                    <div class="reel-overlay" onclick="handleReelTap('${reel.id}')">
+                        <img src="https://cdn-icons-png.flaticon.com/512/833/833472.png" class="heart-pop" id="rhp-${reel.id}">
+                    </div>
+                    <div class="reel-ui">
+                        <div class="reel-actions" style="position:absolute; bottom:80px; right:15px; display:flex; flex-direction:column; gap:22px; align-items:center;">
+                            <div class="r-act" onclick="toggleReelL('${reel.id}')">
+                                <img id="r-hi-${reel.id}" src="${isLiked ? 'https://cdn-icons-png.flaticon.com/512/833/833472.png' : 'https://cdn-icons-png.flaticon.com/512/1077/1077035.png'}" style="width:28px; filter:${isLiked ? 'invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%)' : 'invert(1)'};">
+                                <span id="r-lc-${reel.id}" style="font-size:12px; font-weight:700; text-shadow:1px 1px 2px #000;">${(reel.likes || []).length}</span>
+                            </div>
+                            <div class="r-act" onclick="openComm('${reel.id}', 'reels')">
+                                <img src="https://cdn-icons-png.flaticon.com/512/1380/1380338.png" style="width:28px; filter:invert(1);">
+                                <span id="r-cc-${reel.id}" style="font-size:12px; font-weight:700; text-shadow:1px 1px 2px #000;">...</span>
+                            </div>
+                            <div class="r-act" onclick="copyReel('${reel.id}')">
+                                <img src="https://cdn-icons-png.flaticon.com/512/2099/2099085.png" style="width:28px; filter:invert(1);">
+                                <span style="font-size:12px; font-weight:700; text-shadow:1px 1px 2px #000; margin-top:4px;">Share</span>
+                            </div>
+                            <div class="r-act" onclick="location.href='?u=${VIEW}'">
+                                <img src="${profImg}" style="width:28px; height:28px; border-radius:5px; object-fit:cover; border:2px solid #fff;">
+                            </div>
+                        </div>
+                        <div style="position:absolute; bottom:35px; left:15px; max-width:75%; text-shadow:1px 1px 2px rgba(0,0,0,0.8);">
+                            <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+                                <img src="${profImg}" style="width:34px; height:34px; border-radius:50%; object-fit:cover; border:1px solid #fff; cursor:pointer; pointer-events:auto;" onclick="location.href='?u=${VIEW}'">
+                                <b style="font-size:14.5px; cursor:pointer; pointer-events:auto;" onclick="location.href='?u=${VIEW}'">${VIEW}</b>
+                                ${followBtnHtml}
+                            </div>
+                            <div style="font-size:14px; line-height:1.4; max-width:100%; pointer-events:auto;">
+                                <span id="cap-text-${reel.id}" class="cap-text" onclick="toggleCap('${reel.id}')">${capText}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
 
                 db.collection("users").doc(VIEW).collection("reels").doc(reel.id).collection("comments").get().then(snap => {
                     const cc = document.getElementById(`r-cc-${reel.id}`);
