@@ -485,7 +485,6 @@
                     postsData.push({id: t.id, ...e});
                     c.innerHTML += `\n                <div class="g-item" style="aspect-ratio:4/5;" onclick="openFullFeed('${t.id}')">\n                    <img src="${e.image}" alt="Post image">\n                </div>`
                 });
-                document.getElementById("c-p").innerText = a.size;
 
                 const r = await db.collection("users").doc(VIEW).collection("reels").orderBy("timestamp","desc").get(), rg = document.getElementById("r-grid");
                 rg.innerHTML = "", reelsData = [];
@@ -497,6 +496,9 @@
                         <img src="${e.thumbnail}" style="width:100%;height:100%;object-fit:cover;">
                     </div>`;
                 });
+                
+                // Set total post count to include both posts AND reels now!
+                document.getElementById("c-p").innerText = a.size + r.size;
             }
         }
 
@@ -564,18 +566,33 @@
             if (reelObserver) reelObserver.disconnect();
             
             const container = document.getElementById('reels-scroll-container');
-            const options = { root: container, threshold: 0.4 };
+            // Adjusted threshold for smoother pre-loading behavior offscreen
+            const options = { root: container, threshold: 0.6 }; 
             
             reelObserver = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
-                    const iframe = entry.target.querySelector('.yt-reel-iframe');
-                    // Ensure the iframe exists before trying to post messages to it
+                    const iframe = entry.target.querySelector('iframe.yt-reel-iframe');
+                    // Handle YT iframes
                     if (iframe && iframe.contentWindow) {
                         if (entry.isIntersecting) {
                             iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+                            iframe.contentWindow.postMessage('{"event":"command","func":"unMute","args":""}', '*');
                         } else {
                             iframe.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
-                            iframe.contentWindow.postMessage('{"event":"command","func":"seekTo","args":[0, true]}', '*');
+                            iframe.contentWindow.postMessage('{"event":"command","func":"mute","args":""}', '*');
+                        }
+                    }
+                    
+                    // Handle uploaded HTML5 Videos with pausing and muting off-screen
+                    const video = entry.target.querySelector('video.yt-reel-iframe');
+                    if (video) {
+                        if (entry.isIntersecting) {
+                            video.muted = false; // Automatically unmute when in view
+                            video.play().catch(e => console.log("Autoplay blocked until interaction", e));
+                        } else {
+                            video.pause();
+                            video.muted = true; // Prevents background audio overlapping completely!
+                            video.currentTime = 0; // Preloads for fresh start 
                         }
                     }
                 });
@@ -619,14 +636,12 @@
 
                 let mediaElement = '';
                 if (reel.videoUrl) {
-                    // FULL MOBILE FIX INJECTED HERE
+                    // Removed 'muted' attribute here so videos play with audio when scrolling!
                     mediaElement = `
                         <video class="yt-reel-iframe" 
                                loop 
-                               muted 
                                playsinline 
                                webkit-playsinline 
-                               autoplay 
                                preload="auto"
                                style="width:100%; height:100%; object-fit:cover;">
                             <source src="${reel.videoUrl}" type="video/mp4">
