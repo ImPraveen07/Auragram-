@@ -1,45 +1,124 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Reactive Glow Sorry</title>
+    <title>Color Polaroid Glow - Pro</title>
     <style>
         body, html { 
             margin: 0; padding: 0; width: 100%; height: 100%; 
-            overflow: hidden; background: #000; 
+            background: #000; 
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            overflow: hidden; font-family: sans-serif;
         }
-        canvas { display: block; }
-        video { display: none; }
+
+        #bg-canvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        #polaroid {
+            position: relative;
+            background: #fff;
+            width: 85vw;
+            max-width: 380px;
+            aspect-ratio: 3 / 4.5;
+            padding: 15px 15px 85px 15px;
+            box-sizing: border-box;
+            box-shadow: 0 10px 60px rgba(0,0,0,0.9);
+            z-index: 5;
+            border-radius: 2px;
+        }
+
+        #photo-area {
+            position: relative;
+            width: 100%; height: 100%;
+            background: #000; 
+            overflow: hidden;
+        }
+
+        #bow-overlay {
+            position: absolute;
+            top: 35%; left: 50%;
+            transform: translate(-50%, -50%) rotate(-15deg);
+            font-size: 80px;
+            z-index: 10;
+            pointer-events: none;
+            filter: drop-shadow(0 0 15px rgba(255, 20, 147, 0.8));
+        }
+
+        #video { 
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%; 
+            object-fit: cover; 
+            opacity: 0.9; 
+            transform: scaleX(-1); /* Mirror View */
+        }
+
+        #border-emojis {
+            position: absolute;
+            bottom: 25px; right: 20px;
+            font-size: 32px;
+            z-index: 10;
+        }
+        
+        #captureBtn {
+            margin-top: 30px;
+            z-index: 10;
+            padding: 15px 40px;
+            border-radius: 30px;
+            background: #ff1493;
+            color: white;
+            border: 2px solid white;
+            font-weight: bold;
+            font-size: 18px;
+            cursor: pointer;
+            box-shadow: 0 0 20px #ff1493;
+            /* Always visible now */
+            opacity: 1 !important; 
+            pointer-events: auto !important;
+            transition: transform 0.1s;
+        }
+
+        #captureBtn:active { transform: scale(0.95); }
     </style>
 </head>
 <body>
-    <video id="video" autoplay></video>
-    <canvas id="ui"></canvas>
+    
+    <canvas id="bg-canvas"></canvas>
+
+    <div id="polaroid">
+        <div id="photo-area">
+            <video id="video" autoplay playsinline></video>
+            <div id="bow-overlay">🎀</div>
+        </div>
+        <div id="border-emojis">🎀💝</div>
+    </div>
+
+    <button id="captureBtn">CAPTURE</button>
 
     <script>
         const video = document.getElementById('video');
-        const canvas = document.getElementById('ui');
-        const ctx = canvas.getContext('2d');
-        
-        const senseCanvas = document.createElement('canvas');
-        const senseCtx = senseCanvas.getContext('2d');
-        senseCanvas.width = 50; senseCanvas.height = 50;
+        const bgCanvas = document.getElementById('bg-canvas');
+        const bgCtx = bgCanvas.getContext('2d');
+        const captureBtn = document.getElementById('captureBtn');
 
-        let rawLight = 1; 
-        let smoothGlow = 0; // The "Intensity" of our neon
         let particles = [];
-        const symbols = ["SORRY", "sorry", "🫩", "💖", "🎀"];
+        const words = ["sorry", "SORRY", "🎀", "💖"];
 
         function init() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+            bgCanvas.width = window.innerWidth;
+            bgCanvas.height = window.innerHeight;
             particles = [];
-            for(let i = 0; i < 60; i++) {
+            for(let i = 0; i < 30; i++) {
                 particles.push({
-                    x: Math.random() * canvas.width,
-                    y: Math.random() * canvas.height,
-                    text: symbols[Math.floor(Math.random() * symbols.length)],
-                    size: Math.random() * 35 + 15,
-                    speed: (Math.random() * 0.5) + 0.2
+                    x: Math.random() * bgCanvas.width,
+                    y: Math.random() * bgCanvas.height,
+                    text: words[Math.floor(Math.random() * words.length)],
+                    size: Math.random() * 30 + 20,
+                    speed: Math.random() * 0.5 + 0.3
                 });
             }
         }
@@ -47,63 +126,96 @@
         navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
             .then(stream => { video.srcObject = stream; });
 
-        function draw() {
-            // 1. Analyze Light
-            if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                senseCtx.drawImage(video, 0, 0, 50, 50);
-                const data = senseCtx.getImageData(0, 0, 50, 50).data;
-                let lum = 0;
-                for (let i = 0; i < data.length; i += 4) {
-                    lum += (0.2126 * data[i]) + (0.7152 * data[i+1]) + (0.0722 * data[i+2]);
-                }
-                rawLight = lum / (data.length / 4) / 255;
-            }
+        const savePhoto = (type) => {
+            const res = document.createElement('canvas');
+            const rCtx = res.getContext('2d');
+            res.width = 1200; res.height = 1800;
 
-            // 2. The Glow "Action" Logic
-            // If rawLight is low (0), targetGlow is 1 (Max Pink). 
-            // If rawLight is high (1), targetGlow is 0 (Dull White).
-            let targetGlow = 1 - (rawLight * 1.5); 
-            if(targetGlow < 0) targetGlow = 0;
+            rCtx.fillStyle = "#fff";
+            rCtx.fillRect(0, 0, 1200, 1800);
 
-            // Smoothing the transition so it feels like a real fluorescent bulb warming up
-            smoothGlow += (targetGlow - smoothGlow) * 0.1;
+            const margin = 60, photoW = 1080, photoH = 1420;
+            
+            rCtx.save();
+            rCtx.beginPath();
+            rCtx.rect(margin, margin, photoW, photoH);
+            rCtx.clip();
+            
+            // Apply Filters
+            if(type === 'BW') rCtx.filter = "grayscale(100%) contrast(1.2)";
+            else if(type === 'Pink') rCtx.filter = "sepia(0.3) hue-rotate(300deg) saturate(2)";
+            
+            // Mirror logic for capture
+            rCtx.translate(margin + photoW, margin);
+            rCtx.scale(-1, 1);
+            rCtx.drawImage(video, 0, 0, video.videoWidth, video.videoHeight, 0, 0, photoW, photoH);
+            rCtx.restore();
 
-            // 3. Render
-            ctx.fillStyle = "black";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Bow overlay
+            rCtx.save();
+            rCtx.translate(margin + photoW/2, margin + photoH*0.35);
+            rCtx.rotate(-15 * Math.PI / 180);
+            rCtx.font = "260px sans-serif";
+            rCtx.textAlign = "center";
+            rCtx.fillStyle = "#ff1493";
+            rCtx.shadowBlur = 30; rCtx.shadowColor = "pink";
+            rCtx.fillText("🎀", 0, 0);
+            rCtx.restore();
 
+            // Text at bottom
+            rCtx.font = "100px sans-serif";
+            rCtx.textAlign = "right";
+            rCtx.fillStyle = "#000";
+            rCtx.fillText("🎀💝", 1140, 1720);
+
+            const link = document.createElement('a');
+            link.download = `polaroid_${type}_${Date.now()}.png`;
+            link.href = res.toDataURL();
+            link.click();
+        };
+
+        captureBtn.onclick = () => {
+            savePhoto('REAL'); // Original Color
+            setTimeout(() => savePhoto('BW'), 400); // Black & White
+            setTimeout(() => savePhoto('Pink'), 800); // Pinkish Filter
+        };
+
+        function draw(time) {
+            bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+            
             particles.forEach(p => {
-                // Calculate Fluorescent Pink based on light absence
-                // High glow = Bright Pink (255, 20, 147), Low glow = Dim White (100, 100, 100)
-                const r = Math.floor(100 + (155 * smoothGlow));
-                const g = Math.floor(100 - (80 * smoothGlow));
-                const b = Math.floor(100 + (47 * smoothGlow));
-                const color = `rgb(${r}, ${g}, ${b})`;
-
-                ctx.save();
-                ctx.font = `bold ${p.size}px sans-serif`;
+                bgCtx.save();
                 
-                // Only apply shadow/glow if it's dark
-                if (smoothGlow > 0.1) {
-                    ctx.shadowColor = `rgba(255, 20, 147, ${smoothGlow})`;
-                    ctx.shadowBlur = smoothGlow * 40;
-                }
+                // STROKE & GRADIENT SETTINGS
+                bgCtx.font = `bold ${p.size}px sans-serif`;
+                bgCtx.textAlign = "center";
 
-                ctx.fillStyle = color;
-                ctx.fillText(p.text, p.x, p.y);
-                ctx.restore();
+                // 1. White Glowing Stroke
+                bgCtx.strokeStyle = "white";
+                bgCtx.lineWidth = 6;
+                bgCtx.lineJoin = "round";
+                bgCtx.shadowColor = "white";
+                bgCtx.shadowBlur = 15;
+                bgCtx.strokeText(p.text, p.x, p.y);
 
-                // Movement
+                // 2. Pink/White Gradient Fill
+                const grad = bgCtx.createLinearGradient(p.x, p.y - p.size, p.x, p.y);
+                grad.addColorStop(0, "#ffffff");
+                grad.addColorStop(1, "#ff1493");
+                bgCtx.fillStyle = grad;
+                bgCtx.fillText(p.text, p.x, p.y);
+                
+                bgCtx.restore();
+
                 p.y -= p.speed; 
-                if(p.y < -50) p.y = canvas.height + 50;
+                if(p.y < -50) p.y = bgCanvas.height + 50;
             });
-
             requestAnimationFrame(draw);
         }
 
         window.onresize = init;
         init();
-        draw();
+        requestAnimationFrame(draw);
     </script>
 </body>
 </html>
