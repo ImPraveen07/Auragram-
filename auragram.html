@@ -1,220 +1,158 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Color Polaroid Glow - Pro</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Moon Local Fix</title>
     <style>
         body, html { 
             margin: 0; padding: 0; width: 100%; height: 100%; 
-            background: #000; 
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            overflow: hidden; font-family: sans-serif;
+            overflow: hidden; background: #000; font-family: sans-serif;
         }
-
-        #bg-canvas {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            z-index: 1;
-            pointer-events: none;
+        canvas { position: absolute; top: 0; left: 0; z-index: 10; pointer-events: none; }
+        #video { display: none; } 
+        #status {
+            position: absolute; top: 20px; left: 20px;
+            z-index: 20; color: rgba(255, 255, 255, 0.4); 
+            font-size: 0.8rem; font-family: monospace;
         }
-
-        #polaroid {
-            position: relative;
-            background: #fff;
-            width: 85vw;
-            max-width: 380px;
-            aspect-ratio: 3 / 4.5;
-            padding: 15px 15px 85px 15px;
-            box-sizing: border-box;
-            box-shadow: 0 10px 60px rgba(0,0,0,0.9);
-            z-index: 5;
-            border-radius: 2px;
-        }
-
-        #photo-area {
-            position: relative;
-            width: 100%; height: 100%;
-            background: #000; 
-            overflow: hidden;
-        }
-
-        #bow-overlay {
-            position: absolute;
-            top: 35%; left: 50%;
-            transform: translate(-50%, -50%) rotate(-15deg);
-            font-size: 80px;
-            z-index: 10;
-            pointer-events: none;
-            filter: drop-shadow(0 0 15px rgba(255, 20, 147, 0.8));
-        }
-
-        #video { 
-            position: absolute; top: 0; left: 0;
-            width: 100%; height: 100%; 
-            object-fit: cover; 
-            opacity: 0.9; 
-            transform: scaleX(-1); /* Mirror View */
-        }
-
-        #border-emojis {
-            position: absolute;
-            bottom: 25px; right: 20px;
-            font-size: 32px;
-            z-index: 10;
-        }
-        
-        #captureBtn {
-            margin-top: 30px;
-            z-index: 10;
-            padding: 15px 40px;
-            border-radius: 30px;
-            background: #ff1493;
-            color: white;
-            border: 2px solid white;
-            font-weight: bold;
-            font-size: 18px;
-            cursor: pointer;
-            box-shadow: 0 0 20px #ff1493;
-            /* Always visible now */
-            opacity: 1 !important; 
-            pointer-events: auto !important;
-            transition: transform 0.1s;
-        }
-
-        #captureBtn:active { transform: scale(0.95); }
     </style>
 </head>
 <body>
-    
-    <canvas id="bg-canvas"></canvas>
-
-    <div id="polaroid">
-        <div id="photo-area">
-            <video id="video" autoplay playsinline></video>
-            <div id="bow-overlay">🎀</div>
-        </div>
-        <div id="border-emojis">🎀💝</div>
-    </div>
-
-    <button id="captureBtn">CAPTURE</button>
+    <div id="status">SENSOR: 0%</div>
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="ui"></canvas>
 
     <script>
         const video = document.getElementById('video');
-        const bgCanvas = document.getElementById('bg-canvas');
-        const bgCtx = bgCanvas.getContext('2d');
-        const captureBtn = document.getElementById('captureBtn');
+        const status = document.getElementById('status');
+        const canvas = document.getElementById('ui');
+        const ctx = canvas.getContext('2d');
+        
+        // --- MOON LOADING ---
+        const moonImg = new Image();
+        let moonLoaded = false;
+        
+        moonImg.onload = () => { 
+            moonLoaded = true; 
+            console.log("Moon image loaded successfully.");
+        };
+        
+        moonImg.onerror = () => {
+            console.warn("Moon image NOT found. Using fallback glow.");
+        };
 
+        // Ensure this file is in the SAME folder as this HTML file
+        moonImg.src = 'moon_PNG51.png'; 
+
+        const senseCanvas = document.createElement('canvas');
+        const senseCtx = senseCanvas.getContext('2d');
+        senseCanvas.width = 8; senseCanvas.height = 8;
+
+        let smoothGlow = 0; 
         let particles = [];
-        const words = ["sorry", "SORRY", "🎀", "💖"];
+        const symbols = ["SORRY", "sorry", "🫩", "⚡", "💖", "💓", "🎀"];
 
         function init() {
-            bgCanvas.width = window.innerWidth;
-            bgCanvas.height = window.innerHeight;
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
             particles = [];
-            for(let i = 0; i < 30; i++) {
+            for(let i = 0; i < 85; i++) {
+                const txt = symbols[Math.floor(Math.random() * symbols.length)];
                 particles.push({
-                    x: Math.random() * bgCanvas.width,
-                    y: Math.random() * bgCanvas.height,
-                    text: words[Math.floor(Math.random() * words.length)],
-                    size: Math.random() * 30 + 20,
-                    speed: Math.random() * 0.5 + 0.3
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    text: txt,
+                    size: Math.random() * 20 + 22,
+                    speed: (txt === "⚡") ? (Math.random() * 3 + 2.5) : (Math.random() * 1.2 + 0.6),
+                    drift: (Math.random() - 0.5) * 0.4
                 });
             }
         }
 
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
-            .then(stream => { video.srcObject = stream; });
+        async function startCam() {
+            try {
+                const s = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "environment" } 
+                });
+                video.srcObject = s;
+                video.play();
+            } catch (e) { status.innerText = "CAM ERROR"; }
+        }
 
-        const savePhoto = (type) => {
-            const res = document.createElement('canvas');
-            const rCtx = res.getContext('2d');
-            res.width = 1200; res.height = 1800;
+        function draw() {
+            let lightLevel = 0;
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                senseCtx.drawImage(video, 0, 0, 8, 8);
+                const data = senseCtx.getImageData(0, 0, 8, 8).data;
+                let lum = 0;
+                for (let i = 0; i < data.length; i += 4) {
+                    lum += (0.2126 * data[i] + 0.7152 * data[i+1] + 0.0722 * data[i+2]);
+                }
+                lightLevel = (lum / 64) / 255;
+            }
 
-            rCtx.fillStyle = "#fff";
-            rCtx.fillRect(0, 0, 1200, 1800);
+            const pct = Math.round(lightLevel * 100);
+            status.innerText = `SENSOR: ${pct}%`;
 
-            const margin = 60, photoW = 1080, photoH = 1420;
-            
-            rCtx.save();
-            rCtx.beginPath();
-            rCtx.rect(margin, margin, photoW, photoH);
-            rCtx.clip();
-            
-            // Apply Filters
-            if(type === 'BW') rCtx.filter = "grayscale(100%) contrast(1.2)";
-            else if(type === 'Pink') rCtx.filter = "sepia(0.3) hue-rotate(300deg) saturate(2)";
-            
-            // Mirror logic for capture
-            rCtx.translate(margin + photoW, margin);
-            rCtx.scale(-1, 1);
-            rCtx.drawImage(video, 0, 0, video.videoWidth, video.videoHeight, 0, 0, photoW, photoH);
-            rCtx.restore();
+            let targetGlow = 0;
+            if (pct > 30) targetGlow = 0;
+            else if (pct <= 30 && pct >= 20) targetGlow = 0.1;
+            else targetGlow = 0.1 + (1 - (pct / 20)) * 0.9;
 
-            // Bow overlay
-            rCtx.save();
-            rCtx.translate(margin + photoW/2, margin + photoH*0.35);
-            rCtx.rotate(-15 * Math.PI / 180);
-            rCtx.font = "260px sans-serif";
-            rCtx.textAlign = "center";
-            rCtx.fillStyle = "#ff1493";
-            rCtx.shadowBlur = 30; rCtx.shadowColor = "pink";
-            rCtx.fillText("🎀", 0, 0);
-            rCtx.restore();
+            smoothGlow += (targetGlow - smoothGlow) * 0.1; 
 
-            // Text at bottom
-            rCtx.font = "100px sans-serif";
-            rCtx.textAlign = "right";
-            rCtx.fillStyle = "#000";
-            rCtx.fillText("🎀💝", 1140, 1720);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            const link = document.createElement('a');
-            link.download = `polaroid_${type}_${Date.now()}.png`;
-            link.href = res.toDataURL();
-            link.click();
-        };
+            if (smoothGlow > 0.01) {
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+                const moonSize = Math.min(canvas.width, canvas.height) * 0.5;
 
-        captureBtn.onclick = () => {
-            savePhoto('REAL'); // Original Color
-            setTimeout(() => savePhoto('BW'), 400); // Black & White
-            setTimeout(() => savePhoto('Pink'), 800); // Pinkish Filter
-        };
-
-        function draw(time) {
-            bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
-            
-            particles.forEach(p => {
-                bgCtx.save();
+                // --- DRAW MOON ---
+                ctx.save();
+                ctx.globalAlpha = smoothGlow;
                 
-                // STROKE & GRADIENT SETTINGS
-                bgCtx.font = `bold ${p.size}px sans-serif`;
-                bgCtx.textAlign = "center";
+                if (moonLoaded) {
+                    // Use the actual image
+                    ctx.drawImage(moonImg, centerX - moonSize/2, centerY - moonSize/2, moonSize, moonSize);
+                } else {
+                    // Fallback: A glowing white circle if image is missing
+                    const grad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, moonSize/2);
+                    grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+                    grad.addColorStop(0.8, 'rgba(255, 255, 255, 0.2)');
+                    grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+                    ctx.fillStyle = grad;
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, moonSize/2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.restore();
 
-                // 1. White Glowing Stroke
-                bgCtx.strokeStyle = "white";
-                bgCtx.lineWidth = 6;
-                bgCtx.lineJoin = "round";
-                bgCtx.shadowColor = "white";
-                bgCtx.shadowBlur = 15;
-                bgCtx.strokeText(p.text, p.x, p.y);
+                // --- DRAW PARTICLES ---
+                particles.forEach(p => {
+                    p.y -= p.speed;
+                    p.x += p.drift;
+                    if(p.y < -60) p.y = canvas.height + 60;
+                    
+                    ctx.font = `900 ${p.size}px Arial`;
+                    ctx.textAlign = "center";
+                    
+                    ctx.globalAlpha = smoothGlow * 0.4;
+                    ctx.fillStyle = "#ff007f"; 
+                    ctx.fillText(p.text, p.x, p.y);
 
-                // 2. Pink/White Gradient Fill
-                const grad = bgCtx.createLinearGradient(p.x, p.y - p.size, p.x, p.y);
-                grad.addColorStop(0, "#ffffff");
-                grad.addColorStop(1, "#ff1493");
-                bgCtx.fillStyle = grad;
-                bgCtx.fillText(p.text, p.x, p.y);
-                
-                bgCtx.restore();
-
-                p.y -= p.speed; 
-                if(p.y < -50) p.y = bgCanvas.height + 50;
-            });
+                    ctx.globalAlpha = smoothGlow;
+                    ctx.fillStyle = "#ffffff";
+                    ctx.fillText(p.text, p.x, p.y);
+                });
+            }
             requestAnimationFrame(draw);
         }
 
         window.onresize = init;
         init();
+        startCam();
         requestAnimationFrame(draw);
     </script>
 </body>
