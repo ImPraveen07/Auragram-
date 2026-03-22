@@ -1,256 +1,109 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-    <title>Auragram | Elite Build</title>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <title>Reactive Glow Sorry</title>
     <style>
-        *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-tap-highlight-color:transparent}
-        body{background:#000;color:#fff;overflow-x:hidden;position:relative;min-height:100vh}
-        ::-webkit-scrollbar{display:none}
-        
-        /* DESKTOP/TABLET OPTIMIZATION */
-        @media (min-width: 500px) {
-            body { max-width: 450px; border-left: 1px solid #333; border-right: 1px solid #333; margin: 0 auto; }
-            .b-bar, nav, #pv-view, #comm-view, #l-view, #e-view, #g-view, #sh, #create-sheet, #login-prompt-ov, .full-view {
-                width: 450px !important;
-                left: calc(50% - 225px) !important;
-            }
-            #sh-ov, #create-sheet-ov { left: 0 !important; width: 100vw !important; }
+        body, html { 
+            margin: 0; padding: 0; width: 100%; height: 100%; 
+            overflow: hidden; background: #000; 
         }
-
-        nav{height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;position:sticky;top:0;background:#000;z-index:1000;border-bottom:.1px solid #262626}
-        .nav-c{display:flex;align-items:center;gap:3px;position:absolute;left:50%;transform:translateX(-50%)}
-        .nav-c b{font-size:18px;font-weight:900}
-        .dot{width:6px;height:6px;background:#ed4956;border-radius:50%;border:1px solid #000;margin-top:2px}
-        .nav-icon{width:24px;filter:invert(1)}
-        .p-wrap{padding:10px 15px 0}
-        .p-top{display:flex;align-items:center;margin-bottom:12px}
-        .pfp-c{position:relative;width:82px;height:82px;margin-right:20px;flex-shrink:0}
-        .pfp-img{width:82px;height:82px;border-radius:50%;object-fit:cover;border:1px solid #262626;background:#121212}
-        .add-s{position:absolute;bottom:1px;right:1px;background:#0095f6;border-radius:50%;width:22px;height:22px;border:2px solid #000;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900}
-        .p-stats{display:flex;flex:1;justify-content:space-around;text-align:center}
-        .s-val{font-weight:700;font-size:17px;display:block}
-        .s-lab{font-size:12px;color:#a8a8a8}
-        .p-bio{margin-bottom:12px;min-height:20px}
-        .u-bold{font-size:14px;font-weight:700;display:block}
-        .u-text{font-size:14px;color:#efefef;white-space:pre-wrap;display:block;margin-top:1px}
-        .u-link{color:#e0f1ff;font-size:13px;font-weight:500;cursor:pointer}
-        .p-btns{display:flex;gap:6px;margin-bottom:15px}
-        .b-blue,.b-sq{background:#262626;border:none;color:#fff;padding:7px;flex:1;border-radius:8px;font-weight:600;font-size:13px}
-        .b-blue{background:#0095f6}
-        .g-nav{display:flex;border-top:.1px solid #262626;position:sticky;top:48px;background:#000;z-index:900}
-        .g-tab{flex:1;text-align:center;padding:10px;opacity:.3;transition:.2s; cursor:pointer;}
-        .g-tab.active{opacity:1;border-bottom:1px solid #fff}
-                      .g-tab img{width:22px;filter:invert(1)}
-        
-        /* Grid Layout */
-        #p-grid, #r-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1px;
-            background: #000;
-            min-height: 100vh;
-            padding-bottom: 60px;
-        }
-        
-        /* Posts at 4:5 ratio */
-        #p-grid .g-item {
-            aspect-ratio: 4/5;
-            background: #121212;
-            position: relative;
-            overflow: hidden;
-        }
-
-        /* Reels at 9:16 ratio (Tall) without any extra icons */
-        #r-grid .g-item {
-            aspect-ratio: 9/16;
-            background: #121212;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .g-item img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            cursor: pointer;
-        }
-
-
-        #pv-view{position:fixed;top:0;left:0;width:100vw;height:100vh;background:#000;z-index:5000;display:none;flex-direction:column}
-        .pv-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
-        .post-card{border-bottom:.1px solid #262626;padding-bottom:15px}
-        .pc-top{display:flex;align-items:center;padding:10px;position:relative}
-        .pc-pfp{width:32px;height:32px;border-radius:50%;margin-right:10px;object-fit:cover;cursor:pointer;}
-        .pc-user{font-size:13.5px;font-weight:600;cursor:pointer;}
-        .pc-opt{position:absolute;right:15px;font-size:20px;color:#fff;cursor:pointer}
-        
-        /* 4:5 Setup for main feed post images */
-        .pc-img-c{width:100%;aspect-ratio:4/5;position:relative;overflow:hidden;background:#111;display:flex;align-items:center;justify-content:center}
-        .pc-img-c img.main-post-img{width:100%;height:100%;object-fit:cover;display:block}
-        
-        /* Heart Animations */
-        .heart-pop{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);opacity:0;width:100px;pointer-events:none;z-index:10;filter:invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%)}
-        @keyframes heartAnim{0%{transform:translate(-50%,-50%) scale(0);opacity:0}20%{transform:translate(-50%,-50%) scale(1.2);opacity:1}50%,80%{transform:translate(-50%,-50%) scale(1);opacity:1}100%{transform:translate(-50%,-50%) scale(1.4);opacity:0}}
-        .animate-heart{animation:heartAnim 1s ease-out forwards}
-        @keyframes floatUp{0%{transform:translateY(0) scale(1);opacity:1}100%{transform:translateY(-120px) scale(.5);opacity:0}}
-        .mini-heart{position:absolute;width:30px;pointer-events:none;z-index:11;filter:invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%);animation:floatUp .8s ease-out forwards}
-        
-        .pc-acts{display:flex;gap:16px;padding:12px 12px 6px}
-        .pc-acts img{width:24px;filter:invert(1);cursor:pointer}
-        .pc-likes{padding:2px 12px;font-size:13.5px;font-weight:700;cursor:pointer}
-        #comm-view{position:fixed;bottom:-100%;left:0;width:100%;height:85vh;background:#1c1c1e;z-index:9000;border-radius:16px 16px 0 0;display:flex;flex-direction:column;transition:bottom .3s ease}
-        .comm-handle{width:36px;height:4px;background:#444;border-radius:2px;margin:10px auto}
-        .comm-header{text-align:center;padding-bottom:12px;border-bottom:.1px solid #333;font-weight:700;font-size:14px}
-        .comm-body{flex:1;overflow-y:auto;padding-bottom:20px}
-        .c-item{display:flex;gap:12px;padding:12px 15px;position:relative}
-        .c-pfp{width:32px;height:32px;border-radius:50%;object-fit:cover;cursor:pointer;}
-        .c-user{font-weight:700;margin-right:5px;font-size:13px;cursor:pointer;}
-        .c-meta{display:flex;gap:15px;margin-top:6px;color:#a8a8a8;font-size:11px;font-weight:600}
-        .c-like-ico{width:13px;height:13px;position:absolute;right:15px;top:16px;filter:invert(.5);cursor:pointer}
-        .reply-box{margin-left:44px;padding-top:5px;display:none;flex-direction:column;gap:10px}
-        .view-replies-btn{margin-left:44px;margin-top:5px;font-size:12px;color:#a8a8a8;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:10px}
-        .view-replies-btn::before{content:'';width:20px;height:1px;background:#a8a8a8;display:inline-block}
-        .r-item{display:flex;gap:10px;position:relative}
-        .r-pfp{width:24px;height:24px;border-radius:50%;object-fit:cover;cursor:pointer;}
-        .input-area{background:#1c1c1e;padding:10px 12px 25px;border-top:.1px solid #333}
-        .input-row{display:flex;align-items:center;gap:10px}
-        .in-pfp{width:34px;height:34px;border-radius:50%;object-fit:cover}
-        #comm-input{flex:1;background:0;border:1px solid #444;border-radius:20px;padding:9px 15px;color:#fff;outline:0}
-        #l-view{position:fixed;top:0;left:0;width:100vw;height:100vh;background:#000;z-index:3000;display:none;flex-direction:column}
-        .l-head{height:48px;display:flex;align-items:center;padding:0 12px;border-bottom:.1px solid #262626;background:#000;flex-shrink:0}
-        .l-tabs-s{display:flex;background:#000;border-bottom:.1px solid #262626;position:sticky;top:0;z-index:10}
-        .lt{flex:1;text-align:center;padding:12px;color:#a8a8a8;font-weight:600;font-size:14px;border-bottom:1px solid transparent}
-        .lt.active{color:#fff;border-bottom:1px solid #fff}
-        .l-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
-        .u-row{display:flex;align-items:center;padding:10px 12px}
-        .u-row img{width:44px;height:44px;border-radius:50%;object-fit:cover;margin-right:12px;background:#121212;cursor:pointer}
-        .u-meta{flex:1;cursor:pointer}
-        .u-meta b{font-size:14px;display:block}
-        .u-meta span{font-size:13px;color:#a8a8a8}
-        .b-sm{background:#363636;color:#fff;border:none;padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600}
-        .x-rem{font-size:18px;color:#a8a8a8;padding:5px;cursor:pointer}
-        #e-view,#g-view{position:fixed;top:0;left:0;width:100vw;height:100vh;background:#000;z-index:4000;display:none}
-        .e-nav{height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;border-bottom:.1px solid #262626}
-        .e-pfp-s{text-align:center;padding:15px 0}
-        .e-pfp-img{width:70px;height:70px;border-radius:50%;object-fit:cover;background:#121212}
-        .i-grp{border-bottom:.1px solid #262626;padding:8px 12px}
-        .i-grp label{color:#a8a8a8;font-size:11px;display:block}
-        .i-grp input,.i-grp textarea{width:100%;background:0;border:0;color:#fff;font-size:15px;outline:0;padding-top:2px}
-        .opt-row{display:flex;justify-content:space-between;padding:14px 12px;border-bottom:.1px solid #262626;font-size:15px;cursor:pointer}
-        .rad{width:18px;height:18px;border:1.5px solid #444;border-radius:50%}
-        .opt-row.sel .rad{border:5px solid #0095f6}
-        .b-bar{position:fixed;bottom:0;width:100%;height:46px;background:#000;border-top:.1px solid #262626;display:flex;justify-content:space-around;align-items:center;z-index:1000}
-        .b-bar img{width:22px;filter:invert(1);cursor:pointer}
-        .b-pfp{width:24px;height:24px;border-radius:50%;border:1.5px solid #fff;object-fit:cover;cursor:pointer}
-        #sh-ov{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);display:none;z-index:8000}
-        #sh{position:fixed;bottom:-100%;left:0;width:100%;background:#262626;border-radius:12px 12px 0 0;transition:.3s cubic-bezier(.17,.67,.83,.67);z-index:8001;padding:10px 0;text-align:center}
-        #sh.up{bottom:0}
-        .sh-opt{padding:14px;font-weight:600;border-bottom:.1px solid #363636;font-size:14px;cursor:pointer}
-        .sh-red{color:#ed4956;font-weight:700}
-        .sh-img{width:56px;height:56px;border-radius:50%;margin:15px 0 10px;object-fit:cover;border:1px solid #363636}
-        .sh-txt{padding:0 40px 15px;font-size:13px;color:#a8a8a8;line-height:1.4}
-        #toast{position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:8px 16px;border-radius:4px;display:none;z-index:9999;font-size:12px}
-        #load{position:fixed;top:52px;left:50%;transform:translateX(-50%);background:#0095f6;color:#fff;padding:4px 12px;border-radius:20px;font-size:10px;z-index:7000;display:none}
-        #login-prompt-ov{position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,.85);z-index:9999;display:none;align-items:center;justify-content:center;flex-direction:column}
-        .oval-btn{background:#fff;color:#000;padding:14px 32px;border-radius:30px;font-weight:700;font-size:15px;cursor:pointer;margin-top:20px;text-align:center}
-        
-        #create-sheet-ov { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.7); display:none; z-index:6000 }
-        #create-sheet { position:fixed; bottom:-100%; left:0; width:100%; background:#262626; border-radius:12px 12px 0 0; transition:.3s cubic-bezier(.17,.67,.83,.67); z-index:6001; padding:10px 0; }
-        #create-sheet.up { bottom:0; }
-        .cs-handle { width:36px; height:4px; background:#444; border-radius:2px; margin:5px auto 15px; }
-        .cs-title { text-align:center; font-weight:700; font-size:16px; margin-bottom:10px; border-bottom:.1px solid #363636; padding-bottom:15px; }
-        .cs-opt { display:flex; align-items:center; padding:14px 20px; font-size:15px; font-weight:600; cursor:pointer; }
-        .cs-opt img { width:24px; filter:invert(1); margin-right:15px; }
-        .cs-badge { background:#5851ff; color:#fff; font-size:10px; padding:3px 8px; border-radius:10px; margin-left:auto; }
-        .full-view { position:fixed; top:0; left:0; width:100vw; height:100vh; background:#000; z-index:6500; display:none; flex-direction:column; }
-        
-        /* DYNAMIC REELS ENGINE STYLES */
-        .reels-scroll-container { height:100dvh; width:100%; overflow-y:scroll; scroll-snap-type:y mandatory; scrollbar-width:none; -ms-overflow-style:none; }
-        .reels-scroll-container::-webkit-scrollbar { display:none; }
-        .reel-item { height:100dvh; width:100%; scroll-snap-align:start; position:relative; background:#000; overflow:hidden; }
-        .reel-iframe-wrapper { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; display:flex; justify-content:center; align-items:center; }
-        .reel-iframe-wrapper iframe { width:177.77vh; height:100vh; min-width:100%; min-height:56.25vw; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); border:none; }
-        .reel-overlay { position:absolute; top:0; left:0; width:100%; height:100%; z-index:10; }
-        .reel-ui { position:absolute; top:0; left:0; width:100%; height:100%; z-index:20; pointer-events:none; }
-        .reel-ui > * { pointer-events:auto; }
-        .r-back { position:absolute; top:20px; left:20px; z-index:30; cursor:pointer; pointer-events:auto; }
-        .r-act { display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; }
-        .cap-text { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; cursor:pointer; transition:all 0.2s; }
-        .cap-text.expanded { display: block; -webkit-line-clamp: unset; }
+        canvas { display: block; }
+        video { display: none; }
     </style>
 </head>
 <body>
-<div id="create-sheet">
-    <div class="cs-handle"></div>
-    <div class="cs-title">Create</div>
-    <div class="cs-opt" onclick="trigReelMenu()"><img src="https://cdn-icons-png.flaticon.com/512/5948/5948514.png"> Reel (Link)</div>
-    <div class="cs-opt" onclick="document.getElementById('f-reel-file').click()"><img src="https://cdn-icons-png.flaticon.com/512/2859/2859733.png"> Reel (Gallery)</div>
-    <div class="cs-opt" onclick="alert('Coming soon')"><img src="https://cdn-icons-png.flaticon.com/512/1159/1159633.png"> Edits <span class="cs-badge">New</span></div>
-    <div class="cs-opt" onclick="trigPostMenu()"><img src="https://cdn-icons-png.flaticon.com/512/3161/3161837.png"> Post</div>
-</div>
-<input type="file" id="f-reel-file" hidden accept="video/*" onchange="uploadReelToCloudinary(event)">
+    <video id="video" autoplay></video>
+    <canvas id="ui"></canvas>
 
-    <div id="load">Processing...</div>
-    <div id="toast"></div>
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('ui');
+        const ctx = canvas.getContext('2d');
+        
+        const senseCanvas = document.createElement('canvas');
+        const senseCtx = senseCanvas.getContext('2d');
+        senseCanvas.width = 50; senseCanvas.height = 50;
 
-    <div id="sh-ov" onclick="closeAllSheets()"></div>
-    <div id="create-sheet-ov" onclick="closeCreateSheet()"></div>
+        let rawLight = 1; 
+        let smoothGlow = 0; // The "Intensity" of our neon
+        let particles = [];
+        const symbols = ["SORRY", "sorry", "🫩", "💖", "🎀"];
 
-    <div id="create-sheet">
-        <div class="cs-handle"></div>
-        <div class="cs-title">Create</div>
-        <div class="cs-opt" onclick="trigReelMenu()"><img src="https://cdn-icons-png.flaticon.com/512/5948/5948514.png"> Reel</div>
-        <div class="cs-opt" onclick="alert('Coming soon')"><img src="https://cdn-icons-png.flaticon.com/512/1159/1159633.png"> Edits <span class="cs-badge">New</span></div>
-        <div class="cs-opt" onclick="trigPostMenu()"><img src="https://cdn-icons-png.flaticon.com/512/3161/3161837.png"> Post</div>
-        <div class="cs-opt" onclick="alert('Coming soon')"><img src="https://cdn-icons-png.flaticon.com/512/1250/1250325.png"> Story</div>
-        <div class="cs-opt" onclick="alert('Coming soon')"><img src="https://cdn-icons-png.flaticon.com/512/833/833472.png"> Highlights</div>
-        <div class="cs-opt" onclick="alert('Coming soon')"><img src="https://cdn-icons-png.flaticon.com/512/2860/2860822.png"> Live</div>
-    </div>
+        function init() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            particles = [];
+            for(let i = 0; i < 60; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    text: symbols[Math.floor(Math.random() * symbols.length)],
+                    size: Math.random() * 35 + 15,
+                    speed: (Math.random() * 0.5) + 0.2
+                });
+            }
+        }
 
-    <div id="caption-view" class="full-view" style="z-index: 6600;">
-        <div class="e-nav">
-            <img src="https://cdn-icons-png.flaticon.com/512/271/271218.png" style="width:18px; filter:invert(1); cursor:pointer;" onclick="closeCaptionView()">
-            <b style="font-size:16px;">New post</b>
-            <span style="color:#0095f6;font-weight:700;cursor:pointer" onclick="sharePost()">Share</span>
-        </div>
-        <div style="padding:15px; display:flex; gap:15px; border-bottom:.1px solid #262626;">
-            <img id="cv-img" style="width:60px; height:60px; object-fit:cover; border-radius:4px;">
-            <textarea id="cv-cap" placeholder="Add a caption..." style="flex:1; background:transparent; border:none; color:#fff; outline:none; resize:none; font-size:15px; height:60px;"></textarea>
-        </div>
-    </div>
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
+            .then(stream => { video.srcObject = stream; });
 
-    <div id="new-reel-view" class="full-view" style="z-index: 6600;">
-        <div class="e-nav">
-            <img src="https://cdn-icons-png.flaticon.com/512/271/271218.png" style="width:18px; filter:invert(1); cursor:pointer;" onclick="closeReelView()">
-            <b style="font-size:16px;">New Reel</b>
-            <span style="color:#0095f6;font-weight:700;cursor:pointer" onclick="shareReel()">Share</span>
-        </div>
-        <div style="padding:15px;">
-            <label style="color:#a8a8a8; font-size:13px; font-weight:600;">YouTube Shorts URL</label>
-            <input type="text" id="rv-url" placeholder="Paste link here..." style="width:100%; background:#1c1c1e; border:none; color:#fff; padding:12px; border-radius:8px; margin-top:8px; outline:none; font-size:14px;">
-            <textarea id="rv-cap" placeholder="Add a caption & #hashtags..." style="width:100%; background:#1c1c1e; border:none; color:#fff; padding:12px; border-radius:8px; margin-top:15px; outline:none; font-size:14px; height:80px; resize:none;"></textarea>
-            <div style="margin-top:15px; font-size:12px; color:#666;">Thumbnail will be auto-generated from the link.</div>
-        </div>
-    </div>
+        function draw() {
+            // 1. Analyze Light
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                senseCtx.drawImage(video, 0, 0, 50, 50);
+                const data = senseCtx.getImageData(0, 0, 50, 50).data;
+                let lum = 0;
+                for (let i = 0; i < data.length; i += 4) {
+                    lum += (0.2126 * data[i]) + (0.7152 * data[i+1]) + (0.0722 * data[i+2]);
+                }
+                rawLight = lum / (data.length / 4) / 255;
+            }
 
-    <div id="reel-player-view" class="full-view" style="z-index: 7000; background:#000;">
-        <div class="r-back" onclick="closeReelPlayer()">
-            <img src="https://cdn-icons-png.flaticon.com/512/271/271218.png" style="width:24px; filter:invert(1);">
-        </div>
-        <div id="reels-scroll-container" class="reels-scroll-container"></div>
-    </div>
+            // 2. The Glow "Action" Logic
+            // If rawLight is low (0), targetGlow is 1 (Max Pink). 
+            // If rawLight is high (1), targetGlow is 0 (Dull White).
+            let targetGlow = 1 - (rawLight * 1.5); 
+            if(targetGlow < 0) targetGlow = 0;
 
-    <div id="login-prompt-ov">
-        <h2 style="font-size:20px;font-weight:700">Log in to do more actions</h2>
-        <div class="oval-btn" onclick="location.href='index.html'">Click here to go to login page</div>
-        <div style="margin-top:20px;color:#a8a8a8;font-size:14px;cursor:pointer" onclick="closeLoginPrompt()">Cancel</div>
-    </div>
+            // Smoothing the transition so it feels like a real fluorescent bulb warming up
+            smoothGlow += (targetGlow - smoothGlow) * 0.1;
 
-    <div id="main-view">
-        <nav>
-            <div id="nav-left"></div>
-            <div class="nav-c"><b id="h-uid"
+            // 3. Render
+            ctx.fillStyle = "black";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            particles.forEach(p => {
+                // Calculate Fluorescent Pink based on light absence
+                // High glow = Bright Pink (255, 20, 147), Low glow = Dim White (100, 100, 100)
+                const r = Math.floor(100 + (155 * smoothGlow));
+                const g = Math.floor(100 - (80 * smoothGlow));
+                const b = Math.floor(100 + (47 * smoothGlow));
+                const color = `rgb(${r}, ${g}, ${b})`;
+
+                ctx.save();
+                ctx.font = `bold ${p.size}px sans-serif`;
+                
+                // Only apply shadow/glow if it's dark
+                if (smoothGlow > 0.1) {
+                    ctx.shadowColor = `rgba(255, 20, 147, ${smoothGlow})`;
+                    ctx.shadowBlur = smoothGlow * 40;
+                }
+
+                ctx.fillStyle = color;
+                ctx.fillText(p.text, p.x, p.y);
+                ctx.restore();
+
+                // Movement
+                p.y -= p.speed; 
+                if(p.y < -50) p.y = canvas.height + 50;
+            });
+
+            requestAnimationFrame(draw);
+        }
+
+        window.onresize = init;
+        init();
+        draw();
+    </script>
+</body>
+</html>
