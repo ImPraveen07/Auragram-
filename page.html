@@ -8,6 +8,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://www.youtube.com/iframe_api"></script>
     <style>
+        /* BASE & RESET */
         *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-tap-highlight-color:transparent}
         body{background:#000;color:#fff;overflow-x:hidden;min-height:100vh;padding-bottom:60px}
         ::-webkit-scrollbar{display:none}
@@ -16,101 +17,77 @@
         .search-container { position: sticky; top: 0; background: #000; padding: 10px 12px; z-index: 2000; border-bottom: 0.1px solid #262626; }
         .search-bar { background: #262626; border-radius: 10px; padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
         .search-bar input { background: transparent; border: none; color: #fff; outline: none; width: 100%; font-size: 15px; }
-        #search-results { position: absolute; top: 54px; left: 0; width: 100%; background: #000; z-index: 3000; display: none; border-bottom: 1px solid #262626; max-height: 400px; overflow-y: auto;}
-        .u-row { display: flex; align-items: center; padding: 12px; cursor: pointer; border-bottom: 0.1px solid #1a1a1a;}
-        .u-row img { width: 40px; height: 40px; border-radius: 50%; margin-right: 12px; object-fit: cover; border: 1px solid #333;}
+        
+        #search-results { position: fixed; top: 54px; left: 0; width: 100%; height: calc(100% - 104px); background: #000; z-index: 3000; display: none; overflow-y: auto; }
+        .u-row { display: flex; align-items: center; padding: 12px 16px; cursor: pointer; border-bottom: 0.1px solid #1a1a1a;}
+        .u-row img { width: 44px; height: 44px; border-radius: 50%; margin-right: 12px; object-fit: cover; border: 1px solid #333;}
+        .u-info b { font-size: 14px; display: block; }
+        .u-info span { font-size: 12px; color: #8e8e8e; }
 
-        /* EXPLORE GRID */
-        #explore-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5px; }
-        .g-item { aspect-ratio: 1/1; background: #121212; position: relative; overflow: hidden; cursor: pointer; animation: pulse 1.5s infinite ease-in-out;}
-        @keyframes pulse { 0% { background-color: #121212; } 50% { background-color: #1a1a1a; } 100% { background-color: #121212; } }
-        .g-item img { width: 100%; height: 100%; object-fit: cover; opacity: 1; transition: opacity 0.2s; }
+        /* EXPLORE GRID - STRICT 4:5 RATIO */
+        #explore-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; padding: 2px; }
+        .g-item { aspect-ratio: 4/5; background: #121212; position: relative; overflow: hidden; cursor: pointer; }
+        .g-item img { width: 100%; height: 100%; object-fit: cover; }
+        .g-type-icon { position: absolute; top: 8px; right: 8px; width: 18px; filter: invert(1) drop-shadow(0 0 2px #000); }
 
         /* FULL PLAYER VIEW */
         .full-view { position:fixed; top:0; left:0; width:100vw; height:100dvh; background:#000; z-index:7000; display:none; flex-direction:column; }
-        
-        .reels-scroll-container { 
-            height:100dvh; width:100%; 
-            overflow-y:scroll; 
-            scroll-snap-type: y mandatory; 
-            scrollbar-width:none; 
-            -webkit-overflow-scrolling: touch; 
-        }
-        .reel-item { 
-            height:100dvh; width:100%; 
-            scroll-snap-align: start; 
-            scroll-snap-stop: always; 
-            position:relative; 
-            background:#000; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center;
-        }
+        .reels-scroll-container { height:100dvh; width:100%; overflow-y:scroll; scroll-snap-type: y mandatory; scrollbar-width:none; -webkit-overflow-scrolling: touch; }
+        .reel-item { height:100dvh; width:100%; scroll-snap-align: start; scroll-snap-stop: always; position:relative; background:#000; display: flex; align-items: center; justify-content: center; }
 
-        /* YT CLIP ONLY */
         .yt-clip-box { width:100%; height:100%; position:relative; overflow:hidden; }
-        .yt-clip-box iframe { width:100%; height:130%; position:absolute; top:-15%; left:0; pointer-events:none; }
+        .yt-clip-box iframe { width:100%; height:140%; position:absolute; top:-20%; left:0; pointer-events:none; }
 
-        /* FIXED BACK BUTTON: Strictly Top Left */
-        .r-back { position:absolute; top:20px; left:20px; z-index:8000; cursor:pointer; background: rgba(0,0,0,0.5); width: 36px; height: 36px; border-radius: 50%; display:flex; align-items:center; justify-content:center;}
+        /* OVERLAY UI */
+        .r-back { position:absolute; top:20px; left:15px; z-index:8500; cursor:pointer; background: rgba(0,0,0,0.4); width: 38px; height: 38px; border-radius: 50%; display:flex; align-items:center; justify-content:center; }
         
-        /* Heart Animations */
-        .heart-pop { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) scale(0); opacity:0; width:100px; pointer-events:none; z-index:100; filter:invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%)}
-        @keyframes heartAnim{0%{transform:translate(-50%,-50%) scale(0);opacity:0}20%{transform:translate(-50%,-50%) scale(1.2);opacity:1}50%,80%{transform:translate(-50%,-50%) scale(1);opacity:1}100%{transform:translate(-50%,-50%) scale(1.4);opacity:0}}
+        .r-sidebar { position:absolute; bottom:100px; right:12px; display:flex; flex-direction:column; gap:20px; align-items:center; z-index:80; }
+        .r-act { display:flex; flex-direction:column; align-items:center; gap:5px; cursor: pointer; }
+        .r-act img { width: 28px; filter: invert(1); }
+        .r-act span { font-size: 12px; font-weight: 600; text-shadow: 1px 1px 2px #000; }
+
+        .r-info { position:absolute; bottom:40px; left:15px; z-index:80; width: 75%; }
+        .r-user { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+        .r-pfp { width:34px; height:34px; border-radius:50%; object-fit:cover; border: 1.5px solid #fff; }
+        .f-btn { font-size:13px; font-weight:700; color:#0095f6; cursor:pointer; }
+        .f-btn.following { color:#fff; }
+        .r-caption { font-size:14px; text-shadow: 1px 1px 2px #000; }
+
+        /* ANIMATIONS: Hearts & Floating */
+        .heart-pop { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) scale(0); opacity:0; width:110px; pointer-events:none; z-index:100; filter:invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%)}
+        @keyframes heartAnim{0%{transform:translate(-50%,-50%) scale(0);opacity:0}20%{transform:translate(-50%,-50%) scale(1.3);opacity:1}100%{transform:translate(-50%,-50%) scale(1.5);opacity:0}}
         .animate-heart{animation:heartAnim 0.8s ease-out forwards}
+
         @keyframes floatUp{0%{transform:translateY(0) scale(1);opacity:1}100%{transform:translateY(-120px) scale(.5);opacity:0}}
         .mini-heart{position:absolute;width:30px;pointer-events:none;z-index:8100;filter:invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%);animation:floatUp .8s ease-out forwards}
 
-        /* Player Overlays */
-        .r-sidebar { position:absolute; bottom:100px; right:12px; display:flex; flex-direction:column; gap:18px; align-items:center; z-index:80; }
-        .r-act { display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; }
-        .r-act img { width: 28px; filter: invert(1); }
-        .r-act span { font-size: 12px; font-weight: 600; color: #fff; text-shadow: 1px 1px 2px #000; }
-
-        .r-info { position:absolute; bottom:30px; left:15px; z-index:80; width: 80%; }
-        .r-user { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
-        .r-pfp { width:32px; height:32px; border-radius:50%; border:1px solid #fff; object-fit:cover; cursor:pointer;}
-        .r-user b { cursor:pointer; }
-        .f-btn { font-size:13px; font-weight:700; color:#0095f6; margin-left:8px; cursor:pointer; background:transparent; border:none; outline:none; }
-        .f-btn.following { color:#fff; }
-        .r-caption { font-size:14px; text-shadow:1px 1px 3px rgba(0,0,0,0.8); }
-
-        /* Sheets */
-        #sh-ov{position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,.7);display:none;z-index:8000}
-        #comm-view{position:fixed;bottom:-100%;left:0;width:100vw;height:85vh;background:#1c1c1e;z-index:9000;border-radius:16px 16px 0 0;display:flex;flex-direction:column;transition:bottom .3s ease}
-        .comm-handle{width:36px;height:4px;background:#444;border-radius:2px;margin:10px auto}
-        .comm-body{flex:1;overflow-y:auto;padding:12px;padding-bottom:20px}
-        .input-area{background:#1c1c1e;padding:10px 12px 25px;border-top:.1px solid #333;display:flex;gap:10px;align-items:center;}
-        .input-area input{flex:1;background:transparent;border:1px solid #444;border-radius:20px;padding:9px 15px;color:#fff;outline:none;}
-        .comm-item { display:flex; gap:10px; margin-bottom:15px; }
-        .comm-pfp { width:32px; height:32px; border-radius:50%; object-fit:cover; cursor:pointer;}
-        .comm-text b { font-size:13px; margin-right:5px; cursor:pointer;}
-        .comm-text span { font-size:13px; color:#ddd; }
+        /* SHEETS */
+        #sh-ov { position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.7); display:none; z-index:8000; }
+        #comm-view { position:fixed; bottom:-100%; left:0; width:100vw; height:75vh; background:#1c1c1e; z-index:9000; border-radius:15px 15px 0 0; transition:bottom 0.3s; display:flex; flex-direction:column; }
+        .comm-header { text-align:center; padding:15px; font-weight:700; border-bottom:0.1px solid #333; }
+        .comm-body { flex:1; overflow-y:auto; padding:15px; }
+        .comm-input-area { padding:15px; display:flex; gap:10px; border-top:0.1px solid #333; padding-bottom: 30px;}
+        .comm-input-area input { flex:1; background:#262626; border:none; border-radius:20px; padding:10px 15px; color:#fff; outline:none; }
 
         /* BOTTOM NAV */
         .b-bar{position:fixed;bottom:0;width:100%;height:50px;background:#000;border-top:.1px solid #262626;display:flex;justify-content:space-around;align-items:center;z-index:1000}
-        .b-bar img:not(#b-pfp-img) { width:24px; filter:invert(1); cursor:pointer; transition: transform 0.1s; }
-        .b-bar img:not(#b-pfp-img):active { transform: scale(0.9); }
-        #b-pfp-img { width:26px; height:26px; border-radius:50%; border:1px solid #fff; object-fit:cover; filter: none !important; }
+        .b-bar img:not(#b-pfp-img) { width:24px; filter:invert(1); cursor:pointer; }
+        #b-pfp-img { width:26px; height:26px; border-radius:50%; object-fit:cover; border:1px solid #fff; }
 
-        #toast{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:rgba(50,50,50,0.9);padding:10px 20px;border-radius:25px;display:none;z-index:9999;font-size:13px;font-weight:bold;color:#fff;}
+        #toast{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,0.95);color:#000;padding:10px 20px;border-radius:25px;display:none;z-index:9999;font-size:13px;font-weight:bold;}
     </style>
 </head>
 <body>
 
     <div class="search-container">
         <div class="search-bar">
-            <input type="text" id="s-input" placeholder="Search" onfocus="hideGrid()" oninput="liveSearch(this.value)">
+            <input type="text" id="s-input" placeholder="Search" oninput="liveSearch(this.value)">
             <img id="s-close" src="https://cdn-icons-png.flaticon.com/512/2734/2734822.png" style="width:14px; filter:invert(1); display:none; cursor:pointer;" onclick="clearSearch()">
         </div>
         <div id="search-results"></div>
     </div>
 
-    <div id="explore-grid">
-        <div class="g-item"></div><div class="g-item"></div><div class="g-item"></div>
-        <div class="g-item"></div><div class="g-item"></div><div class="g-item"></div>
-        <div class="g-item"></div><div class="g-item"></div><div class="g-item"></div>
-    </div>
+    <div id="explore-grid"></div>
 
     <div id="reel-player-view" class="full-view">
         <div class="r-back" onclick="closePlayer()">
@@ -119,14 +96,13 @@
         <div id="explore-scroll-container" class="reels-scroll-container"></div>
     </div>
 
-    <div id="sh-ov" onclick="closeAllSheets()"></div>
+    <div id="sh-ov" onclick="closeComm()"></div>
     <div id="comm-view">
-        <div class="comm-handle"></div>
-        <div style="text-align:center;padding-bottom:12px;border-bottom:.1px solid #333;font-weight:700;font-size:14px">Comments</div>
+        <div class="comm-header">Comments</div>
         <div class="comm-body" id="comm-list"></div>
-        <div class="input-area">
+        <div class="comm-input-area">
             <input type="text" id="comm-input" placeholder="Add a comment...">
-            <span style="color:#0095f6;font-weight:700;cursor:pointer" onclick="sendComm()">Post</span>
+            <button onclick="sendComm()" style="background:none;border:none;color:#0095f6;font-weight:700;">Post</button>
         </div>
     </div>
 
@@ -144,313 +120,228 @@
         const LOG = localStorage.getItem("loggedUser");
         if (!LOG) window.location.href = 'index.html';
 
-        const cachedPfp = localStorage.getItem("cachedAuraPfp");
-        const pfpImgEl = document.getElementById("b-pfp-img");
-        if(cachedPfp) pfpImgEl.src = cachedPfp;
-
         const config = {apiKey:"AIzaSyAHjilh7jAlS0e5qDKxbDZq3nbe3pFe4nE",authDomain:"instagram-e8c7a.firebaseapp.com",projectId:"instagram-e8c7a",storageBucket:"instagram-e8c7a.firebasestorage.app",messagingSenderId:"270990839800",appId:"1:270990839800:web:7f56ea2ea8d941219fd00d"};
         firebase.initializeApp(config);
         const db = firebase.firestore(), DIMG = "https://www.w3schools.com/howto/img_avatar.png";
 
-        let exploreFeed = [], lastTap = 0, observer, ytPlayers = {};
-        let currentCommId = null, currentCommOwner = null, currentCommType = null;
-        let myFollowing = [];
+        let exploreFeed = [], allUsers = [], myFollowing = [], ytPlayers = {}, observer, lastTap = 0;
+        let activeCommId = null, activeCommOwner = null, activeCommType = null;
 
         function onYouTubeIframeAPIReady() {}
 
-        // FIXED: Strict Audio overlap prevention
+        function stopMedia() {
+            document.querySelectorAll('video').forEach(v => { v.pause(); v.muted = true; });
+            Object.values(ytPlayers).forEach(p => { if(p.pauseVideo) p.pauseVideo(); });
+        }
+
         function initObserver() {
             observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     const id = entry.target.dataset.id;
-                    const videoTag = entry.target.querySelector('video');
-                    const ytPlayer = ytPlayers[id];
-
+                    const vid = entry.target.querySelector('video');
+                    const player = ytPlayers[id];
                     if (entry.isIntersecting) {
-                        // FORCE PAUSE EVERYTHING ELSE FIRST
-                        document.querySelectorAll('video').forEach(v => {
-                            if(v !== videoTag) { v.pause(); v.muted = true; }
-                        });
-                        Object.values(ytPlayers).forEach(p => {
-                            if(p !== ytPlayer && p.pauseVideo) p.pauseVideo();
-                        });
-
-                        // PLAY CURRENT
-                        if (videoTag) { 
-                            videoTag.currentTime = 0; 
-                            videoTag.muted = false; 
-                            videoTag.play().catch(() => {}); 
-                        }
-                        if (ytPlayer && ytPlayer.playVideo) { 
-                            ytPlayer.seekTo(0); 
-                            ytPlayer.unMute(); 
-                            ytPlayer.playVideo(); 
-                        }
+                        stopMedia();
+                        if (vid) { vid.muted = false; vid.play().catch(()=>{}); }
+                        if (player && player.playVideo) { player.unMute(); player.playVideo(); }
                     } else {
-                        if (videoTag) { videoTag.pause(); videoTag.muted = true; }
-                        if (ytPlayer && ytPlayer.pauseVideo) ytPlayer.pauseVideo();
+                        if (vid) vid.pause();
+                        if (player && player.pauseVideo) player.pauseVideo();
                     }
                 });
-            }, { threshold: 0.7 });
+            }, { threshold: 0.8 });
         }
 
         async function init() {
             initObserver();
-
-            const userRef = db.collection("users").doc(LOG).get();
-            const allUsersRef = db.collection("users").limit(15).get(); 
-
-            const [mySnap, usersSnap] = await Promise.all([userRef, allUsersRef]);
-
-            if(mySnap.exists) {
-                const freshPfp = mySnap.data().profileImg || DIMG;
-                pfpImgEl.src = freshPfp;
-                localStorage.setItem("cachedAuraPfp", freshPfp);
-                // GUARANTEE following is an array before we render
-                myFollowing = mySnap.data().following || [];
+            const me = await db.collection("users").doc(LOG).get();
+            if(me.exists) {
+                myFollowing = me.data().following || [];
+                document.getElementById("b-pfp-img").src = me.data().profileImg || DIMG;
             }
 
-            let dataPromises = [];
-            
+            const usersSnap = await db.collection("users").get();
+            let feedPromises = [];
             usersSnap.forEach(uDoc => {
                 const uid = uDoc.id, pfp = uDoc.data().profileImg || DIMG;
-                dataPromises.push(
-                    db.collection("users").doc(uid).collection("posts").limit(6).get().then(snap => 
-                        snap.docs.map(d => ({...d.data(), id:d.id, owner:uid, pfp, type:'post'}))
-                    )
-                );
-                dataPromises.push(
-                    db.collection("users").doc(uid).collection("reels").limit(6).get().then(snap => 
-                        snap.docs.map(d => ({...d.data(), id:d.id, owner:uid, pfp, type:'reel'}))
-                    )
-                );
+                allUsers.push({ id: uid, ...uDoc.data() });
+                feedPromises.push(db.collection("users").doc(uid).collection("posts").get().then(s => s.docs.map(d => ({...d.data(), id:d.id, owner:uid, pfp, type:'post'}))));
+                feedPromises.push(db.collection("users").doc(uid).collection("reels").get().then(s => s.docs.map(d => ({...d.data(), id:d.id, owner:uid, pfp, type:'reel'}))));
             });
 
-            const allResults = await Promise.all(dataPromises);
-            exploreFeed = allResults.flat().sort(() => Math.random() - 0.5);
-            
+            const res = await Promise.all(feedPromises);
+            exploreFeed = res.flat().sort(() => Math.random() - 0.5);
             renderGrid();
         }
 
-        function renderGrid() {
+                function renderGrid() {
             const g = document.getElementById("explore-grid");
-            let gridHtml = ""; 
-            exploreFeed.forEach((item, idx) => {
-                const src = item.type === 'reel' ? (item.thumbnail || item.videoUrl) : item.image;
-                gridHtml += `<div class="g-item" style="animation:none;" onclick="openFullFeed(${idx})"><img src="${src}" loading="lazy"></div>`;
-            });
-            g.innerHTML = gridHtml;
+            g.innerHTML = exploreFeed.map((item, idx) => `
+                <div class="g-item" onclick="openFullFeed(${idx})">
+                    <img src="${item.type==='reel' ? (item.thumbnail || item.videoUrl) : item.image}" loading="lazy">
+                    </div>
+            `).join('');
         }
+
 
         function openFullFeed(startIdx) {
-            const view = document.getElementById("reel-player-view"),
-                  cont = document.getElementById("explore-scroll-container");
-            view.style.display = "flex";
-            cont.innerHTML = "";
-            ytPlayers = {}; 
+    stopMedia();
+    const view = document.getElementById("reel-player-view");
+    const cont = document.getElementById("explore-scroll-container");
+    
+    view.style.display = "flex";
+    
+    // 1. Build the entire HTML string at once (much faster than inserting one by one)
+    cont.innerHTML = exploreFeed.map((item, i) => {
+        const isLiked = (item.likes || []).includes(LOG);
+        const isFollowing = myFollowing.includes(item.owner);
+        let content = item.type === 'reel' ? 
+            (item.videoUrl ? `<video src="${item.videoUrl}" loop playsinline preload="auto" style="width:100%;height:100%;object-fit:cover;"></video>` : `<div class="yt-clip-box"><div id="yt-player-${item.id}"></div></div>`) :
+            `<img src="${item.image}" style="width:100%;max-height:100%;object-fit:contain;">`;
 
-            exploreFeed.forEach((item, i) => {
-                const isLiked = LOG && (item.likes || []).includes(LOG);
-                
-                // FIXED: Accurate check for follow status
-                const isFollowing = myFollowing.includes(item.owner);
-                
-                let mediaHtml = "";
+        return `
+        <div class="reel-item" id="exp-${item.id}" data-id="${item.id}">
+            <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;" onclick="handleDoubleTap('${item.id}', '${item.owner}', '${item.type}', ${i})">
+                ${content}
+            </div>
+            <img src="https://cdn-icons-png.flaticon.com/512/833/833472.png" class="heart-pop" id="hp-${item.id}">
+            <div class="r-sidebar">
+                <div class="r-act" onclick="toggleLike('${item.id}','${item.owner}','${item.type}',${i})">
+                    <img id="hi-${item.id}" src="https://cdn-icons-png.flaticon.com/512/${isLiked?'833/833472':'1077/1077035'}.png" style="filter:${isLiked?'invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%)':'invert(1)'}">
+                    <span id="lc-${item.id}">${(item.likes||[]).length}</span>
+                </div>
+                <div class="r-act" onclick="openComm('${item.id}','${item.owner}','${item.type}')">
+                    <img src="https://cdn-icons-png.flaticon.com/512/1380/1380338.png"><span>Comment</span>
+                </div>
+                <div class="r-act" onclick="copyPost('${item.owner}','${item.id}')">
+                    <img src="https://cdn-icons-png.flaticon.com/512/2099/2099085.png"><span>Share</span>
+                </div>
+            </div>
+            <div class="r-info">
+                <div class="r-user">
+                    <img src="${item.pfp}" class="r-pfp" onclick="location.href='profile.html?u=${item.owner}'">
+                    <b onclick="location.href='profile.html?u=${item.owner}'">${item.owner}</b>
+                    ${item.owner !== LOG ? `<span class="f-btn ${isFollowing?'following':''}" onclick="toggleFollow('${item.owner}', this)">${isFollowing?'Following':'Follow'}</span>` : ''}
+                </div>
+                <p class="r-caption">${item.caption || ""}</p>
+            </div>
+        </div>`;
+    }).join('');
 
-                if (item.type === 'reel') {
-                    if (item.videoUrl) mediaHtml = `<video src="${item.videoUrl}" loop playsinline style="width:100%;height:100%;object-fit:cover;"></video>`;
-                    else if (item.ytId) mediaHtml = `<div class="yt-clip-box"><div id="yt-player-${item.id}"></div></div>`;
-                } else {
-                    mediaHtml = `<img src="${item.image}" loading="lazy" style="width:100%;max-height:100%;object-fit:contain;">`;
-                }
-
-                const html = `
-                <div class="reel-item" id="exp-item-${item.id}" data-id="${item.id}">
-                    <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;" onclick="handleDoubleTap('${item.id}', '${item.owner}', '${item.type}', ${i})">
-                        ${mediaHtml}
-                    </div>
-                    <img src="https://cdn-icons-png.flaticon.com/512/833/833472.png" class="heart-pop" id="hp-${item.id}">
-                    
-                    <div class="r-sidebar">
-                        <div class="r-act" onclick="toggleLike('${item.id}', '${item.owner}', '${item.type}', ${i})">
-                            <img id="hi-${item.id}" src="${isLiked ? 'https://cdn-icons-png.flaticon.com/512/833/833472.png' : 'https://cdn-icons-png.flaticon.com/512/1077/1077035.png'}" 
-                                 style="filter:${isLiked ? 'invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%)' : 'invert(1)'};">
-                            <span id="lc-${item.id}">${(item.likes || []).length}</span>
-                        </div>
-                        <div class="r-act" onclick="openComm('${item.id}', '${item.owner}', '${item.type}')">
-                            <img src="https://cdn-icons-png.flaticon.com/512/1380/1380338.png">
-                            <span>Comment</span>
-                        </div>
-                        <div class="r-act" onclick="copyPost('${item.id}', '${item.owner}')">
-                            <img src="https://cdn-icons-png.flaticon.com/512/2099/2099085.png">
-                            <span>Share</span>
-                        </div>
-                    </div>
-
-                    <div class="r-info">
-                        <div class="r-user">
-                            <img src="${item.pfp}" class="r-pfp" onclick="location.href='profile.html?u=${item.owner}'">
-                            <b onclick="location.href='profile.html?u=${item.owner}'">${item.owner}</b>
-                            ${item.owner !== LOG ? `<span class="f-btn ${isFollowing ? 'following' : ''}" id="fol-${item.owner}" onclick="toggleFollow('${item.owner}')">${isFollowing ? 'Following' : 'Follow'}</span>` : ''}
-                        </div>
-                        <p class="r-caption">${item.caption || ""}</p>
-                    </div>
-                </div>`;
-                cont.insertAdjacentHTML('beforeend', html);
-
-                if (item.ytId) {
-                    ytPlayers[item.id] = new YT.Player(`yt-player-${item.id}`, {
-                        videoId: item.ytId,
-                        playerVars: { 'autoplay': 1, 'controls': 0, 'modestbranding': 1, 'loop': 1, 'playlist': item.ytId, 'rel': 0, 'iv_load_policy': 3 },
-                        events: { 'onReady': (e) => { 
-                            if(i === startIdx) { e.target.unMute(); e.target.playVideo(); } 
-                        }}
-                    });
-                }
-                observer.observe(cont.lastElementChild);
+    // 2. Attach observers and initialize YouTube players
+    exploreFeed.forEach((item) => {
+        const el = document.getElementById(`exp-${item.id}`);
+        observer.observe(el);
+        if(item.ytId) {
+            ytPlayers[item.id] = new YT.Player(`yt-player-${item.id}`, { 
+                videoId: item.ytId, 
+                playerVars: { 'autoplay': 0, 'controls': 0, 'loop': 1, 'playlist': item.ytId, 'rel': 0 }
             });
-
-            setTimeout(() => document.getElementById(`exp-item-${exploreFeed[startIdx].id}`).scrollIntoView(), 50);
         }
+    });
 
-        async function toggleFollow(targetUser) {
-            const isFollowing = myFollowing.includes(targetUser);
-            const folBtns = document.querySelectorAll(`[id^='fol-${targetUser}']`);
-            if (isFollowing) {
-                myFollowing = myFollowing.filter(u => u !== targetUser);
-                folBtns.forEach(b => { b.innerText = 'Follow'; b.classList.remove('following'); });
-                await db.collection("users").doc(LOG).update({ following: firebase.firestore.FieldValue.arrayRemove(targetUser) });
-                await db.collection("users").doc(targetUser).update({ followers: firebase.firestore.FieldValue.arrayRemove(LOG) });
-            } else {
-                myFollowing.push(targetUser);
-                folBtns.forEach(b => { b.innerText = 'Following'; b.classList.add('following'); });
-                await db.collection("users").doc(LOG).update({ following: firebase.firestore.FieldValue.arrayUnion(targetUser) });
-                await db.collection("users").doc(targetUser).update({ followers: firebase.firestore.FieldValue.arrayUnion(LOG) });
-            }
-        }
+    // 3. Ultra-fast scroll to the selected item
+    const target = document.getElementById(`exp-${exploreFeed[startIdx].id}`);
+    if (target) {
+        target.scrollIntoView({ behavior: 'auto', block: 'start' });
+    }
+}
 
-        async function toggleLike(id, owner, type, idx, force = false) {
-            if(!LOG) return;
-            const item = exploreFeed[idx];
-            item.likes = item.likes || [];
-            const liked = item.likes.includes(LOG);
-            if(force || !liked) {
-                const hp = document.getElementById("hp-" + id);
+
+        async function toggleLike(id, owner, type, idx, force=false) {
+            const item = exploreFeed[idx]; item.likes = item.likes || [];
+            const isLiking = !item.likes.includes(LOG) || force;
+            if(isLiking) {
+                if(!item.likes.includes(LOG)) item.likes.push(LOG);
+                const hi = document.getElementById("hi-"+id);
+                hi.src = "https://cdn-icons-png.flaticon.com/512/833/833472.png";
+                hi.style.filter = "invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%)";
+                
+                // POP ANIMATION
+                const hp = document.getElementById("hp-"+id);
                 hp.classList.remove("animate-heart"); void hp.offsetWidth; hp.classList.add("animate-heart");
-                const container = document.getElementById("exp-item-" + id);
-                for (let i = 0; i < 5; i++) {
-                    const mini = document.createElement("img");
-                    mini.src = "https://cdn-icons-png.flaticon.com/512/833/833472.png";
-                    mini.className = "mini-heart";
-                    mini.style.left = `${30 + Math.random() * 40}%`;
-                    mini.style.top = `${30 + Math.random() * 40}%`;
-                    container.appendChild(mini);
-                    setTimeout(() => mini.remove(), 800);
-                }
-                if(!liked) {
-                    item.likes.push(LOG);
-                    document.getElementById("hi-" + id).src = "https://cdn-icons-png.flaticon.com/512/833/833472.png";
-                    document.getElementById("hi-" + id).style.filter = "invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%)";
+                
+                // FLOATING MINI HEARTS
+                const container = document.getElementById("exp-" + id);
+                for(let i=0; i<5; i++) {
+                    const m = document.createElement("img"); m.src = "https://cdn-icons-png.flaticon.com/512/833/833472.png";
+                    m.className = "mini-heart"; m.style.left = `${30 + Math.random()*40}%`; m.style.top = `${40 + Math.random()*20}%`;
+                    container.appendChild(m); setTimeout(()=>m.remove(), 800);
                 }
             } else {
                 item.likes = item.likes.filter(u => u !== LOG);
-                document.getElementById("hi-" + id).src = "https://cdn-icons-png.flaticon.com/512/1077/1077035.png";
-                document.getElementById("hi-" + id).style.filter = "invert(1)";
+                document.getElementById("hi-"+id).src = "https://cdn-icons-png.flaticon.com/512/1077/1077035.png";
+                document.getElementById("hi-"+id).style.filter = "invert(1)";
             }
-            document.getElementById("lc-" + id).innerText = item.likes.length;
-            const collectionPath = type === 'reel' ? 'reels' : 'posts';
-            await db.collection("users").doc(owner).collection(collectionPath).doc(id).update({likes: item.likes});
+            document.getElementById("lc-"+id).innerText = item.likes.length;
+            await db.collection("users").doc(owner).collection(type==='reel'?'reels':'posts').doc(id).update({likes: item.likes});
         }
 
         function handleDoubleTap(id, owner, type, idx) {
-            let now = Date.now();
-            if(now - lastTap < 300) toggleLike(id, owner, type, idx, true);
+            let now = Date.now(); if(now - lastTap < 300) toggleLike(id, owner, type, idx, true);
             lastTap = now;
         }
 
-        function closePlayer() { 
-            document.querySelectorAll('video').forEach(v => { v.pause(); v.muted = true; });
-            Object.values(ytPlayers).forEach(p => { if(p.pauseVideo) p.pauseVideo(); });
-            document.getElementById("reel-player-view").style.display = "none"; 
-        }
-
-        function copyPost(id, owner) {
-            const link = `${window.location.origin}/profile.html?u=${owner}&p=${id}`;
-            navigator.clipboard.writeText(link);
-            toast("Link copied to clipboard");
-        }
-
-        function openComm(id, owner, type) {
-            currentCommId = id; currentCommOwner = owner; currentCommType = type;
-            document.getElementById("sh-ov").style.display = "block";
-            document.getElementById("comm-view").style.bottom = "0";
-            loadComments();
-        }
-
-        function closeAllSheets() {
-            document.getElementById("sh-ov").style.display = "none";
-            document.getElementById("comm-view").style.bottom = "-100%";
-        }
-
-        async function loadComments() {
-            const list = document.getElementById("comm-list");
-            list.innerHTML = "<div style='text-align:center;color:#888;padding:20px'>Loading...</div>";
-            const col = currentCommType === 'reel' ? 'reels' : 'posts';
-            const snap = await db.collection("users").doc(currentCommOwner).collection(col).doc(currentCommId).collection("comments").orderBy("timestamp","desc").get();
-            list.innerHTML = "";
-            if(snap.empty) { list.innerHTML = ""; return; }
-            for(let doc of snap.docs) {
-                const c = doc.data();
-                const uSnap = await db.collection("users").doc(c.user).get();
-                const pfp = uSnap.exists ? uSnap.data().profileImg || DIMG : DIMG;
-                list.innerHTML += `<div class="comm-item"><img src="${pfp}" class="comm-pfp" onclick="location.href='profile.html?u=${c.user}'"><div class="comm-text"><b onclick="location.href='profile.html?u=${c.user}'">${c.user}</b><span>${c.text}</span></div></div>`;
+        async function toggleFollow(user, btn) {
+            const isFollowing = myFollowing.includes(user);
+            if(isFollowing) {
+                myFollowing = myFollowing.filter(u => u !== user); btn.innerText = "Follow"; btn.classList.remove("following");
+                await db.collection("users").doc(LOG).update({ following: firebase.firestore.FieldValue.arrayRemove(user) });
+            } else {
+                myFollowing.push(user); btn.innerText = "Following"; btn.classList.add("following");
+                await db.collection("users").doc(LOG).update({ following: firebase.firestore.FieldValue.arrayUnion(user) });
             }
         }
 
-        async function sendComm() {
-            const inp = document.getElementById("comm-input");
-            const txt = inp.value.trim();
-            if(!txt || !LOG) return;
-            inp.value = "";
-            const col = currentCommType === 'reel' ? 'reels' : 'posts';
-            await db.collection("users").doc(currentCommOwner).collection(col).doc(currentCommId).collection("comments").add({
-                user: LOG, text: txt, timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            loadComments();
+        function liveSearch(val) {
+            const res = document.getElementById("search-results"), close = document.getElementById("s-close"), grid = document.getElementById("explore-grid");
+            if(!val) { clearSearch(); return; }
+            close.style.display = "block"; grid.style.display = "none"; res.style.display = "block";
+            const query = val.toLowerCase();
+            const matches = allUsers.filter(u => u.id.toLowerCase().includes(query));
+            res.innerHTML = matches.map(u => `
+                <div class="u-row" onclick="location.href='profile.html?u=${u.id}'">
+                    <img src="${u.profileImg || DIMG}"><div class="u-info"><b>${u.id}</b><span>${u.fullName || 'Auragram User'}</span></div>
+                </div>`).join('') || `<div style="padding:40px; color:#888; text-align:center;">No results found</div>`;
         }
 
-        function hideGrid() { document.getElementById("explore-grid").style.display = "none"; }
         function clearSearch() {
             document.getElementById("s-input").value = "";
             document.getElementById("s-close").style.display = "none";
             document.getElementById("search-results").style.display = "none";
             document.getElementById("explore-grid").style.display = "grid";
         }
-        
-        // FIXED: Live search matching algorithm 
-        async function liveSearch(val) {
-            const res = document.getElementById("search-results");
-            const closeBtn = document.getElementById("s-close");
-            if(val.length > 0) closeBtn.style.display = "block";
-            else closeBtn.style.display = "none";
-            if(val.length < 1) { res.style.display = "none"; return; }
-            
-            // Adding '\uf8ff' allows Firestore to do a "startsWith" text search correctly
-            const snap = await db.collection("users")
-                .where(firebase.firestore.FieldPath.documentId(), ">=", val)
-                .where(firebase.firestore.FieldPath.documentId(), "<=", val + '\uf8ff')
-                .limit(6).get();
-                
-            res.innerHTML = "";
-            if(!snap.empty) {
-                res.style.display = "block";
-                snap.forEach(doc => {
-                    res.innerHTML += `<div class="u-row" onclick="location.href='profile.html?u=${doc.id}'"><img src="${doc.data().profileImg || DIMG}"><b>${doc.id}</b></div>`;
-                });
-            }
+
+        function copyPost(u, id) {
+            navigator.clipboard.writeText(`${window.location.origin}/profile.html?u=${u}&p=${id}`);
+            const t = document.getElementById("toast"); t.innerText = "Link copied to clipboard!";
+            t.style.display = "block"; setTimeout(() => t.style.display = "none", 2000);
         }
 
-        function toast(t) { const e = document.getElementById("toast"); e.innerText = t; e.style.display = "block"; setTimeout(() => e.style.display = "none", 2000); }
+        function openComm(id, owner, type) {
+            activeCommId = id; activeCommOwner = owner; activeCommType = type;
+            document.getElementById("sh-ov").style.display = "block";
+            document.getElementById("comm-view").style.bottom = "0";
+            loadComments();
+        }
+
+        function closeComm() { document.getElementById("sh-ov").style.display = "none"; document.getElementById("comm-view").style.bottom = "-100%"; }
+
+        async function loadComments() {
+            const list = document.getElementById("comm-list"); list.innerHTML = "Loading...";
+            const path = activeCommType === 'reel' ? 'reels' : 'posts';
+            const snap = await db.collection("users").doc(activeCommOwner).collection(path).doc(activeCommId).collection("comments").orderBy("timestamp","desc").get();
+            list.innerHTML = snap.docs.map(doc => `<div style="margin-bottom:12px; font-size:14px;"><b>${doc.data().user}</b> ${doc.data().text}</div>`).join('') || "No comments yet.";
+        }
+
+        async function sendComm() {
+            const inp = document.getElementById("comm-input"), txt = inp.value.trim(); if(!txt) return;
+            const path = activeCommType === 'reel' ? 'reels' : 'posts';
+            await db.collection("users").doc(activeCommOwner).collection(path).doc(activeCommId).collection("comments").add({ user: LOG, text: txt, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+            inp.value = ""; loadComments();
+        }
+
+        function closePlayer() { stopMedia(); document.getElementById("reel-player-view").style.display = "none"; }
 
         init();
     </script>
