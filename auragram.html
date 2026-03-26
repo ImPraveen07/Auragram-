@@ -2,151 +2,1018 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Im srry Ashi madam</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+    <title>Auragram | Elite Build</title>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <style>
-        body, html { 
-            margin: 0; padding: 0; width: 100%; height: 100%; 
-            overflow: hidden; background: #000; font-family: sans-serif;
-        }
-        canvas { position: absolute; top: 0; left: 0; z-index: 10; pointer-events: none; }
-        #video { display: none; } 
+        *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-tap-highlight-color:transparent}
+        body{background:#000;color:#fff;overflow-x:hidden;position:relative;min-height:100vh}
+        ::-webkit-scrollbar{display:none}
         
-        #status {
-            position: absolute; top: 20px; left: 20px;
-            z-index: 20; color: rgba(255, 255, 255, 0.4); 
-            font-size: 0.8rem; font-family: monospace;
+        /* DESKTOP/TABLET OPTIMIZATION */
+        @media (min-width: 500px) {
+            body { max-width: 450px; border-left: 1px solid #333; border-right: 1px solid #333; margin: 0 auto; }
+            .b-bar, nav, #pv-view, #comm-view, #l-view, #e-view, #g-view, #sh, #create-sheet, #login-prompt-ov, .full-view {
+                width: 450px !important;
+                left: calc(50% - 225px) !important;
+            }
+            #sh-ov, #create-sheet-ov { left: 0 !important; width: 100vw !important; }
         }
+
+        nav{height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;position:sticky;top:0;background:#000;z-index:1000;border-bottom:.1px solid #262626}
+        .nav-c{display:flex;align-items:center;gap:3px;position:absolute;left:50%;transform:translateX(-50%)}
+        .nav-c b{font-size:18px;font-weight:900}
+        .dot{width:6px;height:6px;background:#ed4956;border-radius:50%;border:1px solid #000;margin-top:2px}
+        .nav-icon{width:24px;filter:invert(1)}
+        .p-wrap{padding:10px 15px 0}
+        .p-top{display:flex;align-items:center;margin-bottom:12px}
+        .pfp-c{position:relative;width:82px;height:82px;margin-right:20px;flex-shrink:0}
+        .pfp-img{width:82px;height:82px;border-radius:50%;object-fit:cover;border:1px solid #262626;background:#121212}
+        .add-s{position:absolute;bottom:1px;right:1px;background:#0095f6;border-radius:50%;width:22px;height:22px;border:2px solid #000;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900}
+        .p-stats{display:flex;flex:1;justify-content:space-around;text-align:center}
+        .s-val{font-weight:700;font-size:17px;display:block}
+        .s-lab{font-size:12px;color:#a8a8a8}
+        .p-bio{margin-bottom:12px;min-height:20px}
+        .u-bold{font-size:14px;font-weight:700;display:block}
+        .u-text{font-size:14px;color:#efefef;white-space:pre-wrap;display:block;margin-top:1px}
+        .u-link{color:#e0f1ff;font-size:13px;font-weight:500;cursor:pointer}
+        .p-btns{display:flex;gap:6px;margin-bottom:15px}
+        .b-blue,.b-sq{background:#262626;border:none;color:#fff;padding:7px;flex:1;border-radius:8px;font-weight:600;font-size:13px}
+        .b-blue{background:#0095f6}
+        .g-nav{display:flex;border-top:.1px solid #262626;position:sticky;top:48px;background:#000;z-index:900}
+        .g-tab{flex:1;text-align:center;padding:10px;opacity:.3;transition:.2s; cursor:pointer;}
+        .g-tab.active{opacity:1;border-bottom:1px solid #fff}
+                      .g-tab img{width:22px;filter:invert(1)}
+        
+        /* Grid Layout */
+        #p-grid, #r-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1px;
+            background: #000;
+            min-height: 100vh;
+            padding-bottom: 60px;
+        }
+        
+        /* Posts at 4:5 ratio */
+        #p-grid .g-item {
+            aspect-ratio: 4/5;
+            background: #121212;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Reels at 9:16 ratio (Tall) without any extra icons */
+        #r-grid .g-item {
+            aspect-ratio: 9/16;
+            background: #121212;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .g-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            cursor: pointer;
+        }
+
+
+        #pv-view{position:fixed;top:0;left:0;width:100vw;height:100vh;background:#000;z-index:5000;display:none;flex-direction:column}
+        .pv-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+        .post-card{border-bottom:.1px solid #262626;padding-bottom:15px}
+        .pc-top{display:flex;align-items:center;padding:10px;position:relative}
+        .pc-pfp{width:32px;height:32px;border-radius:50%;margin-right:10px;object-fit:cover;cursor:pointer;}
+        .pc-user{font-size:13.5px;font-weight:600;cursor:pointer;}
+        .pc-opt{position:absolute;right:15px;font-size:20px;color:#fff;cursor:pointer}
+        
+        /* 4:5 Setup for main feed post images */
+        .pc-img-c{width:100%;aspect-ratio:4/5;position:relative;overflow:hidden;background:#111;display:flex;align-items:center;justify-content:center}
+        .pc-img-c img.main-post-img{width:100%;height:100%;object-fit:cover;display:block}
+        
+        /* Heart Animations */
+        .heart-pop{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);opacity:0;width:100px;pointer-events:none;z-index:10;filter:invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%)}
+        @keyframes heartAnim{0%{transform:translate(-50%,-50%) scale(0);opacity:0}20%{transform:translate(-50%,-50%) scale(1.2);opacity:1}50%,80%{transform:translate(-50%,-50%) scale(1);opacity:1}100%{transform:translate(-50%,-50%) scale(1.4);opacity:0}}
+        .animate-heart{animation:heartAnim 1s ease-out forwards}
+        @keyframes floatUp{0%{transform:translateY(0) scale(1);opacity:1}100%{transform:translateY(-120px) scale(.5);opacity:0}}
+        .mini-heart{position:absolute;width:30px;pointer-events:none;z-index:11;filter:invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%);animation:floatUp .8s ease-out forwards}
+        
+        .pc-acts{display:flex;gap:16px;padding:12px 12px 6px}
+        .pc-acts img{width:24px;filter:invert(1);cursor:pointer}
+        .pc-likes{padding:2px 12px;font-size:13.5px;font-weight:700;cursor:pointer}
+        #comm-view{position:fixed;bottom:-100%;left:0;width:100%;height:85vh;background:#1c1c1e;z-index:9000;border-radius:16px 16px 0 0;display:flex;flex-direction:column;transition:bottom .3s ease}
+        .comm-handle{width:36px;height:4px;background:#444;border-radius:2px;margin:10px auto}
+        .comm-header{text-align:center;padding-bottom:12px;border-bottom:.1px solid #333;font-weight:700;font-size:14px}
+        .comm-body{flex:1;overflow-y:auto;padding-bottom:20px}
+        .c-item{display:flex;gap:12px;padding:12px 15px;position:relative}
+        .c-pfp{width:32px;height:32px;border-radius:50%;object-fit:cover;cursor:pointer;}
+        .c-user{font-weight:700;margin-right:5px;font-size:13px;cursor:pointer;}
+        .c-meta{display:flex;gap:15px;margin-top:6px;color:#a8a8a8;font-size:11px;font-weight:600}
+        .c-like-ico{width:13px;height:13px;position:absolute;right:15px;top:16px;filter:invert(.5);cursor:pointer}
+        .reply-box{margin-left:44px;padding-top:5px;display:none;flex-direction:column;gap:10px}
+        .view-replies-btn{margin-left:44px;margin-top:5px;font-size:12px;color:#a8a8a8;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:10px}
+        .view-replies-btn::before{content:'';width:20px;height:1px;background:#a8a8a8;display:inline-block}
+        .r-item{display:flex;gap:10px;position:relative}
+        .r-pfp{width:24px;height:24px;border-radius:50%;object-fit:cover;cursor:pointer;}
+        .input-area{background:#1c1c1e;padding:10px 12px 25px;border-top:.1px solid #333}
+        .input-row{display:flex;align-items:center;gap:10px}
+        .in-pfp{width:34px;height:34px;border-radius:50%;object-fit:cover}
+        #comm-input{flex:1;background:0;border:1px solid #444;border-radius:20px;padding:9px 15px;color:#fff;outline:0}
+        #l-view{position:fixed;top:0;left:0;width:100vw;height:100vh;background:#000;z-index:3000;display:none;flex-direction:column}
+        .l-head{height:48px;display:flex;align-items:center;padding:0 12px;border-bottom:.1px solid #262626;background:#000;flex-shrink:0}
+        .l-tabs-s{display:flex;background:#000;border-bottom:.1px solid #262626;position:sticky;top:0;z-index:10}
+        .lt{flex:1;text-align:center;padding:12px;color:#a8a8a8;font-weight:600;font-size:14px;border-bottom:1px solid transparent}
+        .lt.active{color:#fff;border-bottom:1px solid #fff}
+        .l-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+        .u-row{display:flex;align-items:center;padding:10px 12px}
+        .u-row img{width:44px;height:44px;border-radius:50%;object-fit:cover;margin-right:12px;background:#121212;cursor:pointer}
+        .u-meta{flex:1;cursor:pointer}
+        .u-meta b{font-size:14px;display:block}
+        .u-meta span{font-size:13px;color:#a8a8a8}
+        .b-sm{background:#363636;color:#fff;border:none;padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600}
+        .x-rem{font-size:18px;color:#a8a8a8;padding:5px;cursor:pointer}
+        #e-view,#g-view{position:fixed;top:0;left:0;width:100vw;height:100vh;background:#000;z-index:4000;display:none}
+        .e-nav{height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;border-bottom:.1px solid #262626}
+        .e-pfp-s{text-align:center;padding:15px 0}
+        .e-pfp-img{width:70px;height:70px;border-radius:50%;object-fit:cover;background:#121212}
+        .i-grp{border-bottom:.1px solid #262626;padding:8px 12px}
+        .i-grp label{color:#a8a8a8;font-size:11px;display:block}
+        .i-grp input,.i-grp textarea{width:100%;background:0;border:0;color:#fff;font-size:15px;outline:0;padding-top:2px}
+        .opt-row{display:flex;justify-content:space-between;padding:14px 12px;border-bottom:.1px solid #262626;font-size:15px;cursor:pointer}
+        .rad{width:18px;height:18px;border:1.5px solid #444;border-radius:50%}
+        .opt-row.sel .rad{border:5px solid #0095f6}
+        .b-bar{position:fixed;bottom:0;width:100%;height:46px;background:#000;border-top:.1px solid #262626;display:flex;justify-content:space-around;align-items:center;z-index:1000}
+        .b-bar img{width:22px;filter:invert(1);cursor:pointer}
+        .b-pfp{width:24px;height:24px;border-radius:50%;border:1.5px solid #fff;object-fit:cover;cursor:pointer}
+        #sh-ov{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);display:none;z-index:8000}
+        #sh{position:fixed;bottom:-100%;left:0;width:100%;background:#262626;border-radius:12px 12px 0 0;transition:.3s cubic-bezier(.17,.67,.83,.67);z-index:8001;padding:10px 0;text-align:center}
+        #sh.up{bottom:0}
+        .sh-opt{padding:14px;font-weight:600;border-bottom:.1px solid #363636;font-size:14px;cursor:pointer}
+        .sh-red{color:#ed4956;font-weight:700}
+        .sh-img{width:56px;height:56px;border-radius:50%;margin:15px 0 10px;object-fit:cover;border:1px solid #363636}
+        .sh-txt{padding:0 40px 15px;font-size:13px;color:#a8a8a8;line-height:1.4}
+        #toast{position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:8px 16px;border-radius:4px;display:none;z-index:9999;font-size:12px}
+        #load{position:fixed;top:52px;left:50%;transform:translateX(-50%);background:#0095f6;color:#fff;padding:4px 12px;border-radius:20px;font-size:10px;z-index:7000;display:none}
+        #login-prompt-ov{position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,.85);z-index:9999;display:none;align-items:center;justify-content:center;flex-direction:column}
+        .oval-btn{background:#fff;color:#000;padding:14px 32px;border-radius:30px;font-weight:700;font-size:15px;cursor:pointer;margin-top:20px;text-align:center}
+        
+        #create-sheet-ov { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.7); display:none; z-index:6000 }
+        #create-sheet { position:fixed; bottom:-100%; left:0; width:100%; background:#262626; border-radius:12px 12px 0 0; transition:.3s cubic-bezier(.17,.67,.83,.67); z-index:6001; padding:10px 0; }
+        #create-sheet.up { bottom:0; }
+        .cs-handle { width:36px; height:4px; background:#444; border-radius:2px; margin:5px auto 15px; }
+        .cs-title { text-align:center; font-weight:700; font-size:16px; margin-bottom:10px; border-bottom:.1px solid #363636; padding-bottom:15px; }
+        .cs-opt { display:flex; align-items:center; padding:14px 20px; font-size:15px; font-weight:600; cursor:pointer; }
+        .cs-opt img { width:24px; filter:invert(1); margin-right:15px; }
+        .cs-badge { background:#5851ff; color:#fff; font-size:10px; padding:3px 8px; border-radius:10px; margin-left:auto; }
+        .full-view { position:fixed; top:0; left:0; width:100vw; height:100vh; background:#000; z-index:6500; display:none; flex-direction:column; }
+        
+        /* DYNAMIC REELS ENGINE STYLES */
+        .reels-scroll-container { height:100dvh; width:100%; overflow-y:scroll; scroll-snap-type:y mandatory; scrollbar-width:none; -ms-overflow-style:none; }
+        .reels-scroll-container::-webkit-scrollbar { display:none; }
+        .reel-item { height:100dvh; width:100%; scroll-snap-align:start; position:relative; background:#000; overflow:hidden; }
+        .reel-iframe-wrapper { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; display:flex; justify-content:center; align-items:center; }
+        .reel-iframe-wrapper iframe { width:177.77vh; height:100vh; min-width:100%; min-height:56.25vw; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); border:none; }
+        .reel-overlay { position:absolute; top:0; left:0; width:100%; height:100%; z-index:10; }
+        .reel-ui { position:absolute; top:0; left:0; width:100%; height:100%; z-index:20; pointer-events:none; }
+        .reel-ui > * { pointer-events:auto; }
+        .r-back { position:absolute; top:20px; left:20px; z-index:30; cursor:pointer; pointer-events:auto; }
+        .r-act { display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; }
+        .cap-text { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; cursor:pointer; transition:all 0.2s; }
+        .cap-text.expanded { display: block; -webkit-line-clamp: unset; }
     </style>
 </head>
 <body>
-    <div id="status">SENSOR: 0%</div>
-    <video id="video" autoplay playsinline muted></video>
-    <canvas id="ui"></canvas>
+<div id="create-sheet">
+    <div class="cs-handle"></div>
+    <div class="cs-title">Create</div>
+    <div class="cs-opt" onclick="trigReelMenu()"><img src="https://cdn-icons-png.flaticon.com/512/5948/5948514.png"> Reel (Link)</div>
+    <div class="cs-opt" onclick="document.getElementById('f-reel-file').click()"><img src="https://cdn-icons-png.flaticon.com/512/2859/2859733.png"> Reel (Gallery)</div>
+    <div class="cs-opt" onclick="alert('Coming soon')"><img src="https://cdn-icons-png.flaticon.com/512/1159/1159633.png"> Edits <span class="cs-badge">New</span></div>
+    <div class="cs-opt" onclick="trigPostMenu()"><img src="https://cdn-icons-png.flaticon.com/512/3161/3161837.png"> Post</div>
+</div>
+<input type="file" id="f-reel-file" hidden accept="video/*" onchange="uploadReelToCloudinary(event)">
+
+    <div id="load">Processing...</div>
+    <div id="toast"></div>
+
+    <div id="sh-ov" onclick="closeAllSheets()"></div>
+    <div id="create-sheet-ov" onclick="closeCreateSheet()"></div>
+
+    <div id="create-sheet">
+        <div class="cs-handle"></div>
+        <div class="cs-title">Create</div>
+        <div class="cs-opt" onclick="trigReelMenu()"><img src="https://cdn-icons-png.flaticon.com/512/5948/5948514.png"> Reel</div>
+        <div class="cs-opt" onclick="alert('Coming soon')"><img src="https://cdn-icons-png.flaticon.com/512/1159/1159633.png"> Edits <span class="cs-badge">New</span></div>
+        <div class="cs-opt" onclick="trigPostMenu()"><img src="https://cdn-icons-png.flaticon.com/512/3161/3161837.png"> Post</div>
+        <div class="cs-opt" onclick="alert('Coming soon')"><img src="https://cdn-icons-png.flaticon.com/512/1250/1250325.png"> Story</div>
+        <div class="cs-opt" onclick="alert('Coming soon')"><img src="https://cdn-icons-png.flaticon.com/512/833/833472.png"> Highlights</div>
+        <div class="cs-opt" onclick="alert('Coming soon')"><img src="https://cdn-icons-png.flaticon.com/512/2860/2860822.png"> Live</div>
+    </div>
+
+    <div id="caption-view" class="full-view" style="z-index: 6600;">
+        <div class="e-nav">
+            <img src="https://cdn-icons-png.flaticon.com/512/271/271218.png" style="width:18px; filter:invert(1); cursor:pointer;" onclick="closeCaptionView()">
+            <b style="font-size:16px;">New post</b>
+            <span style="color:#0095f6;font-weight:700;cursor:pointer" onclick="sharePost()">Share</span>
+        </div>
+        <div style="padding:15px; display:flex; gap:15px; border-bottom:.1px solid #262626;">
+            <img id="cv-img" style="width:60px; height:60px; object-fit:cover; border-radius:4px;">
+            <textarea id="cv-cap" placeholder="Add a caption..." style="flex:1; background:transparent; border:none; color:#fff; outline:none; resize:none; font-size:15px; height:60px;"></textarea>
+        </div>
+    </div>
+
+    <div id="new-reel-view" class="full-view" style="z-index: 6600;">
+        <div class="e-nav">
+            <img src="https://cdn-icons-png.flaticon.com/512/271/271218.png" style="width:18px; filter:invert(1); cursor:pointer;" onclick="closeReelView()">
+            <b style="font-size:16px;">New Reel</b>
+            <span style="color:#0095f6;font-weight:700;cursor:pointer" onclick="shareReel()">Share</span>
+        </div>
+        <div style="padding:15px;">
+            <label style="color:#a8a8a8; font-size:13px; font-weight:600;">YouTube Shorts URL</label>
+            <input type="text" id="rv-url" oninput="fetchYTCaption(this.value)" placeholder="Paste link here..." style="width:100%; background:#1c1c1e; border:none; color:#fff; padding:12px; border-radius:8px; margin-top:8px; outline:none; font-size:14px;">
+            <textarea id="rv-cap" placeholder="Add a caption & #hashtags..." style="width:100%; background:#1c1c1e; border:none; color:#fff; padding:12px; border-radius:8px; margin-top:15px; outline:none; font-size:14px; height:80px; resize:none;"></textarea>
+            <div style="margin-top:15px; font-size:12px; color:#666;">Thumbnail will be auto-generated from the link.</div>
+        </div>
+    </div>
+
+    <div id="reel-player-view" class="full-view" style="z-index: 7000; background:#000;">
+        <div class="r-back" onclick="closeReelPlayer()">
+            <img src="https://cdn-icons-png.flaticon.com/512/271/271218.png" style="width:24px; filter:invert(1);">
+        </div>
+        <div id="reels-scroll-container" class="reels-scroll-container"></div>
+    </div>
+
+    <div id="login-prompt-ov">
+        <h2 style="font-size:20px;font-weight:700">Log in to do more actions</h2>
+        <div class="oval-btn" onclick="location.href='index.html'">Click here to go to login page</div>
+        <div style="margin-top:20px;color:#a8a8a8;font-size:14px;cursor:pointer" onclick="closeLoginPrompt()">Cancel</div>
+    </div>
+
+    <div id="main-view">
+        <nav>
+            <div id="nav-left"></div>
+            <div class="nav-c"><b id="h-uid">Auragram</b><div class="dot"></div></div>
+            <div id="nav-right"></div>
+        </nav>
+
+        <div class="p-wrap">
+            <div class="p-top">
+                <div class="pfp-c">
+                    <img id="m-pfp" src="" class="pfp-img">
+                    <div id="add-s-icon" class="add-s" style="display:none" onclick="openCreateSheet()">+</div>
+                </div>
+                <div class="p-stats">
+                    <div class="stat"><span id="c-p" class="s-val">0</span><span class="s-lab">posts</span></div>
+                    <div class="stat" onclick="openL('followers')"><span id="c-fer" class="s-val">0</span><span class="s-lab">followers</span></div>
+                    <div class="stat" onclick="openL('following')"><span id="c-fing" class="s-val">0</span><span class="s-lab">following</span></div>
+                </div>
+            </div>
+            <div class="p-bio">
+                <span id="m-name" class="u-bold"></span>
+                <span id="m-bio" class="u-text"></span>
+                <div id="m-prompt" class="u-link" onclick="openE()" style="display:none">Add name and bio</div>
+            </div>
+            <div id="m-act" class="p-btns"></div>
+        </div>
+
+        <div class="g-nav">
+            <div class="g-tab active" id="tab-posts" onclick="switchTab('posts')"><img src="https://cdn-icons-png.flaticon.com/512/6245/6245413.png"></div>
+            <div class="g-tab" id="tab-reels" onclick="switchTab('reels')"><img src="https://cdn-icons-png.flaticon.com/512/5948/5948514.png"></div>
+            <div class="g-tab"><img src="https://cdn-icons-png.flaticon.com/512/1077/1077063.png"></div>
+        </div>
+
+        <div id="p-grid"></div>
+        <div id="r-grid" style="display:none;"></div>
+
+        <div class="b-bar" id="bottom-bar"></div>
+    </div>
+
+    <div id="pv-view">
+        <div style="height:48px;display:flex;align-items:center;padding:0 12px;background:#000;border-bottom:.1px solid #262626;position:sticky;top:0;z-index:100">
+            <img src="https://cdn-icons-png.flaticon.com/512/271/271218.png" style="width:18px;filter:invert(1);cursor:pointer" onclick="closePV()">
+            <b style="margin-left:25px;font-size:16px">Posts</b>
+        </div>
+        <div class="pv-scroll" id="pv-feed"></div>
+    </div>
+
+    <div id="comm-view">
+        <div class="comm-handle"></div>
+        <div class="comm-header">Comments</div>
+        <div class="comm-body" id="comm-list"></div>
+        <div class="input-area" id="comm-input-area" style="display:none">
+            <div class="input-row">
+                <img id="my-comm-pfp" class="in-pfp">
+                <input type="text" id="comm-input" placeholder="Add a comment...">
+                <span id="post-btn" style="color:#0095f6;font-weight:700;cursor:pointer" onclick="sendComm()">Post</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="l-view">
+        <div class="l-head">
+            <img src="https://cdn-icons-png.flaticon.com/512/271/271218.png" style="width:16px;filter:invert(1);cursor:pointer" onclick="closeL()">
+            <b id="l-uid" style="margin-left:25px;font-size:15px"></b>
+        </div>
+        <div class="l-scroll">
+            <div class="l-tabs-s">
+                <div id="lt-fer" class="lt" onclick="sw('followers')">Followers</div>
+                <div id="lt-fing" class="lt" onclick="sw('following')">Following</div>
+            </div>
+            <div id="l-cont"></div>
+            <div id="s-hd" style="padding:15px;font-weight:700;border-top:.1px solid #262626;display:none">Suggested for you</div>
+            <div id="l-sug"></div>
+        </div>
+    </div>
+
+    <div id="e-view">
+        <div class="e-nav">
+            <span onclick="closeE()" style="cursor:pointer">Cancel</span>
+            <b style="font-size:15px">Edit profile</b>
+            <span style="color:#0095f6;font-weight:700;cursor:pointer" onclick="saveE()">Done</span>
+        </div>
+        <div class="e-pfp-s">
+            <img id="e-pfp" src="" class="e-pfp-img">
+            <div style="color:#0095f6;font-weight:700;margin-top:8px;font-size:13px;cursor:pointer" onclick="openSh('pfp')">Change profile photo</div>
+        </div>
+        <div class="i-grp"><label>Name</label><input type="text" id="i-n"></div>
+        <div class="i-grp"><label>Username</label><input type="text" id="i-u" disabled></div>
+        <div class="i-grp"><label>Bio</label><textarea id="i-b" rows="2"></textarea></div>
+        <div class="opt-row" onclick="openG()" style="border-top:.1px solid #262626">
+            <span>Gender</span>
+            <span id="g-l" style="color:#a8a8a8">Not specified ></span>
+        </div>
+    </div>
+
+    <div id="g-view">
+        <div class="e-nav"><span onclick="closeG()" style="cursor:pointer">✕</span><b>Gender</b><span style="color:#0095f6;font-weight:700;cursor:pointer" onclick="closeG()">Done</span></div>
+        <div id="g-list" style="padding-top:10px">
+            <div class="opt-row" onclick="setG('Female')"><span>Female</span><div class="rad"></div></div>
+            <div class="opt-row" onclick="setG('Male')"><span>Male</span><div class="rad"></div></div>
+            <div class="opt-row" onclick="setG('Custom')"><span>Custom</span><div class="rad"></div></div>
+            <div class="opt-row" onclick="setG('Prefer not to say')"><span>Prefer not to say</span><div class="rad"></div></div>
+        </div>
+    </div>
+
+    <div id="sh"></div>
+
+    <input type="file" id="f-img" hidden accept="image/*" onchange="upPfp(event)">
+    <input type="file" id="f-pst" hidden accept="image/*" onchange="upPst(event)">
 
     <script>
-        const video = document.getElementById('video');
-        const status = document.getElementById('status');
-        const canvas = document.getElementById('ui');
-        const ctx = canvas.getContext('2d');
+        const LOG = localStorage.getItem("loggedUser"),
+              config = {apiKey:"AIzaSyAHjilh7jAlS0e5qDKxbDZq3nbe3pFe4nE",authDomain:"instagram-e8c7a.firebaseapp.com",projectId:"instagram-e8c7a",storageBucket:"instagram-e8c7a.firebasestorage.app",messagingSenderId:"270990839800",appId:"1:270990839800:web:7f56ea2ea8d941219fd00d"};
+        firebase.initializeApp(config);
+        const db = firebase.firestore(), DIMG = "https://www.w3schools.com/howto/img_avatar.png";
         
-        // --- IMAGE PRELOAD ---
-        const moonImg = new Image();
-        let moonLoaded = false;
-        moonImg.onload = () => { moonLoaded = true; };
-        moonImg.src = 'moon_PNG51.png'; // Ensure this file is in the same folder
+        let VIEW = LOG, curG = "", postsData = [], reelsData = [], curPostId = null, curCommType = "posts", lastT = 0, reelLastT = 0, replyingToCid = null, replyingToUser = null, tempPostImg = null;
+        let reelObserver = null; 
 
-        const senseCanvas = document.createElement('canvas');
-        const senseCtx = senseCanvas.getContext('2d');
-        senseCanvas.width = 8; senseCanvas.height = 8;
-
-        let smoothGlow = 0; 
-        let particles = [];
-        const symbols = ["SORRY", "sorry", "🫩", "⚡", "💖", "💓", "🎀"];
-
-        function init() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            particles = [];
-            for(let i = 0; i < 85; i++) {
-                const txt = symbols[Math.floor(Math.random() * symbols.length)];
-                particles.push({
-                    x: Math.random() * canvas.width,
-                    y: Math.random() * canvas.height,
-                    text: txt,
-                    size: Math.random() * 20 + 22,
-                    speed: (txt === "⚡") ? (Math.random() * 3 + 2.5) : (Math.random() * 1.2 + 0.6),
-                    drift: (Math.random() - 0.5) * 0.4
-                });
-            }
-        }
-
-        async function startCam() {
-            try {
-                const s = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: "environment" } 
-                });
-                video.srcObject = s;
-                video.play();
-            } catch (e) { status.innerText = "CAM ERROR"; }
-        }
-
-        function draw() {
-            let lightLevel = 0;
-
-            if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                senseCtx.drawImage(video, 0, 0, 8, 8);
-                const data = senseCtx.getImageData(0, 0, 8, 8).data;
-                let lum = 0;
-                for (let i = 0; i < data.length; i += 4) {
-                    lum += (0.2126 * data[i] + 0.7152 * data[i+1] + 0.0722 * data[i+2]);
-                }
-                lightLevel = (lum / 64) / 255;
-            }
-
-            const pct = Math.round(lightLevel * 100);
-            status.innerText = `SENSOR: ${pct}%`;
-
-            // Threshold Logic
-            let targetGlow = 0;
-            if (pct > 30) {
-                targetGlow = 0; 
-            } else if (pct <= 30 && pct >= 20) {
-                targetGlow = 0.1; // Ghost mode
-            } else {
-                targetGlow = 0.1 + (1 - (pct / 20)) * 0.9; // Scale to full 1.0
-            }
-
-            smoothGlow += (targetGlow - smoothGlow) * 0.08; 
-
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            if (smoothGlow > 0.01) {
+        // NEW CAPTION FETCH FUNCTION
+        async function fetchYTCaption(url) {
+            const capBox = document.getElementById("rv-cap");
+            
+            // Basic check to see if it's a youtube/youtu.be link
+            if(url.includes("youtube.com") || url.includes("youtu.be")) {
+                if(capBox.value === "") capBox.value = "Fetching caption...";
                 
-                // 1. DRAW MOON (Exactly centered, synced opacity)
-                if (moonLoaded) {
-                    ctx.save();
-                    ctx.globalAlpha = smoothGlow; 
-                    const moonSize = Math.min(canvas.width, canvas.height) * 0.55;
-                    ctx.drawImage(
-                        moonImg, 
-                        canvas.width/2 - moonSize/2, 
-                        canvas.height/2 - moonSize/2, 
-                        moonSize, 
-                        moonSize
-                    );
-                    ctx.restore();
+                try {
+                    // Using Noembed wrapper to bypass CORS issues cleanly
+                    const response = await fetch(`https://noembed.com/embed?dataType=json&url=${encodeURIComponent(url)}`);
+                    const data = await response.json();
+                    
+                    if(data && data.title) {
+                        capBox.value = data.title;
+                    } else {
+                        capBox.value = ""; // Clear if title couldn't be parsed
+                    }
+                } catch(error) {
+                    console.log("Failed to fetch YT metadata", error);
+                    capBox.value = ""; // Clear on error so user can type manually
                 }
-
-                // 2. DRAW PARTICLES
-                particles.forEach(p => {
-                    p.y -= p.speed;
-                    p.x += p.drift;
-                    if(p.y < -60) p.y = canvas.height + 60;
-                    if(p.x < -60 || p.x > canvas.width + 60) p.x = Math.random() * canvas.width;
-
-                    ctx.font = `900 ${p.size}px Arial`;
-                    ctx.textAlign = "center";
-
-                    // Pink Bloom
-                    ctx.globalAlpha = smoothGlow * 0.5;
-                    ctx.fillStyle = "#ff007f"; 
-                    ctx.fillText(p.text, p.x, p.y);
-
-                    // White Core
-                    ctx.globalAlpha = smoothGlow;
-                    ctx.fillStyle = "#ffffff";
-                    ctx.fillText(p.text, p.x, p.y);
-                });
             }
-
-            requestAnimationFrame(draw);
         }
 
-        window.onresize = init;
+        async function uploadReelToCloudinary(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const CLOUD_NAME = "ditmmz5hk"; 
+            const UPLOAD_PRESET = "my_video_preset"; 
+
+            document.getElementById("load").innerText = "Uploading Video...";
+            document.getElementById("load").style.display = "block";
+            closeCreateSheet();
+
+            const formData = new FormData();
+            formData.append("file", file);
+            formData.append("upload_preset", UPLOAD_PRESET);
+
+            try {
+                const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/video/upload`, {
+                    method: "POST",
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.secure_url) {
+                    const videoUrl = data.secure_url;
+                    const thumbUrl = videoUrl.substring(0, videoUrl.lastIndexOf(".")) + ".jpg";
+
+                    const caption = prompt("Add a caption for your Reel:");
+                    
+                    await db.collection("users").doc(LOG).collection("reels").add({
+                        videoUrl: videoUrl, 
+                        thumbnail: thumbUrl, 
+                        caption: caption || "",
+                        isCloudinary: true, 
+                        likes: [],
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+
+                    toast("Gallery Reel Uploaded!");
+                    render();
+                    switchTab('reels');
+                } else {
+                    alert("Upload failed: " + data.error.message);
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Network error during upload.");
+            } finally {
+                document.getElementById("load").style.display = "none";
+                document.getElementById("load").innerText = "Processing...";
+            }
+        }
+
+        async function init() {
+            window.isFollowingView = false;
+            const t = new URLSearchParams(location.search);
+            if(t.get("u") && (VIEW = t.get("u")), !LOG && !VIEW) return void(location.href="index.html");
+            if(setupBottomBar(), LOG) {
+                const t = await db.collection("users").doc(LOG).get(), e = t.exists && t.data().profileImg ? t.data().profileImg : DIMG;
+                document.getElementById("b-pfp-img").src = e, document.getElementById("my-comm-pfp").src = e, document.getElementById("comm-input-area").style.display = "block"
+            }
+            await render(), t.get("p") && openFullFeed(t.get("p"), !0), t.get("r") && (switchTab('reels'), playReel(t.get("r")));
+        }
+
+        function requireAuth() { return !!LOG || (document.getElementById("login-prompt-ov").style.display = "flex", !1) }
+        function closeLoginPrompt() { document.getElementById("login-prompt-ov").style.display = "none" }
+
+        function setupBottomBar() {
+            const t = document.getElementById("bottom-bar");
+            LOG ? t.innerHTML=`
+                    <img src="https://cdn-icons-png.flaticon.com/512/1946/1946436.png" onclick="location.href='index.html'">
+                    <img src="https://cdn-icons-png.flaticon.com/512/122/122635.png">
+                    <img src="https://cdn-icons-png.flaticon.com/512/3161/3161837.png" onclick="openCreateSheet()">
+                    <img src="https://cdn-icons-png.flaticon.com/512/622/622669.png" onclick="location.href='page.html'">
+                    <img id="b-pfp-img" src="" class="b-pfp" onclick="goHome()">
+                ` : t.innerHTML=`
+                    <div style="flex:1; text-align:center; font-weight:700; color:#0095f6; padding:10px; cursor:pointer;" onclick="location.href='index.html'">
+                        Log In or Sign Up
+                    </div>
+                `
+        }
+
+        async function getPFP(t) { const e = await db.collection("users").doc(t).get(); return e.exists && e.data().profileImg ? e.data().profileImg : DIMG }
+        function timeAgo(t) { if(!t) return"Just now"; const e = Math.floor((Date.now() - t.toMillis()) / 1e3); return e < 60 ? e + "s" : e < 3600 ? Math.floor(e / 60) + "m" : Math.floor(e / 3600) + "h" }
+
+        async function render() {
+            const t = await db.collection("users").doc(VIEW).get();
+            if(t.exists) {
+                const e = t.data(), n = VIEW === LOG, i = document.getElementById("nav-left"), o = document.getElementById("nav-right");
+                n ? (i.innerHTML='<span style="font-size:26px; cursor:pointer;" onclick="openCreateSheet()">+</span>', o.innerHTML='<img src="https://cdn-icons-png.flaticon.com/512/151/151917.png" class="nav-icon" style="cursor:pointer;" onclick="exit()">', document.getElementById("add-s-icon").style.display="flex") : (i.innerHTML="", o.innerHTML='<img src="https://cdn-icons-png.flaticon.com/512/271/271218.png" style="width:18px; filter:invert(1); transform:scaleX(-1); cursor:pointer;" onclick="goHome()">', document.getElementById("add-s-icon").style.display="none");
+                
+                document.getElementById("h-uid").innerText = VIEW;
+                document.getElementById("m-pfp").src = e.profileImg || DIMG;
+                document.getElementById("m-name").innerText = e.name || "";
+                document.getElementById("m-bio").innerText = e.bio || "";
+                document.getElementById("c-fer").innerText = (e.followerList || []).length;
+                document.getElementById("c-fing").innerText = (e.followingList || []).length;
+                document.getElementById("m-prompt").style.display = n && !e.bio ? "block" : "none";
+                
+                const s = document.getElementById("m-act");
+                if(n) {
+                    s.innerHTML='\n                    <button class="b-sq" onclick="openE()">Edit profile</button>\n                    <button class="b-sq" onclick="copyProf()">Share profile</button>\n                ';
+                    localStorage.setItem("myPfp", e.profileImg || DIMG);
+                } else if(LOG) {
+                    const l_t = await db.collection("users").doc(LOG).get(), l_n = (l_t.data().followingList || []).includes(VIEW);
+                    window.isFollowingView = l_n; 
+                    s.innerHTML=`\n                        <button class="${l_n ? "b-sq" : "b-blue"}" onclick="${l_n ? `openSh('unfollow','${VIEW}','${e.profileImg || DIMG}')` : `fol('${VIEW}')`}">${l_n ? "Unfollow" : "Follow"}</button>\n                        <button class="b-sq">Message</button>\n                    `
+                } else s.innerHTML='\n                        <button class="b-blue" onclick="requireAuth()">Follow</button>\n                        <button class="b-sq" onclick="requireAuth()">Message</button>\n                    ';
+                
+                const a = await db.collection("users").doc(VIEW).collection("posts").orderBy("timestamp","desc").get(), c = document.getElementById("p-grid");
+                c.innerHTML = "", postsData = [];
+                a.forEach(t => {
+                    const e = t.data();
+                    postsData.push({id: t.id, ...e});
+                    c.innerHTML += `\n                <div class="g-item" style="aspect-ratio:4/5;" onclick="openFullFeed('${t.id}')">\n                    <img src="${e.image}" alt="Post image">\n                </div>`
+                });
+
+                const r = await db.collection("users").doc(VIEW).collection("reels").orderBy("timestamp","desc").get(), rg = document.getElementById("r-grid");
+                rg.innerHTML = "", reelsData = [];
+                r.forEach(t => {
+                    const e = t.data();
+                    reelsData.push({id: t.id, ...e});
+                    rg.innerHTML += `
+                    <div class="g-item" style="aspect-ratio:9/16;" onclick="playReel('${t.id}')">
+                        <img src="${e.thumbnail}" style="width:100%;height:100%;object-fit:cover;">
+                    </div>`;
+                });
+                
+                // Set total post count to include both posts AND reels now!
+                document.getElementById("c-p").innerText = a.size + r.size;
+            }
+        }
+
+        async function comp(t, e = .7, n = 1e3) {
+            return document.getElementById("load").style.display = "block", new Promise(i => {
+                const o = new Image;
+                o.src = t, o.onload = () => {
+                    const t = document.createElement("canvas");
+                    let s = o.width, a = o.height;
+                    s > n && (a = n / s * a, s = n), t.width = s, t.height = a, t.getContext("2d").drawImage(o, 0, 0, s, a), document.getElementById("load").style.display = "none", i(t.toDataURL("image/jpeg", e))
+                }
+            })
+        }
+
+        function switchTab(tab) {
+            document.getElementById("tab-posts").classList.remove("active");
+            document.getElementById("tab-reels").classList.remove("active");
+            document.getElementById("p-grid").style.display="none";
+            document.getElementById("r-grid").style.display="none";
+
+            if(tab === 'posts') {
+                document.getElementById("tab-posts").classList.add("active");
+                document.getElementById("p-grid").style.display="grid";
+            } else {
+                document.getElementById("tab-reels").classList.add("active");
+                document.getElementById("r-grid").style.display="grid";
+            }
+        }
+
+        function openCreateSheet() {
+            document.getElementById("create-sheet-ov").style.display = "block";
+            setTimeout(() => document.getElementById("create-sheet").classList.add("up"), 10);
+        }
+        function closeCreateSheet() {
+            document.getElementById("create-sheet").classList.remove("up");
+            setTimeout(() => document.getElementById("create-sheet-ov").style.display = "none", 300);
+        }
+        function trigPostMenu() { document.getElementById('f-pst').click(); }
+        function trigReelMenu() {
+            closeCreateSheet();
+            document.getElementById("new-reel-view").style.display = "flex";
+        }
+        function closeCaptionView() {
+            document.getElementById("caption-view").style.display = "none";
+            tempPostImg = null;
+        }
+        function closeReelView() {
+            document.getElementById("new-reel-view").style.display = "none";
+            document.getElementById("rv-url").value = "";
+            document.getElementById("rv-cap").value = "";
+        }
+
+        function triggerHeartExplosion(t) {
+            const e = document.getElementById(t);
+            for (let t = 0; t < 5; t++) {
+                const n = document.createElement("img");
+                n.src = "https://cdn-icons-png.flaticon.com/512/833/833472.png", n.className = "mini-heart";
+                const i = 30 + 40 * Math.random(), o = 30 + 40 * Math.random();
+                n.style.left = `${i}%`, n.style.top = `${o}%`, e.appendChild(n), setTimeout(() => n.remove(), 800)
+            }
+        }
+
+        // --- DYNAMIC REELS ENGINE UPDATE ---
+        function setupReelObserver() {
+            if (reelObserver) reelObserver.disconnect();
+            
+            const container = document.getElementById('reels-scroll-container');
+            // Adjusted threshold for smoother pre-loading behavior offscreen
+            const options = { root: container, threshold: 0.6 }; 
+            
+            reelObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    const iframe = entry.target.querySelector('iframe.yt-reel-iframe');
+                    // Handle YT iframes
+                    if (iframe && iframe.contentWindow) {
+                        if (entry.isIntersecting) {
+                            iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+                            iframe.contentWindow.postMessage('{"event":"command","func":"unMute","args":""}', '*');
+                        } else {
+                            iframe.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+                            iframe.contentWindow.postMessage('{"event":"command","func":"mute","args":""}', '*');
+                        }
+                    }
+                    
+                    // Handle uploaded HTML5 Videos with pausing and muting off-screen
+                    const video = entry.target.querySelector('video.yt-reel-iframe');
+                    if (video) {
+                        if (entry.isIntersecting) {
+                            video.muted = false; // Automatically unmute when in view
+                            video.play().catch(e => console.log("Autoplay blocked until interaction", e));
+                        } else {
+                            video.pause();
+                            video.muted = true; // Prevents background audio overlapping completely!
+                            video.currentTime = 0; // Preloads for fresh start 
+                        }
+                    }
+                });
+            }, options);
+
+            document.querySelectorAll('.reel-item').forEach(item => {
+                reelObserver.observe(item);
+            });
+        }
+
+        function toggleCap(id) {
+            document.getElementById('cap-text-' + id).classList.toggle('expanded');
+        }
+
+        async function toggleFolReel(targetUser, btnEl) {
+            if(!requireAuth()) return;
+            event.stopPropagation();
+            if(window.isFollowingView) {
+                await unfol(targetUser);
+                window.isFollowingView = false;
+                btnEl.innerText = "Follow";
+            } else {
+                await fol(targetUser);
+                window.isFollowingView = true;
+                btnEl.innerText = "Following";
+            }
+        }
+
+        function playReel(targetId) {
+            const v = document.getElementById("reel-player-view");
+            v.style.display = "flex";
+            const container = document.getElementById("reels-scroll-container");
+            container.innerHTML = "";
+            const profImg = document.getElementById("m-pfp").src;
+
+            reelsData.forEach(reel => {
+                const isLiked = !!LOG && (reel.likes || []).includes(LOG);
+                const capText = (reel.caption || "").replace(/(#[a-zA-Z0-9_]+)/g, '<span style="color:#e0f1ff; font-weight:600;">$1</span>');
+                
+                const followBtnHtml = (LOG && LOG !== VIEW) ? `<button id="r-fol-${reel.id}" onclick="toggleFolReel('${VIEW}', this)" style="background:transparent; border:1px solid #fff; color:#fff; padding:4px 10px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; pointer-events:auto;">${window.isFollowingView ? 'Following' : 'Follow'}</button>` : '';
+
+                let mediaElement = '';
+                if (reel.videoUrl) {
+                    // Removed 'muted' attribute here so videos play with audio when scrolling!
+                    mediaElement = `
+                        <video class="yt-reel-iframe" 
+                               loop 
+                               playsinline 
+                               webkit-playsinline 
+                               preload="auto"
+                               style="width:100%; height:100%; object-fit:cover;">
+                            <source src="${reel.videoUrl}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>`;
+                } else {
+                    mediaElement = `<iframe class="yt-reel-iframe" onload="if(this.parentElement.parentElement.getBoundingClientRect().top >= 0 && this.parentElement.parentElement.getBoundingClientRect().top < window.innerHeight){ this.contentWindow.postMessage('{\\&quot;event\&quot;:\&quot;command\&quot;,\&quot;func\&quot;:\&quot;playVideo\&quot;,\&quot;args\&quot;:\&quot;\&quot;}', '*'); }" src="https://www.youtube.com/embed/${reel.ytId}?enablejsapi=1&loop=1&playlist=${reel.ytId}&controls=0&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3&disablekb=1" allow="autoplay; encrypted-media"></iframe>`;
+                }
+
+                container.innerHTML += `
+                <div class="reel-item" id="reel-cont-${reel.id}">
+                    <div class="reel-iframe-wrapper">
+                        ${mediaElement}
+                    </div>
+                    <div class="reel-overlay" onclick="handleReelTap('${reel.id}')">
+                        <img src="https://cdn-icons-png.flaticon.com/512/833/833472.png" class="heart-pop" id="rhp-${reel.id}">
+                    </div>
+                    <div class="reel-ui">
+                        <div class="reel-actions" style="position:absolute; bottom:80px; right:15px; display:flex; flex-direction:column; gap:22px; align-items:center;">
+                            <div class="r-act" onclick="toggleReelL('${reel.id}')">
+                                <img id="r-hi-${reel.id}" src="${isLiked ? 'https://cdn-icons-png.flaticon.com/512/833/833472.png' : 'https://cdn-icons-png.flaticon.com/512/1077/1077035.png'}" style="width:28px; filter:${isLiked ? 'invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%)' : 'invert(1)'};">
+                                <span id="r-lc-${reel.id}" style="font-size:12px; font-weight:700; text-shadow:1px 1px 2px #000;">${(reel.likes || []).length}</span>
+                            </div>
+                            <div class="r-act" onclick="openComm('${reel.id}', 'reels')">
+                                <img src="https://cdn-icons-png.flaticon.com/512/1380/1380338.png" style="width:28px; filter:invert(1);">
+                                <span id="r-cc-${reel.id}" style="font-size:12px; font-weight:700; text-shadow:1px 1px 2px #000;">...</span>
+                            </div>
+                            <div class="r-act" onclick="copyReel('${reel.id}')">
+                                <img src="https://cdn-icons-png.flaticon.com/512/2099/2099085.png" style="width:28px; filter:invert(1);">
+                                <span style="font-size:12px; font-weight:700; text-shadow:1px 1px 2px #000; margin-top:4px;">Share</span>
+                            </div>
+                            <div class="r-act" onclick="location.href='?u=${VIEW}'">
+                                <img src="${profImg}" style="width:28px; height:28px; border-radius:5px; object-fit:cover; border:2px solid #fff;">
+                            </div>
+                        </div>
+                        <div style="position:absolute; bottom:35px; left:15px; max-width:75%; text-shadow:1px 1px 2px rgba(0,0,0,0.8);">
+                            <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+                                <img src="${profImg}" style="width:34px; height:34px; border-radius:50%; object-fit:cover; border:1px solid #fff; cursor:pointer; pointer-events:auto;" onclick="location.href='?u=${VIEW}'">
+                                <b style="font-size:14.5px; cursor:pointer; pointer-events:auto;" onclick="location.href='?u=${VIEW}'">${VIEW}</b>
+                                ${followBtnHtml}
+                            </div>
+                            <div style="font-size:14px; line-height:1.4; max-width:100%; pointer-events:auto;">
+                                <span id="cap-text-${reel.id}" class="cap-text" onclick="toggleCap('${reel.id}')">${capText}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+
+                db.collection("users").doc(VIEW).collection("reels").doc(reel.id).collection("comments").get().then(snap => {
+                    const cc = document.getElementById(`r-cc-${reel.id}`);
+                    if(cc) cc.innerText = snap.size;
+                });
+            });
+
+            setupReelObserver();
+
+            if (targetId) {
+                setTimeout(() => {
+                    const el = document.getElementById(`reel-cont-${targetId}`);
+                    if (el) el.scrollIntoView();
+                }, 50);
+            }
+        }
+
+        function closeReelPlayer() {
+            document.getElementById("reel-player-view").style.display = "none";
+            document.getElementById("reels-scroll-container").innerHTML = "";
+            if (reelObserver) reelObserver.disconnect();
+        }
+
+        function handleReelTap(reelId) {
+            let now = Date.now();
+            if (now - reelLastT < 300 && requireAuth()) {
+                toggleReelL(reelId, true);
+            }
+            reelLastT = now;
+        }
+
+        async function toggleReelL(reelId, isDoubleTap = false) {
+            if(!requireAuth()) return;
+            const reel = reelsData.find(r => r.id === reelId);
+            if (!reel) return;
+            reel.likes = reel.likes || [];
+            const isLiked = reel.likes.includes(LOG);
+            const likeIco = document.getElementById("r-hi-" + reelId);
+            
+            if (isDoubleTap || !isLiked) {
+                const hp = document.getElementById("rhp-" + reelId);
+                hp.classList.remove("animate-heart");
+                void hp.offsetWidth;
+                hp.classList.add("animate-heart");
+                triggerHeartExplosion("reel-cont-" + reelId);
+
+                if(!isLiked) {
+                    reel.likes.push(LOG);
+                    if(likeIco) {
+                        likeIco.src = "https://cdn-icons-png.flaticon.com/512/833/833472.png";
+                        likeIco.style.filter = "invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%)";
+                    }
+                }
+            } else {
+                reel.likes = reel.likes.filter(u => u !== LOG);
+                if(likeIco) {
+                    likeIco.src = "https://cdn-icons-png.flaticon.com/512/1077/1077035.png";
+                    likeIco.style.filter = "invert(1)";
+                }
+            }
+            const lc = document.getElementById("r-lc-" + reelId);
+            if(lc) lc.innerText = reel.likes.length;
+            await db.collection("users").doc(VIEW).collection("reels").doc(reelId).update({ likes: reel.likes });
+        }
+
+        function copyReel(reelId) {
+            navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?u=${VIEW}&r=${reelId}`);
+            toast("Reel link copied to clipboard");
+        }
+        // --- END REELS ENGINE ---
+
+        function openFullFeed(t, e = !1) {
+            const n = document.getElementById("pv-feed");
+            n.innerHTML = "";
+            const i = document.getElementById("m-pfp").src;
+            postsData.forEach(t => {
+                const e = t.likes || [], o = !!LOG && e.includes(LOG);
+                n.innerHTML += `\n                <div class="post-card" id="post-${t.id}">\n                    <div class="pc-top">\n                        <img src="${i}" class="pc-pfp" onclick="location.href='?u=${VIEW}'">\n                        <b class="pc-user" onclick="location.href='?u=${VIEW}'">${VIEW}</b>\n                        ${VIEW === LOG ? `<div class="pc-opt" onclick="delPost('${t.id}')">⋮</div>` : ""}\n                    </div>\n                    \n                    <div class="pc-img-c" onclick="handleDT('${t.id}')" id="img-cont-${t.id}">\n                        <img src="${t.image}" class="main-post-img">\n                        <img src="https://cdn-icons-png.flaticon.com/512/833/833472.png" class="heart-pop" id="hp-${t.id}">\n                    </div>\n                    \n                    <div class="pc-acts">\n                        <img src="${o ? "https://cdn-icons-png.flaticon.com/512/833/833472.png" : "https://cdn-icons-png.flaticon.com/512/1077/1077035.png"}" \n                             id="hi-${t.id}" \n                             style="${o ? "filter: invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%);" : "filter:invert(1)"}" \n                             onclick="toggleL('${t.id}')">\n                        <img src="https://cdn-icons-png.flaticon.com/512/1380/1380338.png" onclick="openComm('${t.id}', 'posts')">\n                        <img src="https://cdn-icons-png.flaticon.com/512/2099/2099085.png" onclick="copyPost('${t.id}')">\n                    </div>\n                    \n                    <div class="pc-likes" id="lc-${t.id}">${e.length} likes</div>\n                    \n                    <div class="pc-desc" style="padding:5px 12px;">\n                        <b style="cursor:pointer;" onclick="location.href='?u=${VIEW}'">${VIEW}</b> <span style="font-size:13.5px;">${t.caption || ""}</span>\n                    </div>\n                </div>`
+            });
+            document.getElementById("pv-view").style.display = "flex";
+            setTimeout(() => { const n = document.getElementById("post-" + t); n && n.scrollIntoView({ behavior: e ? "auto" : "smooth" }) }, 50)
+        }
+
+        function handleDT(t) {
+            const e = Date.now();
+            e - lastT < 300 && requireAuth() && toggleL(t, !0), lastT = e
+        }
+
+        async function toggleL(t, e = !1) {
+            if (requireAuth()) {
+                const n = postsData.find(e => e.id === t);
+                n.likes || (n.likes = []);
+                const i = n.likes.includes(LOG), o = document.getElementById("hi-" + t), s = document.getElementById("lc-" + t);
+                if (e || !i) {
+                    const e = document.getElementById("hp-" + t);
+                    e.classList.remove("animate-heart"), void e.offsetWidth, e.classList.add("animate-heart"), triggerHeartExplosion("img-cont-" + t), i || (n.likes.push(LOG), o.src = "https://cdn-icons-png.flaticon.com/512/833/833472.png", o.style.filter = "invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%)")
+                } else n.likes = n.likes.filter(t => t !== LOG), o.src = "https://cdn-icons-png.flaticon.com/512/1077/1077035.png", o.style.filter = "invert(1)";
+                s.innerText = `${n.likes.length} likes`, await db.collection("users").doc(VIEW).collection("posts").doc(t).update({ likes: n.likes })
+            }
+        }
+
+        async function delPost(t) { confirm("Delete this post? Action cannot be undone.") && (await db.collection("users").doc(LOG).collection("posts").doc(t).delete(), closePV(), render()) }
+
+        async function openComm(t, type="posts") {
+            curPostId = t, curCommType = type, replyingToCid = null, document.getElementById("comm-input").placeholder = "Add a comment...", document.getElementById("sh-ov").style.display = "block", document.getElementById("comm-view").style.bottom = "0";
+            const e = document.getElementById("comm-list");
+            e.innerHTML = '<div style="text-align:center; padding:20px; color:#888;">Loading...</div>';
+            const n = await db.collection("users").doc(VIEW).collection(curCommType).doc(t).collection("comments").orderBy("timestamp", "desc").get();
+            if (n.empty) return void (e.innerHTML = '<div style="text-align:center; padding-top:50px; color:#888;">No comments yet. Be the first!</div>');
+            e.innerHTML = "";
+            for (let i = 0; i < n.docs.length; i++) {
+                const o = n.docs[i], s = o.data(), a = await getPFP(s.user), c = !!LOG && (s.likes || []).includes(LOG), r = document.createElement("div");
+                r.className = "c-wrap", r.innerHTML = `\n                    <div class="c-item">\n                        <img src="${a}" class="c-pfp" onclick="location.href='?u=${s.user}'">\n                        <div style="flex:1;">\n                            <span class="c-user" onclick="location.href='?u=${s.user}'">${s.user}</span>\n                            <span style="font-size:13px;">${s.text}</span>\n                            <div class="c-meta">\n                                <span>${timeAgo(s.timestamp)}</span>\n                                <span id="clt-${o.id}">${(s.likes || []).length} likes</span>\n                                <span style="cursor:pointer;" onclick="prepRep('${o.id}', '${s.user}')">Reply</span>\n                            </div>\n                        </div>\n                        <img src="${c ? "https://cdn-icons-png.flaticon.com/512/833/833472.png" : "https://cdn-icons-png.flaticon.com/512/1077/1077035.png"}" \n                             class="c-like-ico" \n                             style="${c ? "filter: invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%);" : ""}" \n                             onclick="toggleCommL('${o.id}')">\n                    </div>\n                    \n                    <div class="view-replies-btn" id="vrb-${o.id}" onclick="loadReplies('${o.id}')" style="display:none;">\n                        View replies\n                    </div>\n                    <div class="reply-box" id="rb-${o.id}"></div>\n                `, e.appendChild(r), db.collection("users").doc(VIEW).collection(curCommType).doc(t).collection("comments").doc(o.id).collection("replies").limit(1).get().then(t => { t.empty || (document.getElementById("vrb-" + o.id).style.display = "flex") })
+            }
+        }
+
+        async function loadReplies(t) {
+            const e = document.getElementById("rb-" + t);
+            e.innerHTML = '<div style="font-size:12px; color:#666;">Loading...</div>', e.style.display = "flex", document.getElementById("vrb-" + t).style.display = "none";
+            const n = await db.collection("users").doc(VIEW).collection(curCommType).doc(curPostId).collection("comments").doc(t).collection("replies").orderBy("timestamp", "asc").get();
+            let i = "";
+            for (let o = 0; o < n.docs.length; o++) {
+                const s = n.docs[o].data(), a = await getPFP(s.user);
+                i += `\n                    <div class="r-item">\n                        <img src="${a}" class="r-pfp" onclick="location.href='?u=${s.user}'">\n                        <div style="flex:1;">\n                            <span class="c-user" onclick="location.href='?u=${s.user}'">${s.user}</span>\n                            <span style="font-size:13px;">${s.text}</span>\n                            <div class="c-meta" style="margin-top:2px;">\n                                <span>${timeAgo(s.timestamp)}</span>\n                                <span style="cursor:pointer;" onclick="prepRep('${t}', '${s.user}')">Reply</span>\n                            </div>\n                        </div>\n                    </div>\n                `
+            }
+            e.innerHTML = i
+        }
+
+        function prepRep(t, e) { if (requireAuth()) { replyingToCid = t, replyingToUser = e; const n = document.getElementById("comm-input"); n.placeholder = `Reply to @${e}...`, n.focus() } }
+
+        async function sendComm() {
+            if (requireAuth()) {
+                const t = document.getElementById("comm-input"), e = t.value.trim();
+                if (e) {
+                    t.value = "";
+                    const n = { user: LOG, text: e, likes: [], timestamp: firebase.firestore.FieldValue.serverTimestamp() };
+                    replyingToCid ? (await db.collection("users").doc(VIEW).collection(curCommType).doc(curPostId).collection("comments").doc(replyingToCid).collection("replies").add(n), loadReplies(replyingToCid), replyingToCid = null, replyingToUser = null, t.placeholder = "Add a comment...") : (await db.collection("users").doc(VIEW).collection(curCommType).doc(curPostId).collection("comments").add(n), openComm(curPostId, curCommType))
+                }
+            }
+        }
+
+        async function toggleCommL(t) {
+            if (requireAuth()) {
+                const e = db.collection("users").doc(VIEW).collection(curCommType).doc(curPostId).collection("comments").doc(t), n = await e.get();
+                let i = n.data().likes || [];
+                i = i.includes(LOG) ? i.filter(t => t !== LOG) : [...i, LOG], await e.update({ likes: i }), openComm(curPostId, curCommType)
+            }
+        }
+
+        function openL(t) { document.getElementById("l-view").style.display = "flex", document.getElementById("l-uid").innerText = VIEW, sw(t) }
+
+        async function sw(t) {
+            document.getElementById("lt-fer").className = "followers" === t ? "lt active" : "lt", document.getElementById("lt-fing").className = "following" === t ? "lt active" : "lt";
+            const e = document.getElementById("l-cont");
+            e.innerHTML = "<p style='padding:20px; color:#555;'>Loading...</p>";
+            const n = await db.collection("users").doc(VIEW).get(), i = ("followers" === t ? n.data().followerList : n.data().followingList) || [];
+            if (0 === i.length) e.innerHTML = `<div style='text-align:center; padding:50px; color:#8e8e8e;'>No ${t} yet</div>`;
+            else {
+                let n = "";
+                for (let t of i) {
+                    const e = await db.collection("users").doc(t).get(), i = e.data();
+                    n += `\n                    <div class="u-row">\n                        <img src="${i.profileImg || DIMG}" onclick="location.href='?u=${t}'">\n                        <div class="u-meta" onclick="location.href='?u=${t}'">\n                            <b>${t}</b>\n                            <span>${i.name || ""}</span>\n                        </div>\n                        ${VIEW === LOG ? `<span class="x-rem" onclick="openSh('rem','${t}','${i.profileImg || DIMG}')">✕</span>` : ""}\n                    </div>`
+                }
+                e.innerHTML = n
+            }
+            VIEW === LOG && loadS(n.data().followingList || [])
+        }
+
+        async function loadS(t) {
+            const e = await db.collection("users").limit(10).get(), n = document.getElementById("l-sug");
+            n.innerHTML = "";
+            let i = !1;
+            e.forEach(e => {
+                e.id !== LOG && !t.includes(e.id) && (i = !0, n.innerHTML += `\n                    <div class="u-row">\n                        <img src="${e.data().profileImg || DIMG}" onclick="location.href='?u=${e.id}'">\n                        <div class="u-meta" onclick="location.href='?u=${e.id}'">\n                            <b>${e.id}</b>\n                            <span>Suggested for you</span>\n                        </div>\n                        <button class="b-sm" style="background:#0095f6; cursor:pointer;" onclick="fol('${e.id}')">Follow</button>\n                    </div>`)
+            }), document.getElementById("s-hd").style.display = i ? "block" : "none"
+        }
+
+        async function fol(t) { requireAuth() && (await db.collection("users").doc(LOG).update({ followingList: firebase.firestore.FieldValue.arrayUnion(t) }), await db.collection("users").doc(t).update({ followerList: firebase.firestore.FieldValue.arrayUnion(LOG) }), render(), "flex" === document.getElementById("l-view").style.display && sw("following")) }
+        async function unfol(t) { await db.collection("users").doc(LOG).update({ followingList: firebase.firestore.FieldValue.arrayRemove(t) }), await db.collection("users").doc(t).update({ followerList: firebase.firestore.FieldValue.arrayRemove(LOG) }), closeAllSheets(), render() }
+        async function remF(t) { await db.collection("users").doc(LOG).update({ followerList: firebase.firestore.FieldValue.arrayRemove(t) }), await db.collection("users").doc(t).update({ followingList: firebase.firestore.FieldValue.arrayRemove(LOG) }), closeAllSheets(), render(), sw("followers") }
+
+        function openE() {
+            db.collection("users").doc(LOG).get().then(t => {
+                const e = t.data();
+                document.getElementById("i-n").value = e.name || "", document.getElementById("i-u").value = LOG, document.getElementById("i-b").value = e.bio || "", document.getElementById("e-pfp").src = e.profileImg || DIMG, document.getElementById("g-l").innerText = (e.gender || "Not specified") + " >", curG = e.gender || "", document.getElementById("e-view").style.display = "block"
+            })
+        }
+
+        async function saveE() { await db.collection("users").doc(LOG).update({ name: document.getElementById("i-n").value, bio: document.getElementById("i-b").value, gender: curG }), closeE(), render() }
+        function openG() { document.getElementById("g-view").style.display = "block" }
+        function closeG() { document.getElementById("g-view").style.display = "none" }
+        function setG(t) { curG = t, document.querySelectorAll(".opt-row").forEach(t => t.classList.remove("sel")), event.currentTarget.classList.add("sel"), document.getElementById("g-l").innerText = t + " >" }
+        function closeE() { document.getElementById("e-view").style.display = "none" }
+
+        async function upPfp(t) {
+            const e = t.target.files;
+            if (e) {
+                const t = new FileReader;
+                t.onload = async t => {
+                    const e = await comp(t.target.result, .6, 300);
+                    await db.collection("users").doc(LOG).update({ profileImg: e }), closeAllSheets(), render(), document.getElementById("e-pfp").src = e
+                }, t.readAsDataURL(e)
+            }
+        }
+
+        async function upPst(t) {
+            const e = t.target.files;
+            if (e) {
+                const t = new FileReader;
+                t.onload = async t => {
+                    tempPostImg = await comp(t.target.result, .8, 1080);
+                    document.getElementById('cv-img').src = tempPostImg;
+                    document.getElementById('cv-cap').value = '';
+                    document.getElementById('caption-view').style.display = 'block';
+                    closeCreateSheet();
+                }, t.readAsDataURL(e)
+            }
+        }
+
+        async function sharePost() {
+            if(!tempPostImg) return;
+            document.getElementById('caption-view').style.display = 'none';
+            const n = document.getElementById('cv-cap').value;
+            await db.collection("users").doc(LOG).collection("posts").add({
+                image: tempPostImg,
+                caption: n,
+                likes: [],
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            tempPostImg = null;
+            render();
+            switchTab('posts');
+        }
+async function shareReel() {
+    const url = document.getElementById("rv-url").value;
+    const cap = document.getElementById("rv-cap").value;
+    if(!url) return alert("Please enter a URL");
+    
+    let ytId = "";
+    const match = url.match(/(?:shorts\/|v=|youtu\.be\/)([^&?\n]+)/);
+    if(match && match[1]) ytId = match[1];
+    else return alert("Invalid YouTube URL");
+
+    const thumb = `https://i.ytimg.com/vi/${ytId}/hqdefault.jpg`;
+    
+    // UI Cleanup
+    document.getElementById("new-reel-view").style.display="none";
+    document.getElementById("rv-url").value="";
+    document.getElementById("rv-cap").value="";
+    toast("Uploading Reel...");
+
+    const newReel = {
+        ytId: ytId,
+        thumbnail: thumb,
+        caption: cap,
+        likes: [],
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    try {
+        // 1. Save to Firestore
+        const docRef = await db.collection("users").doc(LOG).collection("reels").add(newReel);
+        
+        // 2. Manually push to local data so playReel can see it immediately
+        reelsData.unshift({ id: docRef.id, ...newReel }); 
+
+        // 3. Force re-render of the reels grid
+        await render(); 
+        
+        // 4. Switch to reels tab to show success
+        switchTab('reels');
+        toast("Reel shared successfully!");
+    } catch (e) {
+        console.error("Error sharing reel: ", e);
+        toast("Failed to share reel.");
+    }
+}
+
+        
+
+        function openSh(t, e, n) {
+            const i = document.getElementById("sh");
+            if ("pfp" === t) i.innerHTML = '\n                    <div class="sh-opt" onclick="document.getElementById(\'f-img\').click()">New Profile Photo</div>\n                    <div class="sh-opt sh-red" onclick="closeAllSheets()">Cancel</div>\n                ';
+            else if ("rem" === t || "unfollow" === t) {
+                const o = "rem" === t ? "Remove follower?" : `Unfollow @${e}?`, s = "rem" === t ? `remF('${e}')` : `unfol('${e}')`;
+                i.innerHTML = `\n                    <img src="${n}" class="sh-img">\n                    <b style="display:block; font-size:16px;">${o}</b>\n                    <div class="sh-txt">You can always follow them back later.</div>\n                    <div class="sh-opt sh-red" onclick="${s}">${"rem" === t ? "Remove" : "Unfollow"}</div>\n                    <div class="sh-opt" onclick="closeAllSheets()">Cancel</div>\n                `
+            }
+            document.getElementById("sh-ov").style.display = "block", setTimeout(() => i.classList.add("up"), 10)
+        }
+
+        function closeAllSheets() { document.getElementById("sh").classList.remove("up"), document.getElementById("comm-view").style.bottom = "-100%", setTimeout(() => document.getElementById("sh-ov").style.display = "none", 300) }
+        function closePV() { document.getElementById("pv-view").style.display = "none" }
+        function closeL() { document.getElementById("l-view").style.display = "none" }
+        function copyPost(t) { navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?u=${VIEW}&p=${t}`), toast("Post link copied to clipboard") }
+        function copyProf() { navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?u=${VIEW}`), toast("Profile link copied") }
+        function toast(t) { const e = document.getElementById("toast"); e.innerText = t, e.style.display = "block", setTimeout(() => e.style.display = "none", 2500) }
+        function goHome() { location.href = "?u=" + (LOG || VIEW) }
+        function exit() { localStorage.clear(), location.href = "index.html" }
+        
         init();
-        startCam();
-        requestAnimationFrame(draw);
     </script>
 </body>
 </html>
