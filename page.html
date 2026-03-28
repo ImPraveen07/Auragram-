@@ -3,10 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+    
+    <meta property="og:title" content="Auragram Reel">
+    <meta property="og:description" content="Watch this content on Auragram">
+    <meta property="og:image" content="https://cdn-icons-png.flaticon.com/512/1946/1946436.png">
+    <meta property="og:type" content="video.other">
+
     <title>Auragram | Explore</title>
+    
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://www.youtube.com/iframe_api"></script>
+    
     <style>
         /* BASE & RESET */
         *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-tap-highlight-color:transparent}
@@ -28,11 +36,12 @@
         #explore-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; padding: 2px; }
         .g-item { aspect-ratio: 4/5; background: #121212; position: relative; overflow: hidden; cursor: pointer; }
         .g-item img { width: 100%; height: 100%; object-fit: cover; }
-        .g-type-icon { position: absolute; top: 8px; right: 8px; width: 18px; filter: invert(1) drop-shadow(0 0 2px #000); }
 
         /* FULL PLAYER VIEW */
         .full-view { position:fixed; top:0; left:0; width:100vw; height:100dvh; background:#000; z-index:7000; display:none; flex-direction:column; }
         .reels-scroll-container { height:100dvh; width:100%; overflow-y:scroll; scroll-snap-type: y mandatory; scrollbar-width:none; -webkit-overflow-scrolling: touch; }
+        .no-scroll { overflow-y: hidden !important; } 
+        
         .reel-item { height:100dvh; width:100%; scroll-snap-align: start; scroll-snap-stop: always; position:relative; background:#000; display: flex; align-items: center; justify-content: center; }
 
         .yt-clip-box { width:100%; height:100%; position:relative; overflow:hidden; }
@@ -53,7 +62,18 @@
         .f-btn.following { color:#fff; }
         .r-caption { font-size:14px; text-shadow: 1px 1px 2px #000; }
 
-        /* ANIMATIONS: Hearts & Floating */
+        /* GUEST BANNER */
+        #guest-banner { position: absolute; top: 0; left: 0; width: 100%; background: #0095f6; color: #fff; text-align: center; padding: 12px; z-index: 9000; font-size: 14px; font-weight: bold; display: none; cursor: pointer; }
+
+        /* MUTE TOGGLE HINT */
+        #vol-hint { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.6); padding: 15px; border-radius: 50%; z-index: 9000; pointer-events: none; display: none; }
+        #vol-icon { width: 30px; filter: invert(1); }
+
+        /* LOADING SPINNER */
+        .loader-ring { position: absolute; width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid #fff; border-radius: 50%; animation: spin 0.8s linear infinite; z-index: 5; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* ANIMATIONS */
         .heart-pop { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) scale(0); opacity:0; width:110px; pointer-events:none; z-index:100; filter:invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%)}
         @keyframes heartAnim{0%{transform:translate(-50%,-50%) scale(0);opacity:0}20%{transform:translate(-50%,-50%) scale(1.3);opacity:1}100%{transform:translate(-50%,-50%) scale(1.5);opacity:0}}
         .animate-heart{animation:heartAnim 0.8s ease-out forwards}
@@ -79,7 +99,7 @@
 </head>
 <body>
 
-    <div class="search-container">
+    <div class="search-container" id="top-search-ui">
         <div class="search-bar">
             <input type="text" id="s-input" placeholder="Search" oninput="liveSearch(this.value)">
             <img id="s-close" src="https://cdn-icons-png.flaticon.com/512/2734/2734822.png" style="width:14px; filter:invert(1); display:none; cursor:pointer;" onclick="clearSearch()">
@@ -90,9 +110,11 @@
     <div id="explore-grid"></div>
 
     <div id="reel-player-view" class="full-view">
-        <div class="r-back" onclick="closePlayer()">
+        <div id="guest-banner" onclick="location.href='index.html'">Log in to like, comment & see more 🔥</div>
+        <div class="r-back" id="r-back-btn" onclick="closePlayer()">
             <img src="https://cdn-icons-png.flaticon.com/512/271/271218.png" style="width:18px; filter:invert(1);">
         </div>
+        <div id="vol-hint"><img id="vol-icon" src="https://cdn-icons-png.flaticon.com/512/3127/3127501.png"></div>
         <div id="explore-scroll-container" class="reels-scroll-container"></div>
     </div>
 
@@ -100,7 +122,7 @@
     <div id="comm-view">
         <div class="comm-header">Comments</div>
         <div class="comm-body" id="comm-list"></div>
-        <div class="comm-input-area">
+        <div class="comm-input-area" id="comm-input-ui">
             <input type="text" id="comm-input" placeholder="Add a comment...">
             <button onclick="sendComm()" style="background:none;border:none;color:#0095f6;font-weight:700;">Post</button>
         </div>
@@ -108,52 +130,86 @@
 
     <div id="toast"></div>
 
-    <div class="b-bar">
+    <div class="b-bar" id="bottom-nav-bar">
         <img src="https://cdn-icons-png.flaticon.com/512/1946/1946436.png" onclick="location.href='index.html'">
-        <img src="https://cdn-icons-png.flaticon.com/512/5948/5948514.png" onclick="location.href='reels.html'">
+        <img src="https://cdn-icons-png.flaticon.com/512/5948/5948514.png" onclick="openReelsOnly()">
         <img src="https://cdn-icons-png.flaticon.com/512/3161/3161837.png" onclick="location.href='add.html'">
-        <img src="https://cdn-icons-png.flaticon.com/512/622/622669.png" style="border-bottom: 2px solid #fff; padding-bottom:2px;">
+        <img id="explore-nav-icon" src="https://cdn-icons-png.flaticon.com/512/622/622669.png" style="border-bottom: 2px solid #fff; padding-bottom:2px;" onclick="location.href='explore.html'">
         <img id="b-pfp-img" src="" onclick="location.href='profile.html?u=' + LOG">
     </div>
 
     <script>
         const LOG = localStorage.getItem("loggedUser");
-        if (!LOG) window.location.href = 'index.html';
+        const urlParams = new URLSearchParams(window.location.search);
+        const sharedUserId = urlParams.get('u'), sharedPostId = urlParams.get('p'), sharedType = urlParams.get('t') || 'reel';
+
+        if (!LOG && !sharedPostId) window.location.href = 'index.html';
 
         const config = {apiKey:"AIzaSyAHjilh7jAlS0e5qDKxbDZq3nbe3pFe4nE",authDomain:"instagram-e8c7a.firebaseapp.com",projectId:"instagram-e8c7a",storageBucket:"instagram-e8c7a.firebasestorage.app",messagingSenderId:"270990839800",appId:"1:270990839800:web:7f56ea2ea8d941219fd00d"};
         firebase.initializeApp(config);
         const db = firebase.firestore(), DIMG = "https://www.w3schools.com/howto/img_avatar.png";
 
-        let exploreFeed = [], allUsers = [], myFollowing = [], ytPlayers = {}, observer, lastTap = 0;
+        let exploreFeed = [], activeFeed = [], allUsers = [], myFollowing = [], ytPlayers = {}, tapTimer = null;
         let activeCommId = null, activeCommOwner = null, activeCommType = null;
+        let loadObserver, playObserver, isMuted = false;
+        let unloadTimeouts = {}; 
 
+        function showToast(msg) {
+            const t = document.getElementById("toast"); t.innerText = msg;
+            t.style.display = "block"; setTimeout(() => t.style.display = "none", 2500);
+        }
+
+        function checkAuth() { if(!LOG) { showToast("Log in to use this feature"); return false; } return true; }
         function onYouTubeIframeAPIReady() {}
 
         function stopMedia() {
-            document.querySelectorAll('video').forEach(v => { v.pause(); v.muted = true; });
+            document.querySelectorAll('video').forEach(v => { v.pause(); v.currentTime = 0; });
             Object.values(ytPlayers).forEach(p => { if(p.pauseVideo) p.pauseVideo(); });
         }
 
-        function initObserver() {
-            observer = new IntersectionObserver((entries) => {
+        function initObservers() {
+            // RootMargin increased to 150% to ensure 2 reels ahead are always ready
+            loadObserver = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
-                    const id = entry.target.dataset.id;
-                    const vid = entry.target.querySelector('video');
-                    const player = ytPlayers[id];
-                    if (entry.isIntersecting) {
-                        stopMedia();
-                        if (vid) { vid.muted = false; vid.play().catch(()=>{}); }
-                        if (player && player.playVideo) { player.unMute(); player.playVideo(); }
-                    } else {
-                        if (vid) vid.pause();
-                        if (player && player.pauseVideo) player.pauseVideo();
-                    }
+                    const idx = parseInt(entry.target.dataset.idx);
+                    if (entry.isIntersecting) { loadContent(idx); } 
+                    else { unloadContent(idx); }
                 });
-            }, { threshold: 0.8 });
+            }, { rootMargin: "150% 0px 150% 0px" });
+
+            // Threshold lowered to 0.6 to trigger "Play" faster on mobile scrolls
+            playObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    const idx = parseInt(entry.target.dataset.idx);
+                    if (entry.isIntersecting) { playContent(idx); } 
+                    else { pauseContent(idx); }
+                });
+            }, { threshold: 0.6 });
         }
 
         async function init() {
-            initObserver();
+            initObservers();
+            if (!LOG && sharedPostId) {
+                document.getElementById('top-search-ui').style.display = 'none';
+                document.getElementById('explore-grid').style.display = 'none';
+                document.getElementById('bottom-nav-bar').style.display = 'none';
+                document.getElementById('guest-banner').style.display = 'block';
+                document.getElementById('r-back-btn').style.display = 'none';
+                
+                const path = sharedType === 'reel' ? 'reels' : 'posts';
+                const postDoc = await db.collection("users").doc(sharedUserId).collection(path).doc(sharedPostId).get();
+                const userDoc = await db.collection("users").doc(sharedUserId).get();
+                
+                if (postDoc.exists) {
+                    exploreFeed = [{ ...postDoc.data(), id: postDoc.id, owner: sharedUserId, pfp: userDoc.data().profileImg || DIMG, type: sharedType }];
+                    document.getElementById("explore-scroll-container").classList.add("no-scroll");
+                    openFullFeed(0, exploreFeed);
+                } else {
+                    showToast("Post not found"); setTimeout(() => location.href='index.html', 2000);
+                }
+                return;
+            }
+
             const me = await db.collection("users").doc(LOG).get();
             if(me.exists) {
                 myFollowing = me.data().following || [];
@@ -174,115 +230,157 @@
             renderGrid();
         }
 
-                function renderGrid() {
+        function renderGrid() {
             const g = document.getElementById("explore-grid");
             g.innerHTML = exploreFeed.map((item, idx) => `
-                <div class="g-item" onclick="openFullFeed(${idx})">
+                <div class="g-item" onclick="openFullFeed(${idx}, exploreFeed)">
                     <img src="${item.type==='reel' ? (item.thumbnail || item.videoUrl) : item.image}" loading="lazy">
-                    </div>
+                </div>
             `).join('');
         }
 
-
-        function openFullFeed(startIdx) {
-    stopMedia();
-    const view = document.getElementById("reel-player-view");
-    const cont = document.getElementById("explore-scroll-container");
-    
-    view.style.display = "flex";
-    
-    // 1. Build the entire HTML string at once (much faster than inserting one by one)
-    cont.innerHTML = exploreFeed.map((item, i) => {
-        const isLiked = (item.likes || []).includes(LOG);
-        const isFollowing = myFollowing.includes(item.owner);
-        let content = item.type === 'reel' ? 
-            (item.videoUrl ? `<video src="${item.videoUrl}" loop playsinline preload="auto" style="width:100%;height:100%;object-fit:cover;"></video>` : `<div class="yt-clip-box"><div id="yt-player-${item.id}"></div></div>`) :
-            `<img src="${item.image}" style="width:100%;max-height:100%;object-fit:contain;">`;
-
-        return `
-        <div class="reel-item" id="exp-${item.id}" data-id="${item.id}">
-            <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;" onclick="handleDoubleTap('${item.id}', '${item.owner}', '${item.type}', ${i})">
-                ${content}
-            </div>
-            <img src="https://cdn-icons-png.flaticon.com/512/833/833472.png" class="heart-pop" id="hp-${item.id}">
-            <div class="r-sidebar">
-                <div class="r-act" onclick="toggleLike('${item.id}','${item.owner}','${item.type}',${i})">
-                    <img id="hi-${item.id}" src="https://cdn-icons-png.flaticon.com/512/${isLiked?'833/833472':'1077/1077035'}.png" style="filter:${isLiked?'invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%)':'invert(1)'}">
-                    <span id="lc-${item.id}">${(item.likes||[]).length}</span>
-                </div>
-                <div class="r-act" onclick="openComm('${item.id}','${item.owner}','${item.type}')">
-                    <img src="https://cdn-icons-png.flaticon.com/512/1380/1380338.png"><span>Comment</span>
-                </div>
-                <div class="r-act" onclick="copyPost('${item.owner}','${item.id}')">
-                    <img src="https://cdn-icons-png.flaticon.com/512/2099/2099085.png"><span>Share</span>
-                </div>
-            </div>
-            <div class="r-info">
-                <div class="r-user">
-                    <img src="${item.pfp}" class="r-pfp" onclick="location.href='profile.html?u=${item.owner}'">
-                    <b onclick="location.href='profile.html?u=${item.owner}'">${item.owner}</b>
-                    ${item.owner !== LOG ? `<span class="f-btn ${isFollowing?'following':''}" onclick="toggleFollow('${item.owner}', this)">${isFollowing?'Following':'Follow'}</span>` : ''}
-                </div>
-                <p class="r-caption">${item.caption || ""}</p>
-            </div>
-        </div>`;
-    }).join('');
-
-    // 2. Attach observers and initialize YouTube players
-    exploreFeed.forEach((item) => {
-        const el = document.getElementById(`exp-${item.id}`);
-        observer.observe(el);
-        if(item.ytId) {
-            ytPlayers[item.id] = new YT.Player(`yt-player-${item.id}`, { 
-                videoId: item.ytId, 
-                playerVars: { 'autoplay': 0, 'controls': 0, 'loop': 1, 'playlist': item.ytId, 'rel': 0 }
-            });
+        function openReelsOnly() {
+            const onlyReels = exploreFeed.filter(item => item.type === 'reel');
+            if(onlyReels.length > 0) openFullFeed(0, onlyReels);
         }
-    });
 
-    // 3. Ultra-fast scroll to the selected item
-    const target = document.getElementById(`exp-${exploreFeed[startIdx].id}`);
-    if (target) {
-        target.scrollIntoView({ behavior: 'auto', block: 'start' });
-    }
-}
+        function openFullFeed(startIdx, sourceFeed) {
+            stopMedia();
+            activeFeed = sourceFeed;
+            const view = document.getElementById("reel-player-view"), cont = document.getElementById("explore-scroll-container");
+            view.style.display = "flex";
+            
+            cont.innerHTML = activeFeed.map((item, i) => {
+                const isLiked = (item.likes || []).includes(LOG), isFollowing = myFollowing.includes(item.owner);
+                return `
+                <div class="reel-item" id="exp-${item.id}" data-id="${item.id}" data-idx="${i}">
+                    <div id="media-cont-${item.id}" class="m-c" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#000;" onclick="handleInteraction('${item.id}', '${item.owner}', '${item.type}', ${i})">
+                        <div class="loader-ring"></div>
+                    </div>
+                    <img src="https://cdn-icons-png.flaticon.com/512/833/833472.png" class="heart-pop" id="hp-${item.id}">
+                    <div class="r-sidebar">
+                        <div class="r-act" onclick="toggleLike('${item.id}','${item.owner}','${item.type}',${i})">
+                            <img id="hi-${item.id}" src="https://cdn-icons-png.flaticon.com/512/${isLiked?'833/833472':'1077/1077035'}.png" style="filter:${isLiked?'invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%)':'invert(1)'}">
+                            <span id="lc-${item.id}">${(item.likes||[]).length}</span>
+                        </div>
+                        <div class="r-act" onclick="openComm('${item.id}','${item.owner}','${item.type}')">
+                            <img src="https://cdn-icons-png.flaticon.com/512/1380/1380338.png"><span>Comment</span>
+                        </div>
+                        <div class="r-act" onclick="copyPost('${item.owner}','${item.id}','${item.type}')">
+                            <img src="https://cdn-icons-png.flaticon.com/512/2099/2099085.png"><span>Share</span>
+                        </div>
+                    </div>
+                    <div class="r-info">
+                        <div class="r-user">
+                            <img src="${item.pfp}" class="r-pfp" onclick="${LOG ? `location.href='profile.html?u=${item.owner}'` : `showToast('Log in')`}">
+                            <b>${item.owner}</b>
+                            ${(item.owner !== LOG && LOG) ? `<span class="f-btn ${isFollowing?'following':''}" onclick="toggleFollow('${item.owner}', this)">${isFollowing?'Following':'Follow'}</span>` : ''}
+                        </div>
+                        <p class="r-caption">${item.caption || ""}</p>
+                    </div>
+                </div>`;
+            }).join('');
 
+            cont.querySelectorAll('.reel-item').forEach(it => { loadObserver.observe(it); playObserver.observe(it); });
+            const target = document.getElementById(`exp-${activeFeed[startIdx].id}`);
+            if (target) target.scrollIntoView({ behavior: 'auto', block: 'start' });
+        }
+
+        function loadContent(idx) {
+            const item = activeFeed[idx], container = document.getElementById(`media-cont-${item.id}`);
+            if (!container || container.dataset.loaded === "true") return;
+
+            if (unloadTimeouts[item.id]) { clearTimeout(unloadTimeouts[item.id]); delete unloadTimeouts[item.id]; }
+
+            // Reduced delay to 20ms for "ultra sonic" feel
+            setTimeout(() => {
+                if (unloadTimeouts[item.id] || container.dataset.loaded === "true") return;
+
+                if (item.type === 'reel') {
+                    if (item.videoUrl) {
+                        container.innerHTML = `<video src="${item.videoUrl}" loop playsinline preload="auto" ${isMuted?'muted':''} style="width:100%;height:100%;object-fit:cover;"></video>`;
+                    } else if (item.ytId) {
+                        container.innerHTML = `<div class="yt-clip-box"><div id="yt-player-${item.id}"></div></div>`;
+                        ytPlayers[item.id] = new YT.Player(`yt-player-${item.id}`, { 
+                            videoId: item.ytId, 
+                            playerVars: { 'autoplay': 0, 'controls': 0, 'loop': 1, 'playlist': item.ytId, 'rel': 0, 'playsinline': 1 },
+                            events: { 'onReady': (e) => { if (isMuted) e.target.mute(); e.target.playVideo(); } }
+                        });
+                    }
+                } else {
+                    container.innerHTML = `<img src="${item.image}" style="width:100%;max-height:100%;object-fit:contain;">`;
+                }
+                container.dataset.loaded = "true";
+            }, 20);
+        }
+
+        function unloadContent(idx) {
+            const item = activeFeed[idx], container = document.getElementById(`media-cont-${item.id}`);
+            if (!container || container.dataset.loaded !== "true") return;
+
+            unloadTimeouts[item.id] = setTimeout(() => {
+                if (ytPlayers[item.id]) { try { ytPlayers[item.id].destroy(); } catch(e){} delete ytPlayers[item.id]; }
+                const vid = container.querySelector('video');
+                if (vid) { vid.pause(); vid.removeAttribute('src'); vid.load(); }
+                container.innerHTML = `<div class="loader-ring"></div>`; 
+                container.dataset.loaded = "false";
+                delete unloadTimeouts[item.id];
+            }, 800); // Increased buffer to prevent loading flickering
+        }
+
+        function playContent(idx) {
+            const item = activeFeed[idx], container = document.getElementById(`media-cont-${item.id}`);
+            if (!container) return;
+            const vid = container.querySelector('video');
+            if (vid) { vid.muted = isMuted; vid.play().catch(() => { vid.muted = true; vid.play(); }); }
+            if (ytPlayers[item.id] && ytPlayers[item.id].playVideo) ytPlayers[item.id].playVideo();
+        }
+
+        function pauseContent(idx) {
+            const item = activeFeed[idx], container = document.getElementById(`media-cont-${item.id}`);
+            if (!container) return;
+            const vid = container.querySelector('video');
+            if (vid) vid.pause();
+            if (ytPlayers[item.id] && ytPlayers[item.id].pauseVideo) ytPlayers[item.id].pauseVideo();
+        }
+
+        function handleInteraction(id, owner, type, idx) {
+            if (!tapTimer) {
+                tapTimer = setTimeout(() => {
+                    isMuted = !isMuted;
+                    const hint = document.getElementById('vol-hint'), icon = document.getElementById('vol-icon');
+                    icon.src = isMuted ? "https://cdn-icons-png.flaticon.com/512/3127/3127501.png" : "https://cdn-icons-png.flaticon.com/512/727/727269.png";
+                    hint.style.display = "block";
+                    setTimeout(() => { hint.style.display = "none"; }, 800);
+                    const vid = document.getElementById(`media-cont-${id}`).querySelector('video');
+                    if (vid) vid.muted = isMuted;
+                    if (ytPlayers[id]) { if (isMuted) ytPlayers[id].mute(); else ytPlayers[id].unMute(); }
+                    tapTimer = null;
+                }, 250);
+            } else {
+                clearTimeout(tapTimer); tapTimer = null;
+                toggleLike(id, owner, type, idx, true);
+            }
+        }
 
         async function toggleLike(id, owner, type, idx, force=false) {
-            const item = exploreFeed[idx]; item.likes = item.likes || [];
+            if(!checkAuth()) return;
+            const item = activeFeed[idx]; item.likes = item.likes || [];
             const isLiking = !item.likes.includes(LOG) || force;
             if(isLiking) {
                 if(!item.likes.includes(LOG)) item.likes.push(LOG);
-                const hi = document.getElementById("hi-"+id);
-                hi.src = "https://cdn-icons-png.flaticon.com/512/833/833472.png";
-                hi.style.filter = "invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%)";
-                
-                // POP ANIMATION
-                const hp = document.getElementById("hp-"+id);
-                hp.classList.remove("animate-heart"); void hp.offsetWidth; hp.classList.add("animate-heart");
-                
-                // FLOATING MINI HEARTS
-                const container = document.getElementById("exp-" + id);
-                for(let i=0; i<5; i++) {
-                    const m = document.createElement("img"); m.src = "https://cdn-icons-png.flaticon.com/512/833/833472.png";
-                    m.className = "mini-heart"; m.style.left = `${30 + Math.random()*40}%`; m.style.top = `${40 + Math.random()*20}%`;
-                    container.appendChild(m); setTimeout(()=>m.remove(), 800);
-                }
+                document.getElementById("hi-"+id).style.filter = "invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%)";
+                const hp = document.getElementById("hp-"+id); hp.classList.remove("animate-heart"); void hp.offsetWidth; hp.classList.add("animate-heart");
             } else {
                 item.likes = item.likes.filter(u => u !== LOG);
-                document.getElementById("hi-"+id).src = "https://cdn-icons-png.flaticon.com/512/1077/1077035.png";
                 document.getElementById("hi-"+id).style.filter = "invert(1)";
             }
             document.getElementById("lc-"+id).innerText = item.likes.length;
             await db.collection("users").doc(owner).collection(type==='reel'?'reels':'posts').doc(id).update({likes: item.likes});
         }
 
-        function handleDoubleTap(id, owner, type, idx) {
-            let now = Date.now(); if(now - lastTap < 300) toggleLike(id, owner, type, idx, true);
-            lastTap = now;
-        }
-
         async function toggleFollow(user, btn) {
+            if(!checkAuth()) return;
             const isFollowing = myFollowing.includes(user);
             if(isFollowing) {
                 myFollowing = myFollowing.filter(u => u !== user); btn.innerText = "Follow"; btn.classList.remove("following");
@@ -294,28 +392,19 @@
         }
 
         function liveSearch(val) {
-            const res = document.getElementById("search-results"), close = document.getElementById("s-close"), grid = document.getElementById("explore-grid");
+            const res = document.getElementById("search-results"), grid = document.getElementById("explore-grid");
             if(!val) { clearSearch(); return; }
-            close.style.display = "block"; grid.style.display = "none"; res.style.display = "block";
+            grid.style.display = "none"; res.style.display = "block";
             const query = val.toLowerCase();
             const matches = allUsers.filter(u => u.id.toLowerCase().includes(query));
-            res.innerHTML = matches.map(u => `
-                <div class="u-row" onclick="location.href='profile.html?u=${u.id}'">
-                    <img src="${u.profileImg || DIMG}"><div class="u-info"><b>${u.id}</b><span>${u.fullName || 'Auragram User'}</span></div>
-                </div>`).join('') || `<div style="padding:40px; color:#888; text-align:center;">No results found</div>`;
+            res.innerHTML = matches.map(u => `<div class="u-row" onclick="location.href='profile.html?u=${u.id}'"><img src="${u.profileImg || DIMG}"><b>${u.id}</b></div>`).join('');
         }
 
-        function clearSearch() {
-            document.getElementById("s-input").value = "";
-            document.getElementById("s-close").style.display = "none";
-            document.getElementById("search-results").style.display = "none";
-            document.getElementById("explore-grid").style.display = "grid";
-        }
+        function clearSearch() { document.getElementById("s-input").value = ""; document.getElementById("search-results").style.display = "none"; document.getElementById("explore-grid").style.display = "grid"; }
 
-        function copyPost(u, id) {
-            navigator.clipboard.writeText(`${window.location.origin}/profile.html?u=${u}&p=${id}`);
-            const t = document.getElementById("toast"); t.innerText = "Link copied to clipboard!";
-            t.style.display = "block"; setTimeout(() => t.style.display = "none", 2000);
+        function copyPost(u, id, type) {
+            navigator.clipboard.writeText(`${window.location.origin}/explore.html?u=${u}&p=${id}&t=${type}`);
+            showToast("Link copied!");
         }
 
         function openComm(id, owner, type) {
@@ -328,20 +417,23 @@
         function closeComm() { document.getElementById("sh-ov").style.display = "none"; document.getElementById("comm-view").style.bottom = "-100%"; }
 
         async function loadComments() {
-            const list = document.getElementById("comm-list"); list.innerHTML = "Loading...";
             const path = activeCommType === 'reel' ? 'reels' : 'posts';
             const snap = await db.collection("users").doc(activeCommOwner).collection(path).doc(activeCommId).collection("comments").orderBy("timestamp","desc").get();
-            list.innerHTML = snap.docs.map(doc => `<div style="margin-bottom:12px; font-size:14px;"><b>${doc.data().user}</b> ${doc.data().text}</div>`).join('') || "No comments yet.";
+            document.getElementById("comm-list").innerHTML = snap.docs.map(doc => `<div style="margin-bottom:12px;"><b>${doc.data().user}</b> ${doc.data().text}</div>`).join('') || "No comments.";
         }
 
         async function sendComm() {
+            if(!checkAuth()) return;
             const inp = document.getElementById("comm-input"), txt = inp.value.trim(); if(!txt) return;
             const path = activeCommType === 'reel' ? 'reels' : 'posts';
             await db.collection("users").doc(activeCommOwner).collection(path).doc(activeCommId).collection("comments").add({ user: LOG, text: txt, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
             inp.value = ""; loadComments();
         }
 
-        function closePlayer() { stopMedia(); document.getElementById("reel-player-view").style.display = "none"; }
+        function closePlayer() { 
+            stopMedia(); 
+            document.getElementById("reel-player-view").style.display = "none"; 
+        }
 
         init();
     </script>
