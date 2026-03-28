@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,8 +6,7 @@
     
     <meta property="og:title" content="Auragram Reel">
     <meta property="og:description" content="Watch this content on Auragram">
-    <meta property="og:image" content="https://cdn-icons-png.flaticon.com/512/1946/1946436.png">
-    <meta property="og:type" content="video.other">
+    <meta property="og:image" content="https://cdn-icons-png.flaticon.com/512/1177/1177511.png"> <meta property="og:type" content="video.other">
 
     <title>Auragram | Explore</title>
     
@@ -18,40 +15,48 @@
     <script src="https://www.youtube.com/iframe_api"></script>
     
     <style>
-        /* BASE & RESET */
-        *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-tap-highlight-color:transparent}
-        body{background:#000;color:#fff;overflow-x:hidden;min-height:100vh;padding-bottom:60px}
-        ::-webkit-scrollbar{display:none}
+        /* =========================================
+           AURAGRAM CSS CORE - v3.0.2 (PRODUCTION FIX)
+           =========================================
+        */
+        * { margin:0; padding:0; box-sizing:border-box; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; -webkit-tap-highlight-color:transparent; }
+        body { background:#000; color:#fff; overflow-x:hidden; min-height:100vh; position: relative; }
+        ::-webkit-scrollbar { display:none; }
 
-        /* SEARCH UI */
+        /* HEADER & SEARCH */
         .search-container { position: sticky; top: 0; background: #000; padding: 10px 12px; z-index: 2000; border-bottom: 0.1px solid #262626; }
         .search-bar { background: #262626; border-radius: 10px; padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
         .search-bar input { background: transparent; border: none; color: #fff; outline: none; width: 100%; font-size: 15px; }
         
         #search-results { position: fixed; top: 54px; left: 0; width: 100%; height: calc(100% - 104px); background: #000; z-index: 3000; display: none; overflow-y: auto; }
-        .u-row { display: flex; align-items: center; padding: 12px 16px; cursor: pointer; border-bottom: 0.1px solid #1a1a1a;}
+        .u-row { display: flex; align-items: center; padding: 12px 16px; border-bottom: 0.1px solid #1a1a1a; cursor: pointer; }
         .u-row img { width: 44px; height: 44px; border-radius: 50%; margin-right: 12px; object-fit: cover; border: 1px solid #333;}
         .u-info b { font-size: 14px; display: block; }
         .u-info span { font-size: 12px; color: #8e8e8e; }
 
-        /* EXPLORE GRID - STRICT 4:5 RATIO */
-        #explore-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; padding: 2px; }
+        /* EXPLORE GRID */
+        #explore-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; padding: 2px; padding-bottom: 70px; }
         .g-item { aspect-ratio: 4/5; background: #121212; position: relative; overflow: hidden; cursor: pointer; }
         .g-item img { width: 100%; height: 100%; object-fit: cover; }
 
-        /* FULL PLAYER VIEW */
+        /* REELS PLAYER SYSTEM */
         .full-view { position:fixed; top:0; left:0; width:100vw; height:100dvh; background:#000; z-index:7000; display:none; flex-direction:column; }
         .reels-scroll-container { height:100dvh; width:100%; overflow-y:scroll; scroll-snap-type: y mandatory; scrollbar-width:none; -webkit-overflow-scrolling: touch; }
-        .no-scroll { overflow-y: hidden !important; } /* Applied for guest users */
+        .no-scroll { overflow-y: hidden !important; touch-action: none; } 
         
-        .reel-item { height:100dvh; width:100%; scroll-snap-align: start; scroll-snap-stop: always; position:relative; background:#000; display: flex; align-items: center; justify-content: center; }
+        .reel-item { height:100dvh; width:100%; scroll-snap-align: start; scroll-snap-stop: always; position:relative; background:#000; display: flex; align-items: center; justify-content: center; overflow: hidden; }
 
+        .media-box { width:100%; height:100%; position:relative; display:flex; align-items:center; justify-content:center; }
+        .media-box video { width:100%; height:100%; object-fit: contain; background: #000; }
+        
+        /* PLAY BUTTON OVERLAY - FIX FOR BLACK SCREEN */
+        .play-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10; width: 60px; opacity: 0.8; display: none; pointer-events: none; }
+        
         .yt-clip-box { width:100%; height:100%; position:relative; overflow:hidden; }
         .yt-clip-box iframe { width:100%; height:140%; position:absolute; top:-20%; left:0; pointer-events:none; }
 
-        /* OVERLAY UI */
+        /* PLAYER OVERLAYS */
         .r-back { position:absolute; top:20px; left:15px; z-index:8500; cursor:pointer; background: rgba(0,0,0,0.4); width: 38px; height: 38px; border-radius: 50%; display:flex; align-items:center; justify-content:center; }
-        
         .r-sidebar { position:absolute; bottom:100px; right:12px; display:flex; flex-direction:column; gap:20px; align-items:center; z-index:80; }
         .r-act { display:flex; flex-direction:column; align-items:center; gap:5px; cursor: pointer; }
         .r-act img { width: 28px; filter: invert(1); }
@@ -61,49 +66,42 @@
         .r-user { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
         .r-pfp { width:34px; height:34px; border-radius:50%; object-fit:cover; border: 1.5px solid #fff; }
         .f-btn { font-size:13px; font-weight:700; color:#0095f6; cursor:pointer; }
-        .f-btn.following { color:#fff; }
-        .r-caption { font-size:14px; text-shadow: 1px 1px 2px #000; }
+        .r-caption { font-size:14px; text-shadow: 1px 1px 2px #000; line-height: 1.3; }
 
-        /* GUEST BANNER */
-        #guest-banner { position: absolute; top: 0; left: 0; width: 100%; background: #0095f6; color: #fff; text-align: center; padding: 12px; z-index: 9000; font-size: 14px; font-weight: bold; display: none; cursor: pointer; }
-
-        /* MUTE TOGGLE HINT */
         #vol-hint { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.6); padding: 15px; border-radius: 50%; z-index: 9000; pointer-events: none; display: none; }
         #vol-icon { width: 30px; filter: invert(1); }
 
-        /* LOADING SPINNER */
+        #guest-restriction-banner { position: absolute; bottom: 0; left: 0; width: 100%; background: linear-gradient(transparent, rgba(0,0,0,0.95) 40%); color: #fff; text-align: center; padding: 60px 20px 30px; z-index: 9500; display: none; }
+        .login-cta-btn { background: #0095f6; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; width: 100%; margin-top: 15px; font-size: 15px; }
+
+        #action-modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:20000; display:none; align-items:center; justify-content:center; padding:30px; }
+        .modal-box { background:#262626; width:100%; max-width:300px; border-radius:15px; text-align:center; overflow:hidden; }
+        .modal-box h3 { padding: 25px 20px; font-size: 17px; font-weight: 600; line-height: 1.4; border-bottom: 0.1px solid #3d3d3d; }
+        .modal-btn-blue { padding: 15px; color: #0095f6; font-weight: 800; font-size: 14px; cursor: pointer; border-bottom: 0.1px solid #3d3d3d; }
+        .modal-btn-cancel { padding: 13px; color: #fff; font-size: 14px; cursor: pointer; }
+
         .loader-ring { position: absolute; width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid #fff; border-radius: 50%; animation: spin 0.8s linear infinite; z-index: 5; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* ANIMATIONS: Hearts & Floating */
+        #toast { position:fixed; bottom:70px; left:50%; transform:translateX(-50%); background:#fff; color:#000; padding:10px 20px; border-radius:25px; display:none; z-index:9999; font-size:13px; font-weight:bold; }
+
         .heart-pop { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) scale(0); opacity:0; width:110px; pointer-events:none; z-index:100; filter:invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%)}
-        @keyframes heartAnim{0%{transform:translate(-50%,-50%) scale(0);opacity:0}20%{transform:translate(-50%,-50%) scale(1.3);opacity:1}100%{transform:translate(-50%,-50%) scale(1.5);opacity:0}}
+        @keyframes heartAnim{0%{transform:translate(-50%,-50%) scale(0);opacity:0}20%{transform:translate(-50%,-50%) scale(1.3);opacity:1}100%{transform:translate(-50%,-50%) scale(1.6);opacity:0}}
         .animate-heart{animation:heartAnim 0.8s ease-out forwards}
 
-        @keyframes floatUp{0%{transform:translateY(0) scale(1);opacity:1}100%{transform:translateY(-120px) scale(.5);opacity:0}}
-        .mini-heart{position:absolute;width:30px;pointer-events:none;z-index:8100;filter:invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%);animation:floatUp .8s ease-out forwards}
+        @keyframes floatUp{0%{transform:translateY(0) rotate(0deg) scale(1);opacity:1}100%{transform:translateY(-180px) rotate(25deg) scale(0.4);opacity:0}}
+        .mini-heart{position:absolute;width:28px;pointer-events:none;z-index:8100;filter:invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%);animation:floatUp 0.8s ease-out forwards}
 
-        /* SHEETS */
-        #sh-ov { position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.7); display:none; z-index:8000; }
-        #comm-view { position:fixed; bottom:-100%; left:0; width:100vw; height:75vh; background:#1c1c1e; z-index:9000; border-radius:15px 15px 0 0; transition:bottom 0.3s; display:flex; flex-direction:column; }
-        .comm-header { text-align:center; padding:15px; font-weight:700; border-bottom:0.1px solid #333; }
-        .comm-body { flex:1; overflow-y:auto; padding:15px; }
-        .comm-input-area { padding:15px; display:flex; gap:10px; border-top:0.1px solid #333; padding-bottom: 30px;}
-        .comm-input-area input { flex:1; background:#262626; border:none; border-radius:20px; padding:10px 15px; color:#fff; outline:none; }
-
-        /* BOTTOM NAV */
-        .b-bar{position:fixed;bottom:0;width:100%;height:50px;background:#000;border-top:.1px solid #262626;display:flex;justify-content:space-around;align-items:center;z-index:1000}
+        .b-bar { position:fixed; bottom:0; width:100%; height:50px; background:#000; border-top:.1px solid #262626; display:flex; justify-content:space-around; align-items:center; z-index:1000; }
         .b-bar img:not(#b-pfp-img) { width:24px; filter:invert(1); cursor:pointer; }
-        #b-pfp-img { width:26px; height:26px; border-radius:50%; object-fit:cover; border:1px solid #fff; }
-
-        #toast{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,0.95);color:#000;padding:10px 20px;border-radius:25px;display:none;z-index:9999;font-size:13px;font-weight:bold;}
+        #b-pfp-img { width:26px; height:26px; border-radius:50%; object-fit:cover; border:1px solid #fff; background: #262626; }
     </style>
 </head>
 <body>
 
     <div class="search-container" id="top-search-ui">
         <div class="search-bar">
-            <input type="text" id="s-input" placeholder="Search" oninput="liveSearch(this.value)">
+            <input type="text" id="s-input" placeholder="Search Auragram" oninput="liveSearch(this.value)">
             <img id="s-close" src="https://cdn-icons-png.flaticon.com/512/2734/2734822.png" style="width:14px; filter:invert(1); display:none; cursor:pointer;" onclick="clearSearch()">
         </div>
         <div id="search-results"></div>
@@ -112,21 +110,25 @@
     <div id="explore-grid"></div>
 
     <div id="reel-player-view" class="full-view">
-        <div id="guest-banner" onclick="location.href='index.html'">Log in to like, comment & see more 🔥</div>
         <div class="r-back" id="r-back-btn" onclick="closePlayer()">
             <img src="https://cdn-icons-png.flaticon.com/512/271/271218.png" style="width:18px; filter:invert(1);">
         </div>
+        
         <div id="vol-hint"><img id="vol-icon" src="https://cdn-icons-png.flaticon.com/512/3127/3127501.png"></div>
+
         <div id="explore-scroll-container" class="reels-scroll-container"></div>
+
+        <div id="guest-restriction-banner">
+            <p style="font-weight: 600;">Log in to see more content and join the community</p>
+            <button class="login-cta-btn" onclick="location.href='index.html'">Log In to Auragram</button>
+        </div>
     </div>
 
-    <div id="sh-ov" onclick="closeComm()"></div>
-    <div id="comm-view">
-        <div class="comm-header">Comments</div>
-        <div class="comm-body" id="comm-list"></div>
-        <div class="comm-input-area" id="comm-input-ui">
-            <input type="text" id="comm-input" placeholder="Add a comment...">
-            <button onclick="sendComm()" style="background:none;border:none;color:#0095f6;font-weight:700;">Post</button>
+    <div id="action-modal">
+        <div class="modal-box">
+            <h3>Log in to interact with this post</h3>
+            <div class="modal-btn-blue" onclick="location.href='index.html'">Go to Login Page</div>
+            <div class="modal-btn-cancel" onclick="closeModal()">Cancel</div>
         </div>
     </div>
 
@@ -135,361 +137,276 @@
     <div class="b-bar" id="bottom-nav-bar">
         <img src="https://cdn-icons-png.flaticon.com/512/1946/1946436.png" onclick="location.href='index.html'">
         <img src="https://cdn-icons-png.flaticon.com/512/5948/5948514.png" onclick="openReelsOnly()">
-        <img src="https://cdn-icons-png.flaticon.com/512/3161/3161837.png" onclick="location.href='add.html'">
+        <img src="https://cdn-icons-png.flaticon.com/512/3161/3161837.png" onclick="checkGuestAction('add.html')">
         <img id="explore-nav-icon" src="https://cdn-icons-png.flaticon.com/512/622/622669.png" style="border-bottom: 2px solid #fff; padding-bottom:2px;" onclick="location.href='explore.html'">
-        <img id="b-pfp-img" src="" onclick="location.href='profile.html?u=' + LOG">
+        <img id="b-pfp-img" src="" onclick="checkGuestAction('profile.html?u=' + LOG)">
     </div>
 
     <script>
         const LOG = localStorage.getItem("loggedUser");
         const urlParams = new URLSearchParams(window.location.search);
-        const sharedUserId = urlParams.get('u');
-        const sharedPostId = urlParams.get('p');
-        const sharedType = urlParams.get('t') || 'reel'; // 'reel' or 'post'
-
-        // AUTH GUARD FOR GUESTS
-        if (!LOG && !sharedPostId) window.location.href = 'index.html';
+        const sharedUserId = urlParams.get('u'), sharedPostId = urlParams.get('p'), sharedType = urlParams.get('t') || 'reel';
 
         const config = {apiKey:"AIzaSyAHjilh7jAlS0e5qDKxbDZq3nbe3pFe4nE",authDomain:"instagram-e8c7a.firebaseapp.com",projectId:"instagram-e8c7a",storageBucket:"instagram-e8c7a.firebasestorage.app",messagingSenderId:"270990839800",appId:"1:270990839800:web:7f56ea2ea8d941219fd00d"};
         firebase.initializeApp(config);
         const db = firebase.firestore(), DIMG = "https://www.w3schools.com/howto/img_avatar.png";
 
-        let exploreFeed = [], activeFeed = [], allUsers = [], myFollowing = [], ytPlayers = {}, tapTimer = null;
-        let activeCommId = null, activeCommOwner = null, activeCommType = null;
-        
-        let loadObserver, playObserver, isMuted = false;
-        let unloadTimeouts = {}; // Debounce tracker for fast scrolling
+        let exploreFeed = [], activeFeed = [], allUsers = [], ytPlayers = {}, tapTimer = null;
+        let loadObserver, playObserver, isMuted = true; // DEFAULT TO MUTED FOR PRODUCTION
+        let unloadTimeouts = {}; 
 
         function showToast(msg) {
             const t = document.getElementById("toast"); t.innerText = msg;
             t.style.display = "block"; setTimeout(() => t.style.display = "none", 2500);
         }
 
-        function checkAuth() {
-            if(!LOG) { showToast("Log in to use this feature"); return false; }
-            return true;
+        function checkGuestAction(target) {
+            if(!LOG) { document.getElementById("action-modal").style.display = "flex"; }
+            else { location.href = target; }
         }
 
+        function closeModal() { document.getElementById("action-modal").style.display = "none"; }
         function onYouTubeIframeAPIReady() {}
 
         function stopMedia() {
             document.querySelectorAll('video').forEach(v => { v.pause(); });
             Object.values(ytPlayers).forEach(p => { if(p.pauseVideo) p.pauseVideo(); });
+            document.querySelectorAll('.play-overlay').forEach(el => el.style.display = 'none');
         }
 
         function initObservers() {
-            // Increased rootMargin so items load slightly before they snap into view
             loadObserver = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     const idx = parseInt(entry.target.dataset.idx);
-                    if (entry.isIntersecting) {
-                        loadContent(idx);
-                    } else {
-                        unloadContent(idx);
-                    }
+                    if (entry.isIntersecting) loadContent(idx);
+                    else unloadContent(idx);
                 });
-            }, { rootMargin: "100% 0px 100% 0px" }); // Fixed thrashing issue
+            }, { rootMargin: "100% 0px 100% 0px" });
 
             playObserver = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     const idx = parseInt(entry.target.dataset.idx);
-                    if (entry.isIntersecting) {
-                        stopMedia(); playContent(idx);
-                    } else {
-                        pauseContent(idx);
-                    }
+                    if (entry.isIntersecting) { stopMedia(); playContent(idx); }
+                    else pauseContent(idx);
                 });
             }, { threshold: 0.7 });
         }
 
         async function init() {
             initObservers();
-            
-            // IF GUEST VIEWING SINGLE POST
-            if (!LOG && sharedPostId) {
-                document.getElementById('top-search-ui').style.display = 'none';
-                document.getElementById('explore-grid').style.display = 'none';
-                document.getElementById('bottom-nav-bar').style.display = 'none';
-                document.getElementById('guest-banner').style.display = 'block';
-                document.getElementById('r-back-btn').style.display = 'none'; // Lock them in
-                
-                const path = sharedType === 'reel' ? 'reels' : 'posts';
+            if (sharedPostId) await handleSharedContent();
+            else { if(!LOG) { location.href = 'index.html'; return; } await loadGlobalExplore(); }
+        }
+
+        async function handleSharedContent() {
+            const path = sharedType === 'reel' ? 'reels' : 'posts';
+            try {
                 const postDoc = await db.collection("users").doc(sharedUserId).collection(path).doc(sharedPostId).get();
                 const userDoc = await db.collection("users").doc(sharedUserId).get();
-                
+
                 if (postDoc.exists) {
-                    exploreFeed = [{ ...postDoc.data(), id: postDoc.id, owner: sharedUserId, pfp: userDoc.data().profileImg || DIMG, type: sharedType }];
-                    const cont = document.getElementById("explore-scroll-container");
-                    cont.classList.add("no-scroll"); // Prevent scrolling for guests
+                    const sharedItem = { ...postDoc.data(), id: postDoc.id, owner: sharedUserId, pfp: userDoc.data().profileImg || DIMG, type: sharedType };
+                    
+                    // --- META FIX FOR CRAWLERS ---
+                    document.title = `${sharedUserId}'s Reel | Auragram`;
+                    const ogImg = document.querySelector('meta[property="og:image"]');
+                    if(ogImg) ogImg.setAttribute("content", sharedItem.thumbnail || sharedItem.image);
+                    
+                    exploreFeed = [sharedItem];
+                    if (!LOG) {
+                        document.getElementById('guest-restriction-banner').style.display = 'block';
+                        document.getElementById('explore-scroll-container').classList.add('no-scroll');
+                        document.getElementById('r-back-btn').style.display = 'none';
+                        document.getElementById('top-search-ui').style.display = 'none';
+                        document.getElementById('bottom-nav-bar').style.display = 'none';
+                    } else { await loadGlobalExplore(sharedPostId); }
                     openFullFeed(0, exploreFeed);
-                } else {
-                    showToast("Post not found"); setTimeout(() => location.href='index.html', 2000);
-                }
-                return; // Stop normal init
-            }
+                } else showToast("Content no longer available");
+            } catch(e) { console.error(e); }
+        }
 
-            // NORMAL LOGGED IN INIT
-            const me = await db.collection("users").doc(LOG).get();
-            if(me.exists) {
-                myFollowing = me.data().following || [];
-                document.getElementById("b-pfp-img").src = me.data().profileImg || DIMG;
-            }
-
+        async function loadGlobalExplore(excludeId = null) {
             const usersSnap = await db.collection("users").get();
             let feedPromises = [];
             usersSnap.forEach(uDoc => {
                 const uid = uDoc.id, pfp = uDoc.data().profileImg || DIMG;
+                if(uid === LOG) document.getElementById("b-pfp-img").src = pfp;
                 allUsers.push({ id: uid, ...uDoc.data() });
                 feedPromises.push(db.collection("users").doc(uid).collection("posts").get().then(s => s.docs.map(d => ({...d.data(), id:d.id, owner:uid, pfp, type:'post'}))));
                 feedPromises.push(db.collection("users").doc(uid).collection("reels").get().then(s => s.docs.map(d => ({...d.data(), id:d.id, owner:uid, pfp, type:'reel'}))));
             });
-
-            const res = await Promise.all(feedPromises);
-            exploreFeed = res.flat().sort(() => Math.random() - 0.5);
-            renderGrid();
+            const results = await Promise.all(feedPromises);
+            let combined = results.flat().filter(item => item.id !== excludeId).sort(() => Math.random() - 0.5);
+            exploreFeed = excludeId ? [...exploreFeed, ...combined] : combined;
+            renderExploreGrid();
         }
 
-        function renderGrid() {
-            const g = document.getElementById("explore-grid");
-            g.innerHTML = exploreFeed.map((item, idx) => `
+        function renderExploreGrid() {
+            const grid = document.getElementById("explore-grid");
+            grid.innerHTML = exploreFeed.map((item, idx) => `
                 <div class="g-item" onclick="openFullFeed(${idx}, exploreFeed)">
                     <img src="${item.type==='reel' ? (item.thumbnail || item.videoUrl) : item.image}" loading="lazy">
                 </div>
             `).join('');
         }
 
-        function openReelsOnly() {
-            const onlyReels = exploreFeed.filter(item => item.type === 'reel');
-            if(onlyReels.length > 0) {
-                document.getElementById("explore-nav-icon").style.borderBottom = "none";
-                document.getElementById("explore-nav-icon").style.paddingBottom = "0";
-                openFullFeed(0, onlyReels);
-            }
-        }
-
-        function openFullFeed(startIdx, sourceFeed) {
+        function openFullFeed(startIdx, source) {
             stopMedia();
-            activeFeed = sourceFeed;
-            isMuted = false;
-            
-            const view = document.getElementById("reel-player-view");
+            activeFeed = source;
+            document.getElementById("reel-player-view").style.display = "flex";
             const cont = document.getElementById("explore-scroll-container");
-            view.style.display = "flex";
-            
-            let htmlStr = "";
-            for(let i=0; i<activeFeed.length; i++) {
-                const item = activeFeed[i];
+            cont.innerHTML = activeFeed.map((item, i) => {
                 const isLiked = (item.likes || []).includes(LOG);
-                const isFollowing = myFollowing.includes(item.owner);
-                
-                htmlStr += `
-                <div class="reel-item" id="exp-${item.id}" data-id="${item.id}" data-idx="${i}">
-                    <div id="media-cont-${item.id}" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#000;" onclick="handleInteraction('${item.id}', '${item.owner}', '${item.type}', ${i})">
+                return `
+                <div class="reel-item" id="reel-cont-${item.id}" data-idx="${i}" data-id="${item.id}">
+                    <div class="media-box" id="media-slot-${i}" onclick="handlePlayerTap(${i})">
                         <div class="loader-ring"></div>
+                        <img src="https://cdn-icons-png.flaticon.com/512/0/375.png" class="play-overlay" id="play-btn-${i}" style="filter:invert(1);">
                     </div>
-                    <img src="https://cdn-icons-png.flaticon.com/512/833/833472.png" class="heart-pop" id="hp-${item.id}">
+                    <img src="https://cdn-icons-png.flaticon.com/512/833/833472.png" class="heart-pop" id="hp-anim-${i}">
                     <div class="r-sidebar">
-                        <div class="r-act" onclick="toggleLike('${item.id}','${item.owner}','${item.type}',${i})">
-                            <img id="hi-${item.id}" src="https://cdn-icons-png.flaticon.com/512/${isLiked?'833/833472':'1077/1077035'}.png" style="filter:${isLiked?'invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%)':'invert(1)'}">
-                            <span id="lc-${item.id}">${(item.likes||[]).length}</span>
+                        <div class="r-act" onclick="processLike(${i})">
+                            <img id="like-icon-${i}" src="https://cdn-icons-png.flaticon.com/512/${isLiked?'833/833472':'1077/1077035'}.png" style="filter:${isLiked?'invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%)':'invert(1)'}">
+                            <span id="like-count-${i}">${(item.likes||[]).length}</span>
                         </div>
-                        <div class="r-act" onclick="openComm('${item.id}','${item.owner}','${item.type}')">
+                        <div class="r-act" onclick="checkGuestAction('explore.html?u=${item.owner}&p=${item.id}')">
                             <img src="https://cdn-icons-png.flaticon.com/512/1380/1380338.png"><span>Comment</span>
                         </div>
-                        <div class="r-act" onclick="copyPost('${item.owner}','${item.id}','${item.type}')">
+                        <div class="r-act" onclick="copyShareLink(${i})">
                             <img src="https://cdn-icons-png.flaticon.com/512/2099/2099085.png"><span>Share</span>
                         </div>
                     </div>
                     <div class="r-info">
                         <div class="r-user">
-                            <img src="${item.pfp}" class="r-pfp" onclick="${LOG ? `location.href='profile.html?u=${item.owner}'` : `showToast('Log in to view profiles')`}">
-                            <b onclick="${LOG ? `location.href='profile.html?u=${item.owner}'` : ''}">${item.owner}</b>
-                            ${(item.owner !== LOG && LOG) ? `<span class="f-btn ${isFollowing?'following':''}" onclick="toggleFollow('${item.owner}', this)">${isFollowing?'Following':'Follow'}</span>` : ''}
+                            <img src="${item.pfp}" class="r-pfp">
+                            <b>${item.owner}</b>
                         </div>
                         <p class="r-caption">${item.caption || ""}</p>
                     </div>
                 </div>`;
-            }
-            cont.innerHTML = htmlStr;
-
-            const items = cont.querySelectorAll('.reel-item');
-            items.forEach(it => {
-                loadObserver.observe(it);
-                playObserver.observe(it);
-            });
-
-            const target = document.getElementById(`exp-${activeFeed[startIdx].id}`);
+            }).join('');
+            cont.querySelectorAll('.reel-item').forEach(el => { loadObserver.observe(el); playObserver.observe(el); });
+            const target = document.querySelector(`[data-idx="${startIdx}"]`);
             if (target) target.scrollIntoView({ behavior: 'auto', block: 'start' });
         }
 
         function loadContent(idx) {
-    const item = activeFeed[idx];
-    const container = document.getElementById(`media-cont-${item.id}`);
-    
-    if (unloadTimeouts[item.id]) {
-        clearTimeout(unloadTimeouts[item.id]);
-        delete unloadTimeouts[item.id];
-    }
+            const item = activeFeed[idx], container = document.getElementById(`media-slot-${idx}`);
+            if (unloadTimeouts[item.id]) { clearTimeout(unloadTimeouts[item.id]); delete unloadTimeouts[item.id]; }
+            if (!container || container.dataset.loaded === "true") return;
 
-    if (!container || container.dataset.loaded === "true") return;
+            setTimeout(() => {
+                if (unloadTimeouts[item.id]) return;
+                // ADDED POSTER AND MUTED TO PREVENT AUTOPLAY FAIL
+                let content = item.type === 'reel' ? 
+                    (item.videoUrl ? `<video src="${item.videoUrl}" poster="${item.thumbnail || ''}" autoplay loop playsinline preload="auto" muted style="width:100%;height:100%;object-fit:contain;"></video>` : `<div class="yt-clip-box"><div id="yt-player-${item.id}"></div></div>`) :
+                    `<img src="${item.image}" style="width:100%;height:100%;object-fit:contain;">`;
 
-    setTimeout(() => {
-        if (unloadTimeouts[item.id]) return;
-
-        let content = "";
-        // FIX: Check for videoUrl first (Gallery Uploads)
-        if (item.type === 'reel') {
-            if (item.videoUrl) {
-                content = `<video src="${item.videoUrl}" loop playsinline preload="auto" ${isMuted?'muted':''} style="width:100%;height:100%;object-fit:cover;"></video>`;
-            } else if (item.ytId) {
-                content = `<div class="yt-clip-box"><div id="yt-player-${item.id}"></div></div>`;
-            }
-        } else {
-            content = `<img src="${item.image}" style="width:100%;max-height:100%;object-fit:contain;">`;
-        }
-
-        container.innerHTML = content;
-        container.dataset.loaded = "true";
-
-        // Handle YouTube Initialization
-        if (item.ytId && !item.videoUrl) {
-            ytPlayers[item.id] = new YT.Player(`yt-player-${item.id}`, { 
-                videoId: item.ytId, 
-                playerVars: { 'autoplay': 0, 'controls': 0, 'loop': 1, 'playlist': item.ytId, 'rel': 0, 'playsinline': 1 },
-                events: {
-                    'onReady': (e) => {
-                        if (isMuted) e.target.mute(); else e.target.unMute();
-                        e.target.playVideo();
-                    }
+                container.innerHTML += content;
+                container.dataset.loaded = "true";
+                if (item.ytId) {
+                    ytPlayers[item.id] = new YT.Player(`yt-player-${item.id}`, { 
+                        videoId: item.ytId, playerVars: { 'autoplay': 0, 'controls': 0, 'loop': 1, 'playlist': item.ytId, 'rel': 0, 'playsinline': 1 },
+                        events: { 'onReady': (e) => { e.target.mute(); const el = document.getElementById(`reel-cont-${item.id}`); if (el && el.getBoundingClientRect().top === 0) e.target.playVideo(); } }
+                    });
                 }
-            });
+            }, 50);
         }
-    }, 50);
-}
-
 
         function unloadContent(idx) {
-            const item = activeFeed[idx];
-            const container = document.getElementById(`media-cont-${item.id}`);
+            const item = activeFeed[idx], container = document.getElementById(`media-slot-${idx}`);
             if (!container || container.dataset.loaded !== "true") return;
-
-            // Debounce the unload to prevent rapid DOM thrashing
             unloadTimeouts[item.id] = setTimeout(() => {
                 if (ytPlayers[item.id]) { try { ytPlayers[item.id].destroy(); } catch(e){} delete ytPlayers[item.id]; }
-                
                 const vid = container.querySelector('video');
-                if (vid) {
-                    vid.pause();
-                    vid.removeAttribute('src'); 
-                    vid.load();
-                }
-
-                container.innerHTML = `<div class="loader-ring"></div>`; 
-                container.dataset.loaded = "false";
-                delete unloadTimeouts[item.id];
-            }, 600); // Wait 600ms before actually deleting
+                if (vid) { vid.pause(); vid.removeAttribute('src'); vid.load(); }
+                container.innerHTML = `<div class="loader-ring"></div><img src="https://cdn-icons-png.flaticon.com/512/0/375.png" class="play-overlay" id="play-btn-${idx}" style="filter:invert(1);">`; 
+                container.dataset.loaded = "false"; delete unloadTimeouts[item.id];
+            }, 600); 
         }
 
         function playContent(idx) {
-            const item = activeFeed[idx];
-            const container = document.getElementById(`media-cont-${item.id}`);
+            const item = activeFeed[idx], container = document.getElementById(`media-slot-${idx}`);
             if (!container) return;
-
-            const vid = container.querySelector('video');
+            const vid = container.querySelector('video'), playBtn = document.getElementById(`play-btn-${idx}`);
             if (vid) {
                 vid.muted = isMuted;
-                vid.play().catch(()=>{ vid.muted = true; vid.play(); });
+                vid.play().catch(() => { 
+                    vid.muted = true; 
+                    vid.play().catch(() => { if(playBtn) playBtn.style.display = 'block'; }); 
+                });
             }
-            if (ytPlayers[item.id] && ytPlayers[item.id].playVideo) {
-                if (isMuted) ytPlayers[item.id].mute(); else ytPlayers[item.id].unMute();
-                ytPlayers[item.id].playVideo();
-            }
+            if (ytPlayers[item.id] && ytPlayers[item.id].playVideo) { ytPlayers[item.id].mute(); ytPlayers[item.id].playVideo(); }
         }
 
         function pauseContent(idx) {
-            const item = activeFeed[idx];
-            const container = document.getElementById(`media-cont-${item.id}`);
+            const item = activeFeed[idx], container = document.getElementById(`media-slot-${idx}`);
             if (!container) return;
-
             const vid = container.querySelector('video');
             if (vid) vid.pause();
             if (ytPlayers[item.id] && ytPlayers[item.id].pauseVideo) ytPlayers[item.id].pauseVideo();
         }
 
-        function handleInteraction(id, owner, type, idx) {
+        function handlePlayerTap(i) {
+            if (!LOG) { document.getElementById("action-modal").style.display = "flex"; return; }
+            const vid = document.querySelector(`[data-idx="${i}"] video`), playBtn = document.getElementById(`play-btn-${i}`);
+            
             if (!tapTimer) {
                 tapTimer = setTimeout(() => {
-                    // Single Tap: Toggle Mute
-                    isMuted = !isMuted;
-                    const hint = document.getElementById('vol-hint'), icon = document.getElementById('vol-icon');
-                    icon.src = isMuted ? "https://cdn-icons-png.flaticon.com/512/3127/3127501.png" : "https://cdn-icons-png.flaticon.com/512/727/727269.png";
-                    hint.style.display = "block";
-                    clearTimeout(window.volTimeout);
-                    window.volTimeout = setTimeout(() => { hint.style.display = "none"; }, 800);
-
-                    const container = document.getElementById(`media-cont-${id}`);
-                    const vid = container.querySelector('video');
-                    if (vid) vid.muted = isMuted;
-                    if (ytPlayers[id]) { if (isMuted) ytPlayers[id].mute(); else ytPlayers[id].unMute(); }
-                    
+                    if (vid && vid.paused) { vid.play(); if(playBtn) playBtn.style.display = 'none'; } 
+                    else {
+                        isMuted = !isMuted;
+                        const hint = document.getElementById('vol-hint'), icon = document.getElementById('vol-icon');
+                        icon.src = isMuted ? "https://cdn-icons-png.flaticon.com/512/3127/3127501.png" : "https://cdn-icons-png.flaticon.com/512/727/727269.png";
+                        hint.style.display = "block"; setTimeout(() => { hint.style.display = "none"; }, 800);
+                        document.querySelectorAll('video').forEach(v => v.muted = isMuted);
+                        Object.values(ytPlayers).forEach(p => { if(p && p.mute) isMuted ? p.mute() : p.unMute(); });
+                    }
                     tapTimer = null;
                 }, 280);
-            } else {
-                // Double Tap: Like Post
-                clearTimeout(tapTimer);
-                tapTimer = null;
-                toggleLike(id, owner, type, idx, true);
-            }
+            } else { clearTimeout(tapTimer); tapTimer = null; processLike(i, true); }
         }
 
-        async function toggleLike(id, owner, type, idx, force=false) {
-            if(!checkAuth()) return;
-            const item = activeFeed[idx]; item.likes = item.likes || [];
-            const isLiking = !item.likes.includes(LOG) || force;
-            if(isLiking) {
-                if(!item.likes.includes(LOG)) item.likes.push(LOG);
-                const hi = document.getElementById("hi-"+id);
-                hi.src = "https://cdn-icons-png.flaticon.com/512/833/833472.png";
-                hi.style.filter = "invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%)";
-                const hp = document.getElementById("hp-"+id);
-                hp.classList.remove("animate-heart"); void hp.offsetWidth; hp.classList.add("animate-heart");
-                const container = document.getElementById("exp-" + id);
-                for(let i=0; i<5; i++) {
-                    const m = document.createElement("img"); m.src = "https://cdn-icons-png.flaticon.com/512/833/833472.png";
-                    m.className = "mini-heart"; m.style.left = `${30 + Math.random()*40}%`; m.style.top = `${40 + Math.random()*20}%`;
-                    container.appendChild(m); setTimeout(()=>m.remove(), 800);
+        async function processLike(i, force = false) {
+            if (!LOG) { document.getElementById("action-modal").style.display = "flex"; return; }
+            const item = activeFeed[i]; item.likes = item.likes || [];
+            const alreadyLiked = item.likes.includes(LOG);
+            if (!alreadyLiked || force) {
+                if (!item.likes.includes(LOG)) item.likes.push(LOG);
+                document.getElementById(`like-icon-${i}`).src = "https://cdn-icons-png.flaticon.com/512/833/833472.png";
+                document.getElementById(`like-icon-${i}`).style.filter = "invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%)";
+                const hp = document.getElementById(`hp-anim-${i}`); hp.classList.remove("animate-heart"); void hp.offsetWidth; hp.classList.add("animate-heart");
+                const container = document.getElementById(`reel-cont-${item.id}`);
+                for(let k=0; k<8; k++) {
+                    const m = document.createElement("img"); m.src = "https://cdn-icons-png.flaticon.com/512/833/833472.png"; m.className = "mini-heart";
+                    m.style.left = (Math.random() * 40 + 30) + "%"; m.style.top = (Math.random() * 20 + 40) + "%";
+                    container.appendChild(m); setTimeout(() => m.remove(), 800);
                 }
             } else {
                 item.likes = item.likes.filter(u => u !== LOG);
-                document.getElementById("hi-"+id).src = "https://cdn-icons-png.flaticon.com/512/1077/1077035.png";
-                document.getElementById("hi-"+id).style.filter = "invert(1)";
+                document.getElementById(`like-icon-${i}`).src = "https://cdn-icons-png.flaticon.com/512/1077/1077035.png";
+                document.getElementById(`like-icon-${i}`).style.filter = "invert(1)";
             }
-            document.getElementById("lc-"+id).innerText = item.likes.length;
-            await db.collection("users").doc(owner).collection(type==='reel'?'reels':'posts').doc(id).update({likes: item.likes});
+            document.getElementById(`like-count-${i}`).innerText = item.likes.length;
+            await db.collection("users").doc(item.owner).collection(item.type==='reel'?'reels':'posts').doc(item.id).update({likes: item.likes});
         }
 
-        async function toggleFollow(user, btn) {
-            if(!checkAuth()) return;
-            const isFollowing = myFollowing.includes(user);
-            if(isFollowing) {
-                myFollowing = myFollowing.filter(u => u !== user); btn.innerText = "Follow"; btn.classList.remove("following");
-                await db.collection("users").doc(LOG).update({ following: firebase.firestore.FieldValue.arrayRemove(user) });
-            } else {
-                myFollowing.push(user); btn.innerText = "Following"; btn.classList.add("following");
-                await db.collection("users").doc(LOG).update({ following: firebase.firestore.FieldValue.arrayUnion(user) });
-            }
+        function copyShareLink(i) {
+            const item = activeFeed[i], base = window.location.origin + window.location.pathname;
+            const link = `${base}?u=${item.owner}&p=${item.id}&t=${item.type}`;
+            navigator.clipboard.writeText(link); showToast("Link copied to clipboard!");
         }
 
         function liveSearch(val) {
-            const res = document.getElementById("search-results"), close = document.getElementById("s-close"), grid = document.getElementById("explore-grid");
-            if(!val) { clearSearch(); return; }
-            close.style.display = "block"; grid.style.display = "none"; res.style.display = "block";
-            const query = val.toLowerCase();
-            const matches = allUsers.filter(u => u.id.toLowerCase().includes(query));
-            res.innerHTML = matches.map(u => `
+            const results = document.getElementById("search-results"), grid = document.getElementById("explore-grid"), close = document.getElementById("s-close");
+            if (!val) { clearSearch(); return; }
+            close.style.display = "block"; grid.style.display = "none"; results.style.display = "block";
+            const matches = allUsers.filter(u => u.id.toLowerCase().includes(val.toLowerCase()));
+            results.innerHTML = matches.map(u => `
                 <div class="u-row" onclick="location.href='profile.html?u=${u.id}'">
-                    <img src="${u.profileImg || DIMG}"><div class="u-info"><b>${u.id}</b><span>${u.fullName || 'Auragram User'}</span></div>
-                </div>`).join('') || `<div style="padding:40px; color:#888; text-align:center;">No results found</div>`;
+                    <img src="${u.profileImg || DIMG}">
+                    <div class="u-info"><b>${u.id}</b><span>${u.fullName || 'Auragram User'}</span></div>
+                </div>`).join('');
         }
 
         function clearSearch() {
@@ -499,50 +416,17 @@
             document.getElementById("explore-grid").style.display = "grid";
         }
 
-        function copyPost(u, id, type) {
-            // Modified to share a link specifically to explore.html
-            navigator.clipboard.writeText(`${window.location.origin}/explore.html?u=${u}&p=${id}&t=${type}`);
-            showToast("Link copied to clipboard!");
+        function closePlayer() {
+            stopMedia(); document.getElementById("reel-player-view").style.display = "none";
+            if(window.location.search) window.history.replaceState({}, document.title, window.location.pathname);
         }
 
-        function openComm(id, owner, type) {
-            activeCommId = id; activeCommOwner = owner; activeCommType = type;
-            document.getElementById("sh-ov").style.display = "block";
-            document.getElementById("comm-view").style.bottom = "0";
-            
-            if(!LOG) {
-                document.getElementById("comm-input-ui").style.display = "none";
-            } else {
-                document.getElementById("comm-input-ui").style.display = "flex";
-            }
-            loadComments();
-        }
-
-        function closeComm() { document.getElementById("sh-ov").style.display = "none"; document.getElementById("comm-view").style.bottom = "-100%"; }
-
-        async function loadComments() {
-            const list = document.getElementById("comm-list"); list.innerHTML = "Loading...";
-            const path = activeCommType === 'reel' ? 'reels' : 'posts';
-            const snap = await db.collection("users").doc(activeCommOwner).collection(path).doc(activeCommId).collection("comments").orderBy("timestamp","desc").get();
-            list.innerHTML = snap.docs.map(doc => `<div style="margin-bottom:12px; font-size:14px;"><b>${doc.data().user}</b> ${doc.data().text}</div>`).join('') || "No comments yet.";
-        }
-
-        async function sendComm() {
-            if(!checkAuth()) return;
-            const inp = document.getElementById("comm-input"), txt = inp.value.trim(); if(!txt) return;
-            const path = activeCommType === 'reel' ? 'reels' : 'posts';
-            await db.collection("users").doc(activeCommOwner).collection(path).doc(activeCommId).collection("comments").add({ user: LOG, text: txt, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
-            inp.value = ""; loadComments();
-        }
-
-        function closePlayer() { 
-            stopMedia(); 
-            document.getElementById("reel-player-view").style.display = "none"; 
-            document.getElementById("explore-nav-icon").style.borderBottom = "2px solid #fff";
-            document.getElementById("explore-nav-icon").style.paddingBottom = "2px";
+        function openReelsOnly() {
+            const reels = exploreFeed.filter(item => item.type === 'reel');
+            if(reels.length > 0) openFullFeed(0, reels);
         }
 
         init();
     </script>
 </body>
-</html> 
+</html>
