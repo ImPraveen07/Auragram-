@@ -323,43 +323,50 @@
         }
 
         function loadContent(idx) {
-            const item = activeFeed[idx];
-            const container = document.getElementById(`media-cont-${item.id}`);
-            
-            // Cancel any pending unloads (Debounce logic)
-            if (unloadTimeouts[item.id]) {
-                clearTimeout(unloadTimeouts[item.id]);
-                delete unloadTimeouts[item.id];
+    const item = activeFeed[idx];
+    const container = document.getElementById(`media-cont-${item.id}`);
+    
+    if (unloadTimeouts[item.id]) {
+        clearTimeout(unloadTimeouts[item.id]);
+        delete unloadTimeouts[item.id];
+    }
+
+    if (!container || container.dataset.loaded === "true") return;
+
+    setTimeout(() => {
+        if (unloadTimeouts[item.id]) return;
+
+        let content = "";
+        // FIX: Check for videoUrl first (Gallery Uploads)
+        if (item.type === 'reel') {
+            if (item.videoUrl) {
+                content = `<video src="${item.videoUrl}" loop playsinline preload="auto" ${isMuted?'muted':''} style="width:100%;height:100%;object-fit:cover;"></video>`;
+            } else if (item.ytId) {
+                content = `<div class="yt-clip-box"><div id="yt-player-${item.id}"></div></div>`;
             }
-
-            if (!container || container.dataset.loaded === "true") return;
-
-            // Short timeout so rapid scrolls don't trigger heavy processing immediately
-            setTimeout(() => {
-                if (unloadTimeouts[item.id]) return; // If an unload was queued during the delay, abort load.
-
-                let content = item.type === 'reel' ? 
-                    (item.videoUrl ? `<video src="${item.videoUrl}" loop playsinline preload="auto" ${isMuted?'muted':''} style="width:100%;height:100%;object-fit:cover;"></video>` : `<div class="yt-clip-box"><div id="yt-player-${item.id}"></div></div>`) :
-                    `<img src="${item.image}" style="width:100%;max-height:100%;object-fit:contain;">`;
-
-                container.innerHTML = content;
-                container.dataset.loaded = "true";
-
-                if (item.ytId) {
-                    ytPlayers[item.id] = new YT.Player(`yt-player-${item.id}`, { 
-                        videoId: item.ytId, 
-                        playerVars: { 'autoplay': 0, 'controls': 0, 'loop': 1, 'playlist': item.ytId, 'rel': 0, 'playsinline': 1 },
-                        events: {
-                            'onReady': (e) => {
-                                if (isMuted) e.target.mute(); else e.target.unMute();
-                                const el = document.getElementById(`exp-${item.id}`);
-                                if (el && el.getBoundingClientRect().top === 0) e.target.playVideo();
-                            }
-                        }
-                    });
-                }
-            }, 50);
+        } else {
+            content = `<img src="${item.image}" style="width:100%;max-height:100%;object-fit:contain;">`;
         }
+
+        container.innerHTML = content;
+        container.dataset.loaded = "true";
+
+        // Handle YouTube Initialization
+        if (item.ytId && !item.videoUrl) {
+            ytPlayers[item.id] = new YT.Player(`yt-player-${item.id}`, { 
+                videoId: item.ytId, 
+                playerVars: { 'autoplay': 0, 'controls': 0, 'loop': 1, 'playlist': item.ytId, 'rel': 0, 'playsinline': 1 },
+                events: {
+                    'onReady': (e) => {
+                        if (isMuted) e.target.mute(); else e.target.unMute();
+                        e.target.playVideo();
+                    }
+                }
+            });
+        }
+    }, 50);
+}
+
 
         function unloadContent(idx) {
             const item = activeFeed[idx];
