@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -181,30 +182,40 @@
     const loggedUser = localStorage.getItem('loggedUser');
 
     if (status === 'logone' && loggedUser) {
-        viewport.style.display = 'none'; // Instant hide
+        viewport.style.display = 'none'; 
         window.location.href = "profile.html";
     }
 
-    // 1. LOGIN LOGIC
+    // 1. LOGIN LOGIC (MODIFIED FOR CASE-INSENSITIVITY & PASSWORD ERRORS)
     document.getElementById('handleLogin').onclick = async () => {
         const u = document.getElementById('loginUser').value.trim().toLowerCase();
-        const p = document.getElementById('loginPass').value;
+        const p = document.getElementById('loginPass').value.trim().toLowerCase(); // Password lowercased
         const err = document.getElementById('loginError');
+        const forgot = document.getElementById('forgotPassLink');
+
         if(!u || !p) return;
         
         err.style.display = 'none';
+        forgot.style.display = 'none';
+
         const docSnap = await getDoc(doc(db, "users", u));
         
-        if (docSnap.exists() && docSnap.data().password === p) {
-            // Re-modify local storage
-            localStorage.setItem('loggedUser', u);
-            localStorage.setItem('loginStatus', 'logone');
-            
-            viewport.style.opacity = '0';
-            setTimeout(() => { window.location.href = "profile.html"; }, 300);
-        } else {
+        if (!docSnap.exists()) {
+            err.innerText = "No user exists in this username";
             err.style.display = 'block';
-            document.getElementById('forgotPassLink').style.display = 'block';
+        } else {
+            // Check password case-insensitively
+            const storedPass = docSnap.data().password.toLowerCase();
+            if (storedPass === p) {
+                localStorage.setItem('loggedUser', u);
+                localStorage.setItem('loginStatus', 'logone');
+                viewport.style.opacity = '0';
+                setTimeout(() => { window.location.href = "profile.html"; }, 300);
+            } else {
+                err.innerText = "Incorrect password for this user";
+                err.style.display = 'block';
+                forgot.style.display = 'block';
+            }
         }
     };
 
@@ -221,6 +232,7 @@
     const checkAvailability = async () => {
         const val = document.getElementById('usernameInput').value.trim().toLowerCase();
         if (val.length < 3) { updateUI(false); return; }
+        // Case-insensitive check because we store keys in lowercase
         const docSnap = await getDoc(doc(db, "users", val));
         updateUI(!docSnap.exists());
     };
@@ -300,14 +312,14 @@
     // 4. FINAL ACCOUNT CREATION
     document.getElementById('finishAccount').onclick = async () => {
         const u = document.getElementById('usernameInput').value.trim().toLowerCase();
+        const p = document.getElementById('passwordInput').value.trim(); // We store as typed, but login checks lowercased
         try {
-            // Save status to local
             localStorage.setItem('loggedUser', u);
             localStorage.setItem('loginStatus', 'logone');
 
             await setDoc(doc(db, "users", u), {
                 username: u, 
-                password: document.getElementById('passwordInput').value,
+                password: p,
                 dob: document.getElementById('dobValueDisplay').innerText,
                 email: auth.currentUser ? auth.currentUser.email : "guest", 
                 createdAt: new Date(),
