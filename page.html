@@ -17,7 +17,7 @@
     
     <style>
         /* =========================================
-           AURAGRAM CSS CORE - v3.0.4
+           AURAGRAM CSS CORE - v3.0.5
            =========================================
         */
         * { margin:0; padding:0; box-sizing:border-box; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; -webkit-tap-highlight-color:transparent; }
@@ -39,6 +39,8 @@
         #explore-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; padding: 2px; padding-bottom: 70px; }
         .g-item { aspect-ratio: 4/5; background: #121212; position: relative; overflow: hidden; cursor: pointer; }
         .g-item img { width: 100%; height: 100%; object-fit: cover; }
+        .g-views { position: absolute; bottom: 8px; left: 8px; display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; text-shadow: 1px 1px 3px #000; z-index: 10; pointer-events: none; color: #fff; }
+        .g-views img { width: 14px; height: 14px; filter: invert(1); object-fit: contain; }
 
         /* REELS PLAYER SYSTEM */
         .full-view { position:fixed; top:0; left:0; width:100vw; height:100dvh; background:#000; z-index:7000; display:none; flex-direction:column; }
@@ -81,7 +83,7 @@
         .unmute-toast { position: absolute; top: 60%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.7); color: #fff; padding: 12px 24px; border-radius: 30px; font-size: 15px; font-weight: 600; z-index: 8500; pointer-events: none; opacity: 0; transition: opacity 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.5); text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
         .unmute-toast.show { opacity: 1; }
 
-        /* COMMENTS MODAL (INSTAGRAM EXACT UI) */
+        /* COMMENTS MODAL */
         #comment-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; background: rgba(0,0,0,0.5); z-index: 10000; display: none; flex-direction: column; justify-content: flex-end; }
         .comment-sheet { background: #262626; width: 100%; height: 70dvh; border-radius: 15px 15px 0 0; display: flex; flex-direction: column; position: relative; animation: slideUp 0.3s ease-out; }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
@@ -177,8 +179,7 @@
                 <div class="c-close-line"></div>
                 <h3>Comments</h3>
             </div>
-            <div class="c-list" id="c-list-box">
-                </div>
+            <div class="c-list" id="c-list-box"></div>
             <div class="c-input-area">
                 <img id="c-user-pfp" src="https://www.w3schools.com/howto/img_avatar.png" class="c-input-pfp">
                 <div class="c-input-box">
@@ -209,7 +210,7 @@
 
     <script>
         /* =========================================
-           AURAGRAM JAVASCRIPT CORE - v3.0.4
+           AURAGRAM JAVASCRIPT CORE - v3.0.5
            =========================================
         */
         const LOG = localStorage.getItem("loggedUser");
@@ -231,6 +232,14 @@
             t.style.display = "block"; setTimeout(() => t.style.display = "none", 2500);
         }
 
+        // FORMAT COUNT: Converts 1500 to 1.5K, 2000000 to 2M
+        function formatCount(num) {
+            if (!num) return "0";
+            if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+            return num.toString();
+        }
+
         function checkGuestAction(target) {
             if(!LOG) { document.getElementById("action-modal").style.display = "flex"; }
             else { location.href = target; }
@@ -249,11 +258,8 @@
             loadObserver = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     const idx = parseInt(entry.target.dataset.idx);
-                    if (entry.isIntersecting) {
-                        loadContent(idx);
-                    } else {
-                        unloadContent(idx);
-                    }
+                    if (entry.isIntersecting) loadContent(idx);
+                    else unloadContent(idx);
                 });
             }, { rootMargin: "100% 0px 100% 0px" });
 
@@ -267,6 +273,17 @@
                     }
                 });
             }, { threshold: 0.7 });
+        }
+
+        function pauseContent(idx) {
+             const container = document.getElementById(`media-slot-${idx}`);
+             if (!container) return;
+             const vid = container.querySelector('video');
+             if (vid) vid.pause();
+             const item = activeFeed[idx];
+             if (item && ytPlayers[item.id] && ytPlayers[item.id].pauseVideo) {
+                 ytPlayers[item.id].pauseVideo();
+             }
         }
 
         async function init() {
@@ -299,6 +316,9 @@
                     } else {
                         await loadGlobalExplore(sharedPostId);
                     }
+                    
+                    // Shared links require a default assumption of being unmuted, but browsers might block it
+                    isMuted = false;
                     openFullFeed(0, exploreFeed);
                 } else {
                     showToast("Content no longer available");
@@ -333,16 +353,27 @@
 
         function renderExploreGrid() {
             const grid = document.getElementById("explore-grid");
-            grid.innerHTML = exploreFeed.map((item, idx) => `
-                <div class="g-item" onclick="openFullFeed(${idx}, exploreFeed)">
-                    <img src="${item.type==='reel' ? (item.thumbnail || item.videoUrl) : item.image}" loading="lazy">
+            grid.innerHTML = exploreFeed.map((item, idx) => {
+                const views = item.viewers ? item.viewers.length : 0;
+                // Add the view count overlay to the grid thumbnails specifically for reels
+                const viewTag = item.type === 'reel' ? `<div class="g-views"><img src="https://cdn-icons-png.flaticon.com/512/159/159604.png">${formatCount(views)}</div>` : '';
+                return `
+                <div class="g-item" onclick="handleGridClick(${idx})">
+                    <img src="${item.type==='reel' ? (item.thumbnail || item.videoUrl || 'https://i.imgur.com/YqN60nI.png') : item.image}" loading="lazy">
+                    ${viewTag}
                 </div>
-            `).join('');
+                `;
+            }).join('');
+        }
+
+        function handleGridClick(idx) {
+            // Unmute globally because user clicked the grid (browser accepts interaction)
+            isMuted = false;
+            openFullFeed(idx, exploreFeed);
         }
 
         function openFullFeed(startIdx, source) {
             stopMedia();
-            isMuted = false; 
             activeFeed = source;
             document.getElementById("reel-player-view").style.display = "flex";
             const cont = document.getElementById("explore-scroll-container");
@@ -441,9 +472,10 @@
                 container.dataset.loaded = "true";
 
                 if (item.ytId) {
+                    // Added proper vars for YT Shorts Autoplay compatibility
                     ytPlayers[item.id] = new YT.Player(`yt-player-${item.id}`, { 
                         videoId: item.ytId, 
-                        playerVars: { 'autoplay': 0, 'controls': 0, 'loop': 1, 'playlist': item.ytId, 'rel': 0, 'playsinline': 1 },
+                        playerVars: { 'autoplay': 1, 'controls': 0, 'loop': 1, 'playlist': item.ytId, 'rel': 0, 'playsinline': 1 },
                         events: {
                             'onReady': (e) => {
                                 if (isMuted) e.target.mute(); else e.target.unMute();
@@ -477,6 +509,21 @@
             }, 600); 
         }
 
+        // UNIQUE REAL VIEW TRACKER 
+        async function trackView(item) {
+            if (!LOG || item.type !== 'reel' || item.owner === LOG) return; 
+            if (!item.viewers) item.viewers = [];
+            
+            if (!item.viewers.includes(LOG)) {
+                item.viewers.push(LOG); // Track locally
+                try {
+                    await db.collection("users").doc(item.owner).collection("reels").doc(item.id).update({
+                        viewers: firebase.firestore.FieldValue.arrayUnion(LOG)
+                    });
+                } catch(e) { console.error("View track failed", e); }
+            }
+        }
+
         function playContent(idx) {
             const item = activeFeed[idx];
             const container = document.getElementById(`media-slot-${idx}`);
@@ -492,9 +539,10 @@
                     return;
                 }
                 
-                document.querySelectorAll('video').forEach(v => {
-                    v.pause();
-                });
+                // Track real, unique view on play
+                trackView(item);
+                
+                document.querySelectorAll('video').forEach(v => v.pause());
 
                 const vid = container.querySelector('video');
                 const btn = document.getElementById(`play-btn-${idx}`);
@@ -502,15 +550,18 @@
                 
                 if (vid) {
                     vid.currentTime = 0; 
-                    vid.muted = false; 
+                    
+                    // Attempt unmuted play first to fulfill Autoplay Unmuted request
+                    vid.muted = isMuted; 
                     
                     let playPromise = vid.play();
                     if (playPromise !== undefined) {
                         playPromise.then(() => {
+                            // Browser allowed it!
                             if(btn) btn.style.display = 'none';
-                            isMuted = false;
-                            if(unmuteToast) unmuteToast.classList.remove('show');
+                            if(!isMuted && unmuteToast) unmuteToast.classList.remove('show');
                         }).catch(() => { 
+                            // Browser blocked UNMUTED autoplay (usually happens on fresh shared links)
                             vid.muted = true;
                             vid.play().then(() => {
                                 isMuted = true;
@@ -523,8 +574,10 @@
                         });
                     }
                 }
-                if (ytPlayers[item.id] && ytPlayers[item.id].playVideo) {
-                    if (isMuted) ytPlayers[item.id].mute(); else ytPlayers[item.id].unMute();
+                
+                // YT Player handling logic 
+                if (ytPlayers[item.id] && typeof ytPlayers[item.id].playVideo === 'function') {
+                    if (!isMuted) ytPlayers[item.id].unMute(); else ytPlayers[item.id].mute();
                     ytPlayers[item.id].playVideo();
                 }
             };
@@ -549,13 +602,18 @@
                 vid.play().catch(e => console.log("Manual play failed", e));
             }
             
+            const item = activeFeed[idx];
+            if (ytPlayers[item.id] && typeof ytPlayers[item.id].playVideo === 'function') {
+                 ytPlayers[item.id].unMute();
+                 ytPlayers[item.id].playVideo();
+            }
+            
             if(unmuteToast) unmuteToast.classList.remove('show');
             const btn = document.getElementById(`play-btn-${idx}`);
             if (btn) btn.style.display = 'none';
         }
 
         function handlePlayerTap(i, event) {
-            // FIX: Removed the global !LOG block here so guests can click to unmute!
             const cap = document.getElementById(`cap-${i}`);
             if (cap && cap.classList.contains('expanded')) {
                 toggleCaption(i);
@@ -580,7 +638,7 @@
                     if(currentVid) currentVid.muted = isMuted;
 
                     Object.values(ytPlayers).forEach(p => { 
-                        if(p && typeof p.isMuted === 'function') {
+                        if(p && typeof p.unMute === 'function') {
                             if (isMuted) p.mute(); else p.unMute(); 
                         }
                     });
@@ -589,7 +647,7 @@
                 }, 280);
             } else {
                 clearTimeout(tapTimer); tapTimer = null;
-                processLike(i, true, event); // Guest check logic is already handled perfectly inside here
+                processLike(i, true, event); 
             }
         }
 
