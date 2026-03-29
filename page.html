@@ -17,7 +17,7 @@
     
     <style>
         /* =========================================
-           AURAGRAM CSS CORE - v3.0.2
+           AURAGRAM CSS CORE - v3.0.3
            =========================================
         */
         * { margin:0; padding:0; box-sizing:border-box; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; -webkit-tap-highlight-color:transparent; }
@@ -65,18 +65,21 @@
         .f-btn { font-size:13px; font-weight:700; color:#0095f6; cursor:pointer; }
         
         /* EXPANDABLE CAPTION */
-        .r-caption-container { position: relative; width: 100%; }
-        .r-caption { font-size:14px; text-shadow: 1px 1px 2px #000; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; max-height: 40px; transition: max-height 0.3s ease-in-out; word-wrap: break-word; }
+        .r-caption-container { position: relative; width: 100%; cursor: pointer; }
+        .r-caption { font-size:14px; text-shadow: 1px 1px 2px #000; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; max-height: 40px; transition: max-height 0.3s ease-in-out; word-wrap: break-word; pointer-events: none; }
         .r-caption.expanded { -webkit-line-clamp: 100; max-height: 250px; overflow-y: auto; pointer-events: auto; padding-right: 5px; -webkit-mask-image: linear-gradient(to bottom, black 85%, transparent 100%); mask-image: linear-gradient(to bottom, black 85%, transparent 100%); }
         .r-caption.expanded::-webkit-scrollbar { display: block; width: 4px; }
         .r-caption.expanded::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.4); border-radius: 10px; }
-        .caption-more { font-weight: 600; color: #a8a8a8; cursor: pointer; font-size: 13px; margin-top: 2px; text-shadow: 1px 1px 2px #000; display: inline-block; }
+        .caption-more { font-weight: 600; color: #a8a8a8; cursor: pointer; font-size: 13px; margin-top: 2px; text-shadow: 1px 1px 2px #000; display: inline-block; pointer-events: none; }
 
         /* IN-APP PLAY OVERLAY */
         .play-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 50; width: 70px; display: none; filter: invert(1); cursor: pointer; opacity: 0.8; transition: opacity 0.2s; }
         .play-overlay:active { opacity: 0.5; transform: translate(-50%, -50%) scale(0.9); }
         #vol-hint { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.6); padding: 15px; border-radius: 50%; z-index: 9000; pointer-events: none; display: none; }
         #vol-icon { width: 30px; filter: invert(1); }
+        
+        .unmute-toast { position: absolute; top: 60%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.7); color: #fff; padding: 12px 24px; border-radius: 30px; font-size: 15px; font-weight: 600; z-index: 8500; pointer-events: none; opacity: 0; transition: opacity 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.5); text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+        .unmute-toast.show { opacity: 1; }
 
         /* COMMENTS MODAL (INSTAGRAM EXACT UI) */
         #comment-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; background: rgba(0,0,0,0.5); z-index: 10000; display: none; flex-direction: column; justify-content: flex-end; }
@@ -98,11 +101,9 @@
         .c-actions { display: flex; gap: 15px; margin-top: 6px; align-items: center; }
         .c-reply-btn { font-size: 12px; color: #a8a8a8; font-weight: 600; cursor: pointer; }
         
-        /* Updated Comment Like Button */
         .c-like-icon { width: 14px; height: 14px; object-fit: contain; flex-shrink: 0; filter: invert(0.6); cursor: pointer; transition: transform 0.1s; margin-top: 2px; }
         .c-like-icon:active { transform: scale(0.8); }
         
-        /* Nested Replies CSS */
         .c-view-replies { font-size: 12px; color: #a8a8a8; font-weight: 600; cursor: pointer; margin-top: 10px; display: flex; align-items: center; gap: 8px; }
         .c-view-replies::before { content: ""; display: block; width: 24px; height: 1px; background: #a8a8a8; }
         .c-replies-container { margin-top: 15px; display: flex; flex-direction: column; gap: 15px; }
@@ -160,6 +161,7 @@
         </div>
         
         <div id="vol-hint"><img id="vol-icon" src="https://cdn-icons-png.flaticon.com/512/3127/3127501.png"></div>
+        <div id="unmute-toast-msg" class="unmute-toast">Tap to unmute</div>
 
         <div id="explore-scroll-container" class="reels-scroll-container"></div>
 
@@ -207,7 +209,7 @@
 
     <script>
         /* =========================================
-           AURAGRAM JAVASCRIPT CORE - v3.0.2
+           AURAGRAM JAVASCRIPT CORE - v3.0.3
            =========================================
         */
         const LOG = localStorage.getItem("loggedUser");
@@ -219,10 +221,10 @@
         const db = firebase.firestore(), DIMG = "https://www.w3schools.com/howto/img_avatar.png";
 
         let exploreFeed = [], activeFeed = [], allUsers = [], ytPlayers = {}, tapTimer = null;
-        let loadObserver, playObserver, isMuted = true; // Default true to allow autoplay in apps!
+        let loadObserver, playObserver, isMuted = false; // Default false for raw unmuted autoplay
         let unloadTimeouts = {}; 
         let activeCommentIndex = -1; 
-        let currentReplyToId = null; // Track reply state
+        let currentReplyToId = null;
 
         function showToast(msg) {
             const t = document.getElementById("toast"); t.innerText = msg;
@@ -267,7 +269,6 @@
             }, { threshold: 0.7 });
         }
 
-        // MAIN INITIALIZATION
         async function init() {
             initObservers();
 
@@ -341,6 +342,7 @@
 
         function openFullFeed(startIdx, source) {
             stopMedia();
+            isMuted = false; // Grid click = interaction! Force unmute immediately!
             activeFeed = source;
             document.getElementById("reel-player-view").style.display = "flex";
             const cont = document.getElementById("explore-scroll-container");
@@ -372,9 +374,9 @@
                             <b>${item.owner}</b>
                         </div>
                         ${hasCaption ? `
-                        <div class="r-caption-container">
+                        <div class="r-caption-container" onclick="toggleCaption(${i}, event)">
                             <p class="r-caption" id="cap-${i}">${item.caption}</p>
-                            <span class="caption-more" id="cap-btn-${i}" onclick="toggleCaption(${i})">more</span>
+                            <span class="caption-more" id="cap-btn-${i}">more</span>
                         </div>` : ''}
                     </div>
                 </div>`;
@@ -404,7 +406,8 @@
             if(userPfpEl && userDpSrc) userPfpEl.src = userDpSrc;
         }
 
-        function toggleCaption(i) {
+        function toggleCaption(i, event) {
+            if(event) event.stopPropagation(); // Stop tap from passing to video player
             const cap = document.getElementById(`cap-${i}`);
             const btn = document.getElementById(`cap-btn-${i}`);
             if (cap.classList.contains('expanded')) {
@@ -430,12 +433,10 @@
             setTimeout(() => {
                 if (unloadTimeouts[item.id]) return; 
 
-                // Added preload="metadata" and proper fallback poster to fix black screen in apps
                 let content = item.type === 'reel' ? 
                     (item.videoUrl ? `<video src="${item.videoUrl}" loop playsinline preload="metadata" ${isMuted?'muted':''} poster="${item.thumbnail || ''}" style="width:100%;height:100%;object-fit:contain;background:transparent;"></video>` : `<div class="yt-clip-box"><div id="yt-player-${item.id}"></div></div>`) :
                     `<img src="${item.image}" style="width:100%;height:100%;object-fit:contain;">`;
 
-                // Distinct Play button overlay for paused/blocked states
                 container.innerHTML = `<img src="https://cdn-icons-png.flaticon.com/512/0/375.png" class="play-overlay" id="play-btn-${idx}" onclick="forcePlay(${idx}, event)">` + content;
                 container.dataset.loaded = "true";
 
@@ -476,42 +477,53 @@
             }, 600); 
         }
 
-        // AUTO-PLAY IN-APP BROWSER FIX - Added safe retry loop for instant Grid to Reel play
+        // AUTO-PLAY IN-APP BROWSER FIX + UNMUTED PROMISE CASCADE
         function playContent(idx) {
             const item = activeFeed[idx];
             const container = document.getElementById(`media-slot-${idx}`);
             if (!container) return;
             
-            window.pendingPlayIdx = idx; // Track the exact reel we want to play
+            window.pendingPlayIdx = idx;
             
             const tryPlay = () => {
-                if (window.pendingPlayIdx !== idx) return; // Prevent race conditions if scrolled away quickly
+                if (window.pendingPlayIdx !== idx) return; 
                 
                 if (container.dataset.loaded !== "true") {
-                    setTimeout(tryPlay, 50); // Retry until the video is physically in the DOM
+                    setTimeout(tryPlay, 50); 
                     return;
                 }
                 
                 document.querySelectorAll('video').forEach(v => {
                     v.pause();
-                    v.muted = true;
                 });
 
                 const vid = container.querySelector('video');
                 const btn = document.getElementById(`play-btn-${idx}`);
+                const unmuteToast = document.getElementById('unmute-toast-msg');
                 
                 if (vid) {
                     vid.currentTime = 0; 
-                    vid.muted = isMuted; // Essential for Autoplay to work initially
+                    vid.muted = false; // Always attempt unmuted first!
                     
                     let playPromise = vid.play();
                     if (playPromise !== undefined) {
                         playPromise.then(() => {
+                            // Browser allowed unmuted autoplay!
                             if(btn) btn.style.display = 'none';
+                            isMuted = false;
+                            if(unmuteToast) unmuteToast.classList.remove('show');
                         }).catch(() => { 
-                            // Autoplay blocked completely by in-app browser. Show manual Play Icon!
-                            if(btn) btn.style.display = "block";
-                            vid.pause();
+                            // Unmuted autoplay blocked (e.g., direct link in Safari). Fallback to muted.
+                            vid.muted = true;
+                            vid.play().then(() => {
+                                isMuted = true;
+                                if(btn) btn.style.display = 'none';
+                                if(unmuteToast) unmuteToast.classList.add('show'); // Show "Tap to unmute"
+                            }).catch(() => {
+                                // Completely blocked by extremely strict browser. Show manual play.
+                                if(btn) btn.style.display = "block";
+                                vid.pause();
+                            });
                         });
                     }
                 }
@@ -524,7 +536,6 @@
             tryPlay();
         }
 
-        // Bypasses auto-play blocks when Play Button is tapped
         function forcePlay(idx, event) {
             event.stopPropagation(); 
             isMuted = false; 
@@ -535,11 +546,14 @@
             });
             
             const vid = document.querySelector(`[data-idx="${idx}"] video`);
+            const unmuteToast = document.getElementById('unmute-toast-msg');
+            
             if (vid) {
                 vid.muted = false;
                 vid.play().catch(e => console.log("Manual play failed", e));
             }
             
+            if(unmuteToast) unmuteToast.classList.remove('show');
             const btn = document.getElementById(`play-btn-${idx}`);
             if (btn) btn.style.display = 'none';
         }
@@ -550,26 +564,29 @@
             if (!container) return;
 
             const vid = container.querySelector('video');
-            if (vid) { vid.pause(); vid.muted = true; }
+            if (vid) { vid.pause(); }
             if (ytPlayers[item.id] && ytPlayers[item.id].pauseVideo) ytPlayers[item.id].pauseVideo();
         }
 
         function handlePlayerTap(i, event) {
             if (!LOG) { document.getElementById("action-modal").style.display = "flex"; return; }
             
-            // CAPTION EXPANSION FIX: Collapse without muting
+            // Note: Caption is now handled safely by stopPropagation inside toggleCaption!
             const cap = document.getElementById(`cap-${i}`);
             if (cap && cap.classList.contains('expanded')) {
                 toggleCaption(i);
-                return; // Stop right here, don't mute/unmute
+                return; // Collapse caption without muting if user tapped video background
             }
 
-            // Normal Mute/Unmute logic
             if (!tapTimer) {
                 tapTimer = setTimeout(() => {
                     isMuted = !isMuted;
                     
                     const hint = document.getElementById('vol-hint'), icon = document.getElementById('vol-icon');
+                    const unmuteToast = document.getElementById('unmute-toast-msg');
+                    
+                    if (!isMuted && unmuteToast) unmuteToast.classList.remove('show');
+                    
                     icon.src = isMuted ? "https://cdn-icons-png.flaticon.com/512/3127/3127501.png" : "https://cdn-icons-png.flaticon.com/512/727/727269.png";
                     hint.style.display = "block";
                     clearTimeout(window.volTimeout);
@@ -644,13 +661,10 @@
             await db.collection("users").doc(item.owner).collection(item.type==='reel'?'reels':'posts').doc(item.id).update({likes: item.likes});
         }
 
-        // ==========================
-        // INSTAGRAM EXACT COMMENTS LOGIC
-        // ==========================
         function openComments(idx) {
             if(!LOG) { checkGuestAction(); return; }
             activeCommentIndex = idx;
-            currentReplyToId = null; // reset state
+            currentReplyToId = null;
             document.getElementById('c-text-input').value = "";
             document.getElementById('comment-overlay').style.display = 'flex';
             document.getElementById('c-list-box').innerHTML = '<div class="loader-ring" style="position:relative; margin: 20px auto;"></div>';
@@ -680,7 +694,6 @@
             togglePostBtn();
         }
 
-        // Fired off to Firestore to save comment likes!
         async function toggleCommentLike(iconEl, cId, rId, rOwner, rType) {
             const isLiked = iconEl.src.includes('1077035');
             const path = rType === 'reel' ? 'reels' : 'posts';
@@ -696,7 +709,6 @@
                 await ref.update({ likes: firebase.firestore.FieldValue.arrayRemove(LOG) });
             }
             
-            // Reload silently to refresh the tiny number below the heart
             loadComments(activeCommentIndex);
         }
 
@@ -782,7 +794,6 @@
             const text = input.value.trim();
             if(!text) return;
             
-            // Cancel reply status if user backspaced out the "@username" tag manually
             if(currentReplyToId && !text.startsWith('@')) {
                 currentReplyToId = null;
             }
@@ -811,7 +822,7 @@
                 }
                 
                 input.value = "";
-                currentReplyToId = null; // reset!
+                currentReplyToId = null; 
                 togglePostBtn();
                 loadComments(activeCommentIndex);
             } catch(e) { console.error("Post comment error", e); showToast("Failed to post comment"); }
@@ -832,7 +843,6 @@
             if (interval > 1) return Math.floor(interval) + "m";
             return Math.floor(seconds) + "s";
         }
-        // ==========================
 
         function copyShareLink(i) {
             const item = activeFeed[i];
@@ -881,4 +891,3 @@
     </script>
 </body>
 </html>
-
