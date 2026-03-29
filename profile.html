@@ -223,19 +223,35 @@
         </div>
     </div>
 
-    <div id="new-reel-view" class="full-view" style="z-index: 6600;">
-        <div class="e-nav">
-            <img src="https://cdn-icons-png.flaticon.com/512/271/271218.png" style="width:18px; filter:invert(1); cursor:pointer;" onclick="closeReelView()">
-            <b style="font-size:16px;">New Reel</b>
-            <span style="color:#0095f6;font-weight:700;cursor:pointer" onclick="shareReel()">Share</span>
-        </div>
-        <div style="padding:15px;">
-            <label style="color:#a8a8a8; font-size:13px; font-weight:600;">YouTube Shorts URL</label>
-            <input type="text" id="rv-url" placeholder="Paste link here..." style="width:100%; background:#1c1c1e; border:none; color:#fff; padding:12px; border-radius:8px; margin-top:8px; outline:none; font-size:14px;">
-            <textarea id="rv-cap" placeholder="Add a caption & #hashtags..." style="width:100%; background:#1c1c1e; border:none; color:#fff; padding:12px; border-radius:8px; margin-top:15px; outline:none; font-size:14px; height:80px; resize:none;"></textarea>
-            <div style="margin-top:15px; font-size:12px; color:#666;">Thumbnail will be auto-generated from the link.</div>
-        </div>
+  <div id="new-reel-view" class="full-view" style="z-index: 6600;">
+    <div class="e-nav">
+        <img src="https://cdn-icons-png.flaticon.com/512/271/271218.png" style="width:18px; filter:invert(1); cursor:pointer;" onclick="closeReelView()">
+        <b style="font-size:16px;">New Reel</b>
+        <span id="reel-share-btn" style="color:#0095f6;font-weight:700;cursor:pointer" onclick="shareReel()">Share</span>
     </div>
+    <div style="padding:15px; overflow-y: auto; height: calc(100% - 48px);">
+        <label style="color:#a8a8a8; font-size:11px; font-weight:bold; letter-spacing: 0.5px;">PASTE URL (YT SHORTS OR INSTAGRAM)</label>
+        <div style="display:flex; gap:8px; margin-top:8px;">
+            <input type="text" id="rv-url" placeholder="Paste link here..." style="flex:1; background:#1c1c1e; border:1px solid #333; color:#fff; padding:12px; border-radius:8px; outline:none; font-size:14px;">
+            <button onclick="handleReelFetch()" style="background:#ed4956; border:none; color:#fff; border-radius:8px; padding:0 15px; font-weight:bold; font-size:12px;">FETCH</button>
+        </div>
+
+        <div id="reel-preview-area" style="margin-top:20px; display:none; flex-direction:column; align-items:center; background:#111; padding:15px; border-radius:12px; border:1px dashed #444;">
+            <div style="position:relative; width:120px; aspect-ratio:9/16;">
+                <img id="rv-thumb-prev" style="width:100%; height:100%; object-fit:cover; border-radius:8px; border:1px solid #333;">
+                <div onclick="document.getElementById('f-reel-thumb').click()" style="position:absolute; bottom:-10px; right:-10px; background:#0095f6; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:3px solid #111; cursor:pointer;">
+                    <img src="https://cdn-icons-png.flaticon.com/512/685/685655.png" style="width:16px; filter:invert(1);">
+                </div>
+            </div>
+            <span style="font-size:11px; color:#888; margin-top:15px;">Thumbnail Ready (Click blue icon to change)</span>
+        </div>
+
+        <textarea id="rv-cap" placeholder="Write a caption..." style="width:100%; background:#1c1c1e; border:1px solid #333; color:#fff; padding:12px; border-radius:8px; margin-top:15px; outline:none; font-size:14px; height:100px; resize:none;"></textarea>
+        
+        <input type="file" id="f-reel-thumb" hidden accept="image/*" onchange="replaceReelThumb(event)">
+    </div>
+</div>
+
 
     <div id="reel-player-view" class="full-view" style="z-index: 7000; background:#000;">
         <div class="r-back" onclick="closeReelPlayer()">
@@ -922,48 +938,131 @@
             render();
             switchTab('posts');
         }
+// --- MIRRORING CONFIG ---
+const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/ditmmz5hk";
+const VIDEO_PRESET = "my_video_preset"; 
+let tempReelData = { videoUrl: "", thumbUrl: "", ytId: "", type: "" };
+
+async function handleReelFetch() {
+    const rawUrl = document.getElementById("rv-url").value.trim();
+    if (!rawUrl) return toast("Paste a link first");
+
+    const loader = document.getElementById("load");
+    loader.innerText = "Fetching Media...";
+    loader.style.display = "block";
+
+    try {
+        if (rawUrl.includes("youtube.com/shorts") || rawUrl.includes("youtu.be")) {
+            // YouTube Logic
+            const match = rawUrl.match(/(?:shorts\/|v=|youtu\.be\/)([^&?\n]+)/);
+            if (!match) throw new Error("Invalid YouTube URL");
+            
+            let ytId = match[1];
+            tempReelData = {
+                videoUrl: "",
+                thumbUrl: `https://i.ytimg.com/vi/${ytId}/hqdefault.jpg`,
+                ytId: ytId,
+                type: "youtube"
+            };
+            showReelPreview(tempReelData.thumbUrl);
+        } else if (rawUrl.includes("instagram.com")) {
+            // Instagram Mirroring Logic
+            const response = await fetch(`https://insta-reels-downloader-the-fastest-hd-reels-fetcher-api.p.rapidapi.com/unified/index?url=${encodeURIComponent(rawUrl)}`, {
+                headers: {
+                    'x-rapidapi-host': 'insta-reels-downloader-the-fastest-hd-reels-fetcher-api.p.rapidapi.com',
+                    'x-rapidapi-key': 'f26f059259msh01744200cf35cdap1a2e94jsn87882966dadc'
+                }
+            });
+            const resJson = await response.json();
+            if (!resJson.success) throw new Error("API Error");
+
+            // Mirror to Cloudinary
+            const vidMirror = await uploadToCloudinary(resJson.data.content.media_url, "video");
+            const imgMirror = await uploadToCloudinary(resJson.data.content.thumbnail_url, "image");
+
+            tempReelData = {
+                videoUrl: vidMirror.secure_url,
+                thumbUrl: imgMirror.secure_url,
+                ytId: "",
+                type: "instagram"
+            };
+            document.getElementById("rv-cap").value = resJson.data.title || "";
+            showReelPreview(tempReelData.thumbUrl);
+        } else {
+            toast("Unsupported URL");
+        }
+    } catch (e) {
+        toast("Fetch Failed: " + e.message);
+    } finally {
+        loader.style.display = "none";
+    }
+}
+
+async function uploadToCloudinary(fileUrlOrBlob, type) {
+    const formData = new FormData();
+    formData.append("file", fileUrlOrBlob);
+    formData.append("upload_preset", VIDEO_PRESET);
+    const res = await fetch(`${CLOUDINARY_URL}/${type}/upload`, { method: "POST", body: formData });
+    return await res.json();
+}
+
+function showReelPreview(url) {
+    document.getElementById("reel-preview-area").style.display = "flex";
+    document.getElementById("rv-thumb-prev").src = url;
+}
+
+async function replaceReelThumb(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const loader = document.getElementById("load");
+        loader.innerText = "Uploading New Thumb...";
+        loader.style.display = "block";
+        const data = await uploadToCloudinary(file, "image");
+        tempReelData.thumbUrl = data.secure_url;
+        document.getElementById("rv-thumb-prev").src = data.secure_url;
+        loader.style.display = "none";
+    }
+}
+
 async function shareReel() {
-    const url = document.getElementById("rv-url").value;
-    const cap = document.getElementById("rv-cap").value;
-    if(!url) return alert("Please enter a URL");
+    if (!tempReelData.thumbUrl) return toast("Fetch a reel first!");
     
-    let ytId = "";
-    const match = url.match(/(?:shorts\/|v=|youtu\.be\/)([^&?\n]+)/);
-    if(match && match[1]) ytId = match[1];
-    else return alert("Invalid YouTube URL");
+    const loader = document.getElementById("load");
+    loader.innerText = "Posting Reel...";
+    loader.style.display = "block";
 
-    const thumb = `https://i.ytimg.com/vi/${ytId}/hqdefault.jpg`;
-    
-    // UI Cleanup
-    document.getElementById("new-reel-view").style.display="none";
-    document.getElementById("rv-url").value="";
-    document.getElementById("rv-cap").value="";
-    toast("Uploading Reel...");
-
-    const newReel = {
-        ytId: ytId,
-        thumbnail: thumb,
-        caption: cap,
+    const finalReel = {
+        videoUrl: tempReelData.videoUrl,
+        ytId: tempReelData.ytId,
+        thumbnail: tempReelData.thumbUrl,
+        caption: document.getElementById("rv-cap").value,
         likes: [],
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
     };
 
     try {
         // 1. Save to Firestore
-        const docRef = await db.collection("users").doc(LOG).collection("reels").add(newReel);
+        const docRef = await db.collection("users").doc(LOG).collection("reels").add(finalReel);
         
-        // 2. Manually push to local data so playReel can see it immediately
-        reelsData.unshift({ id: docRef.id, ...newReel }); 
+        // 2. Immediate UI Update
+        if (typeof reelsData !== 'undefined') {
+            reelsData.unshift({ id: docRef.id, ...finalReel });
+        }
 
-        // 3. Force re-render of the reels grid
-        await render(); 
+        // 3. UI Cleanup
+        document.getElementById("new-reel-view").style.display = "none";
+        document.getElementById("rv-url").value = "";
+        document.getElementById("rv-cap").value = "";
         
-        // 4. Switch to reels tab to show success
+        await render();
         switchTab('reels');
-        toast("Reel shared successfully!");
+        toast("Reel Posted!");
     } catch (e) {
-        console.error("Error sharing reel: ", e);
-        toast("Failed to share reel.");
+        console.error(e);
+        toast("Post failed");
+    } finally {
+        loader.style.display = "none";
+        tempReelData = { videoUrl: "", thumbUrl: "", ytId: "", type: "" };
     }
 }
 
