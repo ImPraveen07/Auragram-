@@ -368,7 +368,6 @@
         
         let VIEW = LOG, curG = "", postsData = [], reelsData = [], curPostId = null, curCommType = "posts", lastT = 0, reelLastT = 0, replyingToCid = null, replyingToUser = null, tempPostImg = null;
         let reelObserver = null; 
-        let reelTapTimer = null; // Added timer for double-tap vs single-tap logic
 
         async function uploadReelToCloudinary(event) {
             const file = event.target.files[0];
@@ -498,6 +497,7 @@
                     </div>`;
                 });
                 
+                // Set total post count to include both posts AND reels now!
                 document.getElementById("c-p").innerText = a.size + r.size;
             }
         }
@@ -566,11 +566,13 @@
             if (reelObserver) reelObserver.disconnect();
             
             const container = document.getElementById('reels-scroll-container');
+            // Adjusted threshold for smoother pre-loading behavior offscreen
             const options = { root: container, threshold: 0.6 }; 
             
             reelObserver = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     const iframe = entry.target.querySelector('iframe.yt-reel-iframe');
+                    // Handle YT iframes
                     if (iframe && iframe.contentWindow) {
                         if (entry.isIntersecting) {
                             iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
@@ -581,24 +583,16 @@
                         }
                     }
                     
+                    // Handle uploaded HTML5 Videos with pausing and muting off-screen
                     const video = entry.target.querySelector('video.yt-reel-iframe');
                     if (video) {
                         if (entry.isIntersecting) {
-                            // Try autoplaying unmuted first
-                            video.muted = false; 
-                            let playPromise = video.play();
-                            if (playPromise !== undefined) {
-                                playPromise.catch(e => {
-                                    console.log("Unmuted autoplay blocked, falling back to muted play", e);
-                                    // Fallback to muted autoplay
-                                    video.muted = true;
-                                    video.play(); 
-                                });
-                            }
+                            video.muted = false; // Automatically unmute when in view
+                            video.play().catch(e => console.log("Autoplay blocked until interaction", e));
                         } else {
                             video.pause();
-                            video.muted = true; 
-                            video.currentTime = 0; 
+                            video.muted = true; // Prevents background audio overlapping completely!
+                            video.currentTime = 0; // Preloads for fresh start 
                         }
                     }
                 });
@@ -642,6 +636,7 @@
 
                 let mediaElement = '';
                 if (reel.videoUrl) {
+                    // Removed 'muted' attribute here so videos play with audio when scrolling!
                     mediaElement = `
                         <video class="yt-reel-iframe" 
                                loop 
@@ -719,32 +714,8 @@
 
         function handleReelTap(reelId) {
             let now = Date.now();
-            let isDoubleTap = (now - reelLastT < 300);
-            
-            if (isDoubleTap) {
-                clearTimeout(reelTapTimer); // Cancel the single tap action
-                if (requireAuth()) {
-                    toggleReelL(reelId, true);
-                }
-            } else {
-                reelTapTimer = setTimeout(() => {
-                    // Single tap action: toggle mute/unmute
-                    const cont = document.getElementById('reel-cont-' + reelId);
-                    if(!cont) return;
-                    
-                    const vid = cont.querySelector('video.yt-reel-iframe');
-                    if (vid) {
-                        vid.muted = !vid.muted;
-                        if(vid.paused) vid.play(); // Ensure it stays playing
-                    }
-                    
-                    const yt = cont.querySelector('iframe.yt-reel-iframe');
-                    if (yt && yt.contentWindow) {
-                        // Force unmute and play for YT iframe
-                        yt.contentWindow.postMessage('{"event":"command","func":"unMute","args":""}', '*');
-                        yt.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
-                    }
-                }, 300); // 300ms delay to check for double tap
+            if (now - reelLastT < 300 && requireAuth()) {
+                toggleReelL(reelId, true);
             }
             reelLastT = now;
         }
