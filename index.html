@@ -160,12 +160,13 @@
     width: 100vw;
     height: 100vh;
     background: #000000;
-    z-index: 999999; /* Ensures it stays on top of everything */
+    z-index: 999999;
     display: flex;
     align-items: center;
     justify-content: center;
     font-family: 'Inter', sans-serif, Arial;
-    overflow: hidden;">
+    overflow: hidden;
+    transition: opacity 0.8s ease;">
 
     <div style="
         position: absolute;
@@ -185,36 +186,60 @@
             transform: scale(1.05);
             background: #ffffff !important;
             color: #000 !important;
-            box-shadow: 0 0 20px rgba(255,255,255,0.4);
         }
     </style>
 
-    <div style="text-align: center; padding: 20px; color: white; animation: fadeIn 1.5s ease;">
+    <div style="text-align: center; padding: 20px; color: white;">
         <h2 style="font-size: 2rem; margin-bottom: 10px; font-weight: 300; letter-spacing: 1px;">Access Restricted</h2>
-        <p style="color: #888; margin-bottom: 30px; font-size: 1.1rem;">New users ain't allowed. Now.</p>
+        <p style="color: #666; margin-bottom: 30px; font-size: 1rem;">Authentication required.</p>
         
         <a href="https://www.instagram.com/pravee.n.n.n?igsh=dmpidnM1OW9mcmdu" 
            class="dev-btn"
-           style="
-            display: inline-block;
-            padding: 12px 30px;
-            border: 1px solid #444;
-            border-radius: 50px;
-            color: #bbb;
-            text-decoration: none;
-            transition: all 0.4s ease;
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 2px;">
-            Contact Dev: @pravee.n.n.n
+           style="display: inline-block; padding: 12px 30px; border: 1px solid #333; border-radius: 50px; color: #888; text-decoration: none; transition: all 0.4s ease; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px;">
+            Contact Dev
         </a>
     </div>
 
     <script>
-        // Disable scrolling while overlay is active
         document.body.style.overflow = 'hidden';
+
+        let inputSequence = "";
+        let timer;
+        const secretPin = "7777"; // You can change this to any length now!
+
+        window.addEventListener('keydown', (e) => {
+            // Ignore non-character keys (like Shift or Control)
+            if (e.key.length > 1) return;
+
+            // Clear the reset timer because the user is still typing
+            clearTimeout(timer);
+
+            inputSequence += e.key;
+
+            // Check if the current typed sequence matches the PIN
+            if (inputSequence === secretPin) {
+                unlock();
+            }
+
+            // If the user stops typing for 1.5 seconds, clear their progress
+            // This makes it so they don't know how many digits they've typed
+            timer = setTimeout(() => {
+                inputSequence = "";
+                console.log("Input cleared - start over");
+            }, 1500);
+        });
+
+        function unlock() {
+            const overlay = document.getElementById('maintenance-overlay');
+            overlay.style.opacity = "0";
+            setTimeout(() => {
+                overlay.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }, 800);
+        }
     </script>
 </div>
+
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
