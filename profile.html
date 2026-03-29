@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -252,7 +251,6 @@
         <input type="file" id="f-reel-thumb" hidden accept="image/*" onchange="replaceReelThumb(event)">
     </div>
 </div>
-
 
     <div id="reel-player-view" class="full-view" style="z-index: 7000; background:#000;">
         <div class="r-back" onclick="closeReelPlayer()">
@@ -924,30 +922,41 @@
                 }, t.readAsDataURL(e)
             }
         }
+
+        async function sharePost() {
+            if(!tempPostImg) return;
+            document.getElementById('caption-view').style.display = 'none';
+            const n = document.getElementById('cv-cap').value;
+            await db.collection("users").doc(LOG).collection("posts").add({
+                image: tempPostImg,
+                caption: n,
+                likes: [],
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            tempPostImg = null;
+            render();
+            switchTab('posts');
+        }
 // --- MIRRORING CONFIG ---
 const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/ditmmz5hk";
 const VIDEO_PRESET = "my_video_preset"; 
 let tempReelData = { videoUrl: "", thumbUrl: "", ytId: "", type: "" };
 
-/**
- * Validates and fetches media from the provided URL.
- * Handles both YouTube and Instagram mirroring.
- */
 async function handleReelFetch() {
     const rawUrl = document.getElementById("rv-url").value.trim();
     if (!rawUrl) return toast("Paste a link first");
 
-    const loadEl = document.getElementById("load");
-    loadEl.innerText = "Fetching Media...";
-    loadEl.style.display = "block";
+    const loader = document.getElementById("load");
+    loader.innerText = "Fetching Media...";
+    loader.style.display = "block";
 
     try {
         if (rawUrl.includes("youtube.com/shorts") || rawUrl.includes("youtu.be")) {
-            // YouTube Logic: Extracts ID and uses standard HQ thumbnail
-            const ytMatch = rawUrl.match(/(?:shorts\/|v=|youtu\.be\/)([^&?\n]+)/);
-            if (!ytMatch) throw new Error("Invalid YouTube URL");
+            // YouTube Logic
+            const match = rawUrl.match(/(?:shorts\/|v=|youtu\.be\/)([^&?\n]+)/);
+            if (!match) throw new Error("Invalid YouTube URL");
             
-            let ytId = ytMatch[1];
+            let ytId = match[1];
             tempReelData = {
                 videoUrl: "",
                 thumbUrl: `https://i.ytimg.com/vi/${ytId}/hqdefault.jpg`,
@@ -955,9 +964,8 @@ async function handleReelFetch() {
                 type: "youtube"
             };
             showReelPreview(tempReelData.thumbUrl);
-            
         } else if (rawUrl.includes("instagram.com")) {
-            // Instagram Mirroring Logic via RapidAPI
+            // Instagram Mirroring Logic
             const response = await fetch(`https://insta-reels-downloader-the-fastest-hd-reels-fetcher-api.p.rapidapi.com/unified/index?url=${encodeURIComponent(rawUrl)}`, {
                 headers: {
                     'x-rapidapi-host': 'insta-reels-downloader-the-fastest-hd-reels-fetcher-api.p.rapidapi.com',
@@ -967,7 +975,7 @@ async function handleReelFetch() {
             const resJson = await response.json();
             if (!resJson.success) throw new Error("API Error");
 
-            // Mirror Video and Thumbnail to Cloudinary to prevent hotlinking issues
+            // Mirror to Cloudinary
             const vidMirror = await uploadToCloudinary(resJson.data.content.media_url, "video");
             const imgMirror = await uploadToCloudinary(resJson.data.content.thumbnail_url, "image");
 
@@ -985,13 +993,10 @@ async function handleReelFetch() {
     } catch (e) {
         toast("Fetch Failed: " + e.message);
     } finally {
-        loadEl.style.display = "none";
+        loader.style.display = "none";
     }
 }
 
-/**
- * Uploads a file (Blob or URL) to Cloudinary.
- */
 async function uploadToCloudinary(fileUrlOrBlob, type) {
     const formData = new FormData();
     formData.append("file", fileUrlOrBlob);
@@ -1005,37 +1010,25 @@ function showReelPreview(url) {
     document.getElementById("rv-thumb-prev").src = url;
 }
 
-/**
- * Allows users to manually override the fetched thumbnail.
- */
 async function replaceReelThumb(event) {
     const file = event.target.files[0];
     if (file) {
-        const loadEl = document.getElementById("load");
-        loadEl.innerText = "Uploading New Thumb...";
-        loadEl.style.display = "block";
-        
-        try {
-            const data = await uploadToCloudinary(file, "image");
-            tempReelData.thumbUrl = data.secure_url;
-            document.getElementById("rv-thumb-prev").src = data.secure_url;
-        } catch (e) {
-            toast("Upload failed");
-        } finally {
-            loadEl.style.display = "none";
-        }
+        const loader = document.getElementById("load");
+        loader.innerText = "Uploading New Thumb...";
+        loader.style.display = "block";
+        const data = await uploadToCloudinary(file, "image");
+        tempReelData.thumbUrl = data.secure_url;
+        document.getElementById("rv-thumb-prev").src = data.secure_url;
+        loader.style.display = "none";
     }
 }
 
-/**
- * Finalizes the post and saves data to Firestore.
- */
 async function shareReel() {
     if (!tempReelData.thumbUrl) return toast("Fetch a reel first!");
     
-    const loadEl = document.getElementById("load");
-    loadEl.innerText = "Posting Reel...";
-    loadEl.style.display = "block";
+    const loader = document.getElementById("load");
+    loader.innerText = "Posting Reel...";
+    loader.style.display = "block";
 
     const finalReel = {
         videoUrl: tempReelData.videoUrl,
@@ -1047,39 +1040,30 @@ async function shareReel() {
     };
 
     try {
-        // Assuming LOG is the global User ID and db is the Firestore instance
-        await db.collection("users").doc(LOG).collection("reels").add(finalReel);
+        // 1. Save to Firestore
+        const docRef = await db.collection("users").doc(LOG).collection("reels").add(finalReel);
         
-        // UI Cleanup
-        closeReelView();
-        if (typeof render === "function") render();
-        if (typeof switchTab === "function") switchTab('reels');
+        // 2. Immediate UI Update
+        if (typeof reelsData !== 'undefined') {
+            reelsData.unshift({ id: docRef.id, ...finalReel });
+        }
+
+        // 3. UI Cleanup
+        document.getElementById("new-reel-view").style.display = "none";
+        document.getElementById("rv-url").value = "";
+        document.getElementById("rv-cap").value = "";
         
+        await render();
+        switchTab('reels');
         toast("Reel Posted!");
     } catch (e) {
         console.error(e);
         toast("Post failed");
     } finally {
-        loadEl.style.display = "none";
-        // Reset temporary state
+        loader.style.display = "none";
         tempReelData = { videoUrl: "", thumbUrl: "", ytId: "", type: "" };
     }
 }
-
-        async function sharePost() {
-            if(!tempPostImg) return;
-            document.getElementById('caption-view').style.display = 'none';
-            const n = document.getElementById('cv-cap').value;
-            await db.collection("users").doc(LOG).collection("posts").add({
-                image: tempPostImg,
-                caption: n,
-                likes: [],
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            tempPostImg = null;
-            render();
-            switchTab('posts');
-        }
 
 
         function openSh(t, e, n) {
@@ -1097,7 +1081,7 @@ async function shareReel() {
         function closeL() { document.getElementById("l-view").style.display = "none" }
         function copyPost(t) { navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?u=${VIEW}&p=${t}`), toast("Post link copied to clipboard") }
         function copyProf() { navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?u=${VIEW}`), toast("Profile link copied") }
-        function toast(t) { const e = document.getElementById("toast"); e.innerText = t,.style.display = "block", setTimeout(() => e.style.display = "none", 2500) }
+        function toast(t) { const e = document.getElementById("toast"); e.innerText = t, e.style.display = "block", setTimeout(() => e.style.display = "none", 2500) }
         function goHome() { location.href = "?u=" + (LOG || VIEW) }
         function exit() { localStorage.clear(), location.href = "index.html" }
         
