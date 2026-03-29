@@ -17,7 +17,7 @@
     
     <style>
         /* =========================================
-           AURAGRAM CSS CORE - v3.0.3
+           AURAGRAM CSS CORE - v3.0.4
            =========================================
         */
         * { margin:0; padding:0; box-sizing:border-box; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; -webkit-tap-highlight-color:transparent; }
@@ -191,7 +191,7 @@
 
     <div id="action-modal">
         <div class="modal-box">
-            <h3>Log in to interact with this post</h3>
+            <h3>Log in to interact</h3>
             <div class="modal-btn-blue" onclick="location.href='index.html'">Go to Login Page</div>
             <div class="modal-btn-cancel" onclick="closeModal()">Cancel</div>
         </div>
@@ -209,7 +209,7 @@
 
     <script>
         /* =========================================
-           AURAGRAM JAVASCRIPT CORE - v3.0.3
+           AURAGRAM JAVASCRIPT CORE - v3.0.4
            =========================================
         */
         const LOG = localStorage.getItem("loggedUser");
@@ -221,7 +221,7 @@
         const db = firebase.firestore(), DIMG = "https://www.w3schools.com/howto/img_avatar.png";
 
         let exploreFeed = [], activeFeed = [], allUsers = [], ytPlayers = {}, tapTimer = null;
-        let loadObserver, playObserver, isMuted = false; // Default false for raw unmuted autoplay
+        let loadObserver, playObserver, isMuted = false; 
         let unloadTimeouts = {}; 
         let activeCommentIndex = -1; 
         let currentReplyToId = null;
@@ -342,7 +342,7 @@
 
         function openFullFeed(startIdx, source) {
             stopMedia();
-            isMuted = false; // Grid click = interaction! Force unmute immediately!
+            isMuted = false; 
             activeFeed = source;
             document.getElementById("reel-player-view").style.display = "flex";
             const cont = document.getElementById("explore-scroll-container");
@@ -407,7 +407,7 @@
         }
 
         function toggleCaption(i, event) {
-            if(event) event.stopPropagation(); // Stop tap from passing to video player
+            if(event) event.stopPropagation(); 
             const cap = document.getElementById(`cap-${i}`);
             const btn = document.getElementById(`cap-btn-${i}`);
             if (cap.classList.contains('expanded')) {
@@ -477,7 +477,6 @@
             }, 600); 
         }
 
-        // AUTO-PLAY IN-APP BROWSER FIX + UNMUTED PROMISE CASCADE
         function playContent(idx) {
             const item = activeFeed[idx];
             const container = document.getElementById(`media-slot-${idx}`);
@@ -503,24 +502,21 @@
                 
                 if (vid) {
                     vid.currentTime = 0; 
-                    vid.muted = false; // Always attempt unmuted first!
+                    vid.muted = false; 
                     
                     let playPromise = vid.play();
                     if (playPromise !== undefined) {
                         playPromise.then(() => {
-                            // Browser allowed unmuted autoplay!
                             if(btn) btn.style.display = 'none';
                             isMuted = false;
                             if(unmuteToast) unmuteToast.classList.remove('show');
                         }).catch(() => { 
-                            // Unmuted autoplay blocked (e.g., direct link in Safari). Fallback to muted.
                             vid.muted = true;
                             vid.play().then(() => {
                                 isMuted = true;
                                 if(btn) btn.style.display = 'none';
-                                if(unmuteToast) unmuteToast.classList.add('show'); // Show "Tap to unmute"
+                                if(unmuteToast) unmuteToast.classList.add('show'); 
                             }).catch(() => {
-                                // Completely blocked by extremely strict browser. Show manual play.
                                 if(btn) btn.style.display = "block";
                                 vid.pause();
                             });
@@ -558,24 +554,12 @@
             if (btn) btn.style.display = 'none';
         }
 
-        function pauseContent(idx) {
-            const item = activeFeed[idx];
-            const container = document.getElementById(`media-slot-${idx}`);
-            if (!container) return;
-
-            const vid = container.querySelector('video');
-            if (vid) { vid.pause(); }
-            if (ytPlayers[item.id] && ytPlayers[item.id].pauseVideo) ytPlayers[item.id].pauseVideo();
-        }
-
         function handlePlayerTap(i, event) {
-            if (!LOG) { document.getElementById("action-modal").style.display = "flex"; return; }
-            
-            // Note: Caption is now handled safely by stopPropagation inside toggleCaption!
+            // FIX: Removed the global !LOG block here so guests can click to unmute!
             const cap = document.getElementById(`cap-${i}`);
             if (cap && cap.classList.contains('expanded')) {
                 toggleCaption(i);
-                return; // Collapse caption without muting if user tapped video background
+                return; 
             }
 
             if (!tapTimer) {
@@ -605,7 +589,7 @@
                 }, 280);
             } else {
                 clearTimeout(tapTimer); tapTimer = null;
-                processLike(i, true, event);
+                processLike(i, true, event); // Guest check logic is already handled perfectly inside here
             }
         }
 
