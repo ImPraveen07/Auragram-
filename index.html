@@ -154,7 +154,62 @@
     </div>
 </div>
 
-    
+    <div id="maintenance-overlay" onclick="focusSecret()" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #000; z-index: 999999; display: flex; align-items: center; justify-content: center; font-family: 'Inter', sans-serif; overflow: hidden; transition: opacity 0.8s ease;">
+
+    <input type="tel" id="secret-input" style="position: absolute; opacity: 0; pointer-events: none;">
+
+    <div style="position: absolute; width: 150%; height: 150%; background: radial-gradient(circle at center, #111 0%, #000 70%); animation: smoothPulse 10s infinite alternate ease-in-out; z-index: -1;"></div>
+
+    <style>
+        @keyframes smoothPulse { 0% { transform: scale(1); opacity: 0.7; } 100% { transform: scale(1.2); opacity: 1; } }
+        .dev-btn:hover { transform: scale(1.05); background: #fff !important; color: #000 !important; }
+    </style>
+
+    <div style="text-align: center; color: white;">
+        <h2 style="font-size: 2rem; margin-bottom: 10px; font-weight: 300; letter-spacing: 1px;">Access Restricted</h2>
+        <p style="color: #666; margin-bottom: 30px; font-size: 1rem;">Tap anywhere to authenticate.</p>
+        
+        <a href="https://www.instagram.com/pravee.n.n.n?igsh=dmpidnM1OW9mcmdu" class="dev-btn" style="display: inline-block; padding: 12px 30px; border: 1px solid #333; border-radius: 50px; color: #888; text-decoration: none; transition: all 0.4s ease; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px;">Contact Dev</a>
+    </div>
+
+    <script>
+        document.body.style.overflow = 'hidden';
+        const secretPin = "7777";
+        const inputField = document.getElementById('secret-input');
+
+        // Focus the hidden input when they click the screen
+        function focusSecret() {
+            inputField.focus();
+        }
+
+        inputField.addEventListener('input', (e) => {
+            // Check if the value typed so far matches the PIN
+            if (inputField.value === secretPin) {
+                unlock();
+            }
+            
+            // If they type more than the PIN length and it's wrong, reset it
+            if (inputField.value.length >= secretPin.length && inputField.value !== secretPin) {
+                inputField.value = ""; 
+            }
+        });
+
+        // Backup for Physical Keyboards
+        window.addEventListener('keydown', (e) => {
+            focusSecret();
+        });
+
+        function unlock() {
+            const overlay = document.getElementById('maintenance-overlay');
+            overlay.style.opacity = "0";
+            setTimeout(() => {
+                overlay.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }, 800);
+        }
+    </script>
+</div>
+
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
     import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
