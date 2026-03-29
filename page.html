@@ -17,7 +17,7 @@
     
     <style>
         /* =========================================
-           AURAGRAM CSS CORE - v3.0.1
+           AURAGRAM CSS CORE - v3.0.2
            =========================================
         */
         * { margin:0; padding:0; box-sizing:border-box; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; -webkit-tap-highlight-color:transparent; }
@@ -48,8 +48,7 @@
         .reel-item { height:100dvh; width:100%; scroll-snap-align: start; scroll-snap-stop: always; position:relative; background:#000; display: flex; align-items: center; justify-content: center; overflow: hidden; }
 
         .media-box { width:100%; height:100%; position:relative; display:flex; align-items:center; justify-content:center; }
-        /* Changed object-fit to contain to respect true original ratio without zooming */
-        .media-box video { width:100%; height:100%; object-fit: contain; background: #000; }
+        .media-box video { width:100%; height:100%; object-fit: contain; background: transparent; }
         .yt-clip-box { width:100%; height:100%; position:relative; overflow:hidden; }
         .yt-clip-box iframe { width:100%; height:140%; position:absolute; top:-20%; left:0; pointer-events:none; }
 
@@ -60,18 +59,60 @@
         .r-act img { width: 28px; filter: invert(1); }
         .r-act span { font-size: 12px; font-weight: 600; text-shadow: 1px 1px 2px #000; }
 
-        .r-info { position:absolute; bottom:40px; left:15px; z-index:80; width: 75%; }
+        .r-info { position:absolute; bottom:40px; left:15px; z-index:80; width: 75%; display: flex; flex-direction: column; }
         .r-user { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
         .r-pfp { width:34px; height:34px; border-radius:50%; object-fit:cover; border: 1.5px solid #fff; }
         .f-btn { font-size:13px; font-weight:700; color:#0095f6; cursor:pointer; }
-        .r-caption { font-size:14px; text-shadow: 1px 1px 2px #000; line-height: 1.3; }
         
-        /* IN-APP PLAY BUTTON FALLBACK */
-        .play-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 50; width: 60px; display: none; filter: invert(1); cursor: pointer; }
+        /* EXPANDABLE CAPTION */
+        .r-caption-container { position: relative; width: 100%; }
+        .r-caption { font-size:14px; text-shadow: 1px 1px 2px #000; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; max-height: 40px; transition: max-height 0.3s ease-in-out; word-wrap: break-word; }
+        .r-caption.expanded { -webkit-line-clamp: 100; max-height: 250px; overflow-y: auto; pointer-events: auto; padding-right: 5px; -webkit-mask-image: linear-gradient(to bottom, black 85%, transparent 100%); mask-image: linear-gradient(to bottom, black 85%, transparent 100%); }
+        .r-caption.expanded::-webkit-scrollbar { display: block; width: 4px; }
+        .r-caption.expanded::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.4); border-radius: 10px; }
+        .caption-more { font-weight: 600; color: #a8a8a8; cursor: pointer; font-size: 13px; margin-top: 2px; text-shadow: 1px 1px 2px #000; display: inline-block; }
 
-        /* MUTE TOGGLE HINT */
+        /* IN-APP PLAY OVERLAY */
+        .play-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 50; width: 70px; display: none; filter: invert(1); cursor: pointer; opacity: 0.8; transition: opacity 0.2s; }
+        .play-overlay:active { opacity: 0.5; transform: translate(-50%, -50%) scale(0.9); }
         #vol-hint { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.6); padding: 15px; border-radius: 50%; z-index: 9000; pointer-events: none; display: none; }
         #vol-icon { width: 30px; filter: invert(1); }
+
+        /* COMMENTS MODAL (INSTAGRAM EXACT UI) */
+        #comment-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; background: rgba(0,0,0,0.5); z-index: 10000; display: none; flex-direction: column; justify-content: flex-end; }
+        .comment-sheet { background: #262626; width: 100%; height: 70dvh; border-radius: 15px 15px 0 0; display: flex; flex-direction: column; position: relative; animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        
+        .c-header { display: flex; align-items: center; justify-content: center; padding: 15px; border-bottom: 0.1px solid #3d3d3d; position: relative; }
+        .c-header h3 { font-size: 16px; font-weight: 600; }
+        .c-close-line { width: 40px; height: 4px; background: #555; border-radius: 2px; position: absolute; top: 8px; left: 50%; transform: translateX(-50%); }
+        
+        .c-list { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 18px; }
+        .c-item { display: flex; gap: 12px; }
+        .c-item-pfp { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 1px solid #333; }
+        .c-content { flex: 1; }
+        .c-user-time { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+        .c-username { font-weight: 600; font-size: 13px; color: #f5f5f5; }
+        .c-time { font-size: 12px; color: #a8a8a8; }
+        .c-text { font-size: 14px; color: #fff; line-height: 1.4; word-wrap: break-word; }
+        .c-actions { display: flex; gap: 15px; margin-top: 6px; align-items: center; }
+        .c-reply-btn { font-size: 12px; color: #a8a8a8; font-weight: 600; cursor: pointer; }
+        
+        /* Updated Comment Like Button */
+        .c-like-icon { width: 14px; height: 14px; object-fit: contain; flex-shrink: 0; filter: invert(0.6); cursor: pointer; transition: transform 0.1s; margin-top: 2px; }
+        .c-like-icon:active { transform: scale(0.8); }
+        
+        /* Nested Replies CSS */
+        .c-view-replies { font-size: 12px; color: #a8a8a8; font-weight: 600; cursor: pointer; margin-top: 10px; display: flex; align-items: center; gap: 8px; }
+        .c-view-replies::before { content: ""; display: block; width: 24px; height: 1px; background: #a8a8a8; }
+        .c-replies-container { margin-top: 15px; display: flex; flex-direction: column; gap: 15px; }
+
+        .c-input-area { background: #000; border-top: 0.1px solid #3d3d3d; padding: 10px 15px; display: flex; align-items: center; gap: 10px; padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+        .c-input-pfp { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+        .c-input-box { flex: 1; display: flex; align-items: center; background: #262626; border-radius: 20px; padding: 0 15px; height: 40px; }
+        .c-input-box input { flex: 1; background: transparent; border: none; color: #fff; font-size: 14px; outline: none; }
+        .c-post-btn { color: #0095f6; font-weight: 600; font-size: 14px; cursor: pointer; opacity: 0.5; pointer-events: none; transition: opacity 0.2s; }
+        .c-post-btn.active { opacity: 1; pointer-events: auto; }
 
         /* GUEST RESTRICTION UI */
         #guest-restriction-banner { position: absolute; bottom: 0; left: 0; width: 100%; background: linear-gradient(transparent, rgba(0,0,0,0.95) 40%); color: #fff; text-align: center; padding: 60px 20px 30px; z-index: 9500; display: none; }
@@ -86,13 +127,11 @@
         /* LOADING & FEEDBACK */
         .loader-ring { position: absolute; width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid #fff; border-radius: 50%; animation: spin 0.8s linear infinite; z-index: 5; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        #toast { position:fixed; bottom:70px; left:50%; transform:translateX(-50%); background:#fff; color:#000; padding:10px 20px; border-radius:25px; display:none; z-index:9999; font-size:13px; font-weight:bold; }
+        #toast { position:fixed; bottom:70px; left:50%; transform:translateX(-50%); background:#fff; color:#000; padding:10px 20px; border-radius:25px; display:none; z-index:25000; font-size:13px; font-weight:bold; }
 
         /* HEART ANIMATIONS */
-        .heart-pop { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) scale(0); opacity:0; width:110px; pointer-events:none; z-index:100; filter:invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%)}
         @keyframes heartAnim{0%{transform:translate(-50%,-50%) scale(0);opacity:0}20%{transform:translate(-50%,-50%) scale(1.3);opacity:1}100%{transform:translate(-50%,-50%) scale(1.6);opacity:0}}
-        .animate-heart{animation:heartAnim 0.8s ease-out forwards}
+        .animate-heart{position:absolute; width:110px; pointer-events:none; z-index:100; filter:invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%); animation:heartAnim 0.8s ease-out forwards}
 
         @keyframes floatUp{0%{transform:translateY(0) rotate(0deg) scale(1);opacity:1}100%{transform:translateY(-180px) rotate(25deg) scale(0.4);opacity:0}}
         .mini-heart{position:absolute;width:28px;pointer-events:none;z-index:8100;filter:invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%);animation:floatUp 0.8s ease-out forwards}
@@ -130,6 +169,24 @@
         </div>
     </div>
 
+    <div id="comment-overlay" onclick="closeComments(event)">
+        <div class="comment-sheet" onclick="event.stopPropagation()">
+            <div class="c-header">
+                <div class="c-close-line"></div>
+                <h3>Comments</h3>
+            </div>
+            <div class="c-list" id="c-list-box">
+                </div>
+            <div class="c-input-area">
+                <img id="c-user-pfp" src="https://www.w3schools.com/howto/img_avatar.png" class="c-input-pfp">
+                <div class="c-input-box">
+                    <input type="text" id="c-text-input" placeholder="Add a comment..." oninput="togglePostBtn()">
+                    <span class="c-post-btn" id="c-post-btn-action" onclick="submitComment()">Post</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="action-modal">
         <div class="modal-box">
             <h3>Log in to interact with this post</h3>
@@ -150,7 +207,7 @@
 
     <script>
         /* =========================================
-           AURAGRAM JAVASCRIPT CORE - v3.0.1
+           AURAGRAM JAVASCRIPT CORE - v3.0.2
            =========================================
         */
         const LOG = localStorage.getItem("loggedUser");
@@ -162,8 +219,10 @@
         const db = firebase.firestore(), DIMG = "https://www.w3schools.com/howto/img_avatar.png";
 
         let exploreFeed = [], activeFeed = [], allUsers = [], ytPlayers = {}, tapTimer = null;
-        let loadObserver, playObserver, isMuted = false;
+        let loadObserver, playObserver, isMuted = true; // Default true to allow autoplay in apps!
         let unloadTimeouts = {}; 
+        let activeCommentIndex = -1; 
+        let currentReplyToId = null; // Track reply state
 
         function showToast(msg) {
             const t = document.getElementById("toast"); t.innerText = msg;
@@ -180,11 +239,10 @@
         function onYouTubeIframeAPIReady() {}
 
         function stopMedia() {
-            document.querySelectorAll('video').forEach(v => { v.pause(); });
+            document.querySelectorAll('video').forEach(v => { v.pause(); v.muted = true; });
             Object.values(ytPlayers).forEach(p => { if(p.pauseVideo) p.pauseVideo(); });
         }
 
-        // Restored Old Observer Logic for Buttery Smooth Loading
         function initObservers() {
             loadObserver = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
@@ -265,7 +323,7 @@
             
             if (excludeId) {
                 exploreFeed = [...exploreFeed, ...combined]; 
-                renderExploreGrid(); // Ensure background grid is ready when they close player
+                renderExploreGrid(); 
             } else {
                 exploreFeed = combined;
                 renderExploreGrid();
@@ -289,19 +347,20 @@
             
             cont.innerHTML = activeFeed.map((item, i) => {
                 const isLiked = (item.likes || []).includes(LOG);
+                const hasCaption = item.caption && item.caption.trim().length > 0;
                 return `
                 <div class="reel-item" id="reel-cont-${item.id}" data-idx="${i}" data-id="${item.id}">
-                    <div class="media-box" id="media-slot-${i}" onclick="handlePlayerTap(${i})">
+                    <div class="media-box" id="media-slot-${i}" onclick="handlePlayerTap(${i}, event)">
                         <div class="loader-ring"></div>
                     </div>
-                    <img src="https://cdn-icons-png.flaticon.com/512/833/833472.png" class="heart-pop" id="hp-anim-${i}">
+                    
                     <div class="r-sidebar">
                         <div class="r-act" onclick="processLike(${i})">
                             <img id="like-icon-${i}" src="https://cdn-icons-png.flaticon.com/512/${isLiked?'833/833472':'1077/1077035'}.png" style="filter:${isLiked?'invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%)':'invert(1)'}">
                             <span id="like-count-${i}">${(item.likes||[]).length}</span>
                         </div>
-                        <div class="r-act" onclick="checkGuestAction('explore.html?u=${item.owner}&p=${item.id}')">
-                            <img src="https://cdn-icons-png.flaticon.com/512/1380/1380338.png"><span>Comment</span>
+                        <div class="r-act" onclick="openComments(${i})">
+                            <img src="https://cdn-icons-png.flaticon.com/512/1380/1380338.png"><span>${(item.commentCount || 0)}</span>
                         </div>
                         <div class="r-act" onclick="copyShareLink(${i})">
                             <img src="https://cdn-icons-png.flaticon.com/512/2099/2099085.png"><span>Share</span>
@@ -312,7 +371,11 @@
                             <img src="${item.pfp}" class="r-pfp">
                             <b>${item.owner}</b>
                         </div>
-                        <p class="r-caption">${item.caption || ""}</p>
+                        ${hasCaption ? `
+                        <div class="r-caption-container">
+                            <p class="r-caption" id="cap-${i}">${item.caption}</p>
+                            <span class="caption-more" id="cap-btn-${i}" onclick="toggleCaption(${i})">more</span>
+                        </div>` : ''}
                     </div>
                 </div>`;
             }).join('');
@@ -320,13 +383,39 @@
             cont.querySelectorAll('.reel-item').forEach(el => {
                 loadObserver.observe(el);
                 playObserver.observe(el);
+                
+                const capIdx = el.dataset.idx;
+                const capText = document.getElementById(`cap-${capIdx}`);
+                const capBtn = document.getElementById(`cap-btn-${capIdx}`);
+                if(capText && capBtn) {
+                    setTimeout(() => {
+                        if (capText.scrollHeight <= capText.clientHeight) {
+                            capBtn.style.display = 'none';
+                        }
+                    }, 100);
+                }
             });
 
             const target = document.querySelector(`[data-idx="${startIdx}"]`);
             if (target) target.scrollIntoView({ behavior: 'auto', block: 'start' });
+            
+            const userPfpEl = document.getElementById("c-user-pfp");
+            const userDpSrc = document.getElementById("b-pfp-img").src;
+            if(userPfpEl && userDpSrc) userPfpEl.src = userDpSrc;
         }
 
-        // Restored Load Content Logic
+        function toggleCaption(i) {
+            const cap = document.getElementById(`cap-${i}`);
+            const btn = document.getElementById(`cap-btn-${i}`);
+            if (cap.classList.contains('expanded')) {
+                cap.classList.remove('expanded');
+                btn.innerText = "more";
+            } else {
+                cap.classList.add('expanded');
+                btn.innerText = "less";
+            }
+        }
+
         function loadContent(idx) {
             const item = activeFeed[idx];
             const container = document.getElementById(`media-slot-${idx}`);
@@ -341,12 +430,12 @@
             setTimeout(() => {
                 if (unloadTimeouts[item.id]) return; 
 
-                // Updated video inline style to use object-fit: contain instead of cover, and added autoplay
+                // Added preload="metadata" and proper fallback poster to fix black screen in apps
                 let content = item.type === 'reel' ? 
-                    (item.videoUrl ? `<video src="${item.videoUrl}" autoplay loop playsinline preload="auto" ${isMuted?'muted':''} style="width:100%;height:100%;object-fit:contain;"></video>` : `<div class="yt-clip-box"><div id="yt-player-${item.id}"></div></div>`) :
+                    (item.videoUrl ? `<video src="${item.videoUrl}" loop playsinline preload="metadata" ${isMuted?'muted':''} poster="${item.thumbnail || ''}" style="width:100%;height:100%;object-fit:contain;background:transparent;"></video>` : `<div class="yt-clip-box"><div id="yt-player-${item.id}"></div></div>`) :
                     `<img src="${item.image}" style="width:100%;height:100%;object-fit:contain;">`;
 
-                // Injects the manual play button overlay onto the video container
+                // Distinct Play button overlay for paused/blocked states
                 container.innerHTML = `<img src="https://cdn-icons-png.flaticon.com/512/0/375.png" class="play-overlay" id="play-btn-${idx}" onclick="forcePlay(${idx}, event)">` + content;
                 container.dataset.loaded = "true";
 
@@ -366,7 +455,6 @@
             }, 50);
         }
 
-        // Restored Unload Content Logic
         function unloadContent(idx) {
             const item = activeFeed[idx];
             const container = document.getElementById(`media-slot-${idx}`);
@@ -388,42 +476,67 @@
             }, 600); 
         }
 
+        // AUTO-PLAY IN-APP BROWSER FIX - Added safe retry loop for instant Grid to Reel play
         function playContent(idx) {
             const item = activeFeed[idx];
             const container = document.getElementById(`media-slot-${idx}`);
             if (!container) return;
-
-            const vid = container.querySelector('video');
-            if (vid) {
-                vid.muted = isMuted;
-                let playPromise = vid.play();
-                if (playPromise !== undefined) {
-                    playPromise.then(() => {
-                        const btn = document.getElementById(`play-btn-${idx}`);
-                        if(btn) btn.style.display = 'none';
-                    }).catch(() => { 
-                        // In-app browser blocked autoplay! Show the button.
-                        const btn = document.getElementById(`play-btn-${idx}`);
-                        if(btn) btn.style.display = "block";
-                        vid.pause();
-                    });
+            
+            window.pendingPlayIdx = idx; // Track the exact reel we want to play
+            
+            const tryPlay = () => {
+                if (window.pendingPlayIdx !== idx) return; // Prevent race conditions if scrolled away quickly
+                
+                if (container.dataset.loaded !== "true") {
+                    setTimeout(tryPlay, 50); // Retry until the video is physically in the DOM
+                    return;
                 }
-            }
-            if (ytPlayers[item.id] && ytPlayers[item.id].playVideo) {
-                if (isMuted) ytPlayers[item.id].mute(); else ytPlayers[item.id].unMute();
-                ytPlayers[item.id].playVideo();
-            }
+                
+                document.querySelectorAll('video').forEach(v => {
+                    v.pause();
+                    v.muted = true;
+                });
+
+                const vid = container.querySelector('video');
+                const btn = document.getElementById(`play-btn-${idx}`);
+                
+                if (vid) {
+                    vid.currentTime = 0; 
+                    vid.muted = isMuted; // Essential for Autoplay to work initially
+                    
+                    let playPromise = vid.play();
+                    if (playPromise !== undefined) {
+                        playPromise.then(() => {
+                            if(btn) btn.style.display = 'none';
+                        }).catch(() => { 
+                            // Autoplay blocked completely by in-app browser. Show manual Play Icon!
+                            if(btn) btn.style.display = "block";
+                            vid.pause();
+                        });
+                    }
+                }
+                if (ytPlayers[item.id] && ytPlayers[item.id].playVideo) {
+                    if (isMuted) ytPlayers[item.id].mute(); else ytPlayers[item.id].unMute();
+                    ytPlayers[item.id].playVideo();
+                }
+            };
+            
+            tryPlay();
         }
 
-        // Bypasses auto-play blocks specifically for in-app browsers
+        // Bypasses auto-play blocks when Play Button is tapped
         function forcePlay(idx, event) {
-            event.stopPropagation(); // Stops the background tap from triggering the mute/unmute timer
+            event.stopPropagation(); 
+            isMuted = false; 
             
-            isMuted = false; // Force it to be unmuted
-            document.querySelectorAll('video').forEach(v => v.muted = false);
+            document.querySelectorAll('video').forEach(v => {
+                v.pause();
+                v.muted = true;
+            });
             
             const vid = document.querySelector(`[data-idx="${idx}"] video`);
             if (vid) {
+                vid.muted = false;
                 vid.play().catch(e => console.log("Manual play failed", e));
             }
             
@@ -437,13 +550,21 @@
             if (!container) return;
 
             const vid = container.querySelector('video');
-            if (vid) vid.pause();
+            if (vid) { vid.pause(); vid.muted = true; }
             if (ytPlayers[item.id] && ytPlayers[item.id].pauseVideo) ytPlayers[item.id].pauseVideo();
         }
 
-        // Restored Global Mute/Unmute Tap Logic
-        function handlePlayerTap(i) {
+        function handlePlayerTap(i, event) {
             if (!LOG) { document.getElementById("action-modal").style.display = "flex"; return; }
+            
+            // CAPTION EXPANSION FIX: Collapse without muting
+            const cap = document.getElementById(`cap-${i}`);
+            if (cap && cap.classList.contains('expanded')) {
+                toggleCaption(i);
+                return; // Stop right here, don't mute/unmute
+            }
+
+            // Normal Mute/Unmute logic
             if (!tapTimer) {
                 tapTimer = setTimeout(() => {
                     isMuted = !isMuted;
@@ -454,7 +575,9 @@
                     clearTimeout(window.volTimeout);
                     window.volTimeout = setTimeout(() => { hint.style.display = "none"; }, 800);
 
-                    document.querySelectorAll('video').forEach(v => v.muted = isMuted);
+                    const currentVid = document.querySelector(`[data-idx="${i}"] video`);
+                    if(currentVid) currentVid.muted = isMuted;
+
                     Object.values(ytPlayers).forEach(p => { 
                         if(p && typeof p.isMuted === 'function') {
                             if (isMuted) p.mute(); else p.unMute(); 
@@ -465,11 +588,11 @@
                 }, 280);
             } else {
                 clearTimeout(tapTimer); tapTimer = null;
-                processLike(i, true);
+                processLike(i, true, event);
             }
         }
 
-        async function processLike(i, force = false) {
+        async function processLike(i, force = false, event = null) {
             if (!LOG) { document.getElementById("action-modal").style.display = "flex"; return; }
             const item = activeFeed[i];
             item.likes = item.likes || [];
@@ -480,16 +603,34 @@
                 document.getElementById(`like-icon-${i}`).src = "https://cdn-icons-png.flaticon.com/512/833/833472.png";
                 document.getElementById(`like-icon-${i}`).style.filter = "invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%)";
                 
-                const hp = document.getElementById(`hp-anim-${i}`);
-                hp.classList.remove("animate-heart"); void hp.offsetWidth; hp.classList.add("animate-heart");
-                
                 const container = document.getElementById(`reel-cont-${item.id}`);
+                
+                if (event) {
+                    const rect = container.getBoundingClientRect();
+                    const x = event.clientX - rect.left;
+                    const y = event.clientY - rect.top;
+                    
+                    const heart = document.createElement("img");
+                    heart.src = "https://cdn-icons-png.flaticon.com/512/833/833472.png";
+                    heart.className = "animate-heart";
+                    heart.style.left = `${x}px`;
+                    heart.style.top = `${y}px`;
+                    container.appendChild(heart);
+                    setTimeout(() => heart.remove(), 800);
+                }
+                
                 for(let k=0; k<8; k++) {
                     const m = document.createElement("img");
                     m.src = "https://cdn-icons-png.flaticon.com/512/833/833472.png";
                     m.className = "mini-heart";
-                    m.style.left = (Math.random() * 40 + 30) + "%";
-                    m.style.top = (Math.random() * 20 + 40) + "%";
+                    if(event) {
+                         const rect = container.getBoundingClientRect();
+                         m.style.left = (event.clientX - rect.left + (Math.random() * 40 - 20)) + "px";
+                         m.style.top = (event.clientY - rect.top + (Math.random() * 40 - 20)) + "px";
+                    } else {
+                         m.style.left = (Math.random() * 40 + 30) + "%";
+                         m.style.top = (Math.random() * 20 + 40) + "%";
+                    }
                     container.appendChild(m);
                     setTimeout(() => m.remove(), 800);
                 }
@@ -502,6 +643,196 @@
             document.getElementById(`like-count-${i}`).innerText = item.likes.length;
             await db.collection("users").doc(item.owner).collection(item.type==='reel'?'reels':'posts').doc(item.id).update({likes: item.likes});
         }
+
+        // ==========================
+        // INSTAGRAM EXACT COMMENTS LOGIC
+        // ==========================
+        function openComments(idx) {
+            if(!LOG) { checkGuestAction(); return; }
+            activeCommentIndex = idx;
+            currentReplyToId = null; // reset state
+            document.getElementById('c-text-input').value = "";
+            document.getElementById('comment-overlay').style.display = 'flex';
+            document.getElementById('c-list-box').innerHTML = '<div class="loader-ring" style="position:relative; margin: 20px auto;"></div>';
+            loadComments(idx);
+        }
+
+        function closeComments(e) {
+            if(e.target.id === 'comment-overlay') {
+                document.getElementById('comment-overlay').style.display = 'none';
+                activeCommentIndex = -1;
+                currentReplyToId = null;
+            }
+        }
+
+        function togglePostBtn() {
+            const input = document.getElementById("c-text-input").value.trim();
+            const btn = document.getElementById("c-post-btn-action");
+            if(input.length > 0) btn.classList.add('active');
+            else btn.classList.remove('active');
+        }
+
+        function prepareReply(cId, username) {
+            currentReplyToId = cId;
+            const input = document.getElementById('c-text-input');
+            input.value = `@${username} `;
+            input.focus();
+            togglePostBtn();
+        }
+
+        // Fired off to Firestore to save comment likes!
+        async function toggleCommentLike(iconEl, cId, rId, rOwner, rType) {
+            const isLiked = iconEl.src.includes('1077035');
+            const path = rType === 'reel' ? 'reels' : 'posts';
+            const ref = db.collection("users").doc(rOwner).collection(path).doc(rId).collection("comments").doc(cId);
+
+            if(isLiked) {
+                iconEl.src = "https://cdn-icons-png.flaticon.com/512/833/833472.png";
+                iconEl.style.filter = "invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%)";
+                await ref.update({ likes: firebase.firestore.FieldValue.arrayUnion(LOG) });
+            } else {
+                iconEl.src = "https://cdn-icons-png.flaticon.com/512/1077/1077035.png";
+                iconEl.style.filter = "invert(0.6)";
+                await ref.update({ likes: firebase.firestore.FieldValue.arrayRemove(LOG) });
+            }
+            
+            // Reload silently to refresh the tiny number below the heart
+            loadComments(activeCommentIndex);
+        }
+
+        function toggleReplies(cId) {
+            const box = document.getElementById(`replies-${cId}`);
+            if (box.style.display === 'none') box.style.display = 'flex';
+            else box.style.display = 'none';
+        }
+
+        async function loadComments(idx) {
+            const item = activeFeed[idx];
+            const list = document.getElementById('c-list-box');
+            try {
+                const path = item.type === 'reel' ? 'reels' : 'posts';
+                const snapshot = await db.collection("users").doc(item.owner).collection(path).doc(item.id).collection("comments").orderBy("timestamp", "asc").get();
+                
+                if(snapshot.empty) {
+                    list.innerHTML = '<p style="text-align:center; color:#8e8e8e; margin-top:30px; font-size: 14px;">No comments yet. Start the conversation.</p>';
+                    return;
+                }
+
+                let allComments = [];
+                snapshot.forEach(doc => allComments.push({id: doc.id, ...doc.data()}));
+                
+                let mainComments = allComments.filter(c => !c.replyTo);
+                let repliesMap = {};
+                allComments.filter(c => c.replyTo).forEach(c => {
+                    if(!repliesMap[c.replyTo]) repliesMap[c.replyTo] = [];
+                    repliesMap[c.replyTo].push(c);
+                });
+
+                let html = '';
+                
+                function generateCommentHtml(c, isReply = false) {
+                    const timeAgo = c.timestamp ? calculateTimeAgo(c.timestamp.toDate()) : 'Just now';
+                    const userMatch = allUsers.find(u => u.id === c.user);
+                    const cPfp = userMatch ? (userMatch.profileImg || DIMG) : DIMG;
+                    const pfpSize = isReply ? "28px" : "36px";
+                    
+                    const isLiked = c.likes && c.likes.includes(LOG);
+                    const heartSrc = isLiked ? "https://cdn-icons-png.flaticon.com/512/833/833472.png" : "https://cdn-icons-png.flaticon.com/512/1077/1077035.png";
+                    const heartFilter = isLiked ? "invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%)" : "invert(0.6)";
+                    
+                    return `
+                    <div class="c-item" style="${isReply ? 'margin-bottom: 5px;' : ''}">
+                        <img src="${cPfp}" class="c-item-pfp" style="width:${pfpSize}; height:${pfpSize};">
+                        <div class="c-content">
+                            <div class="c-user-time"><span class="c-username">${c.user}</span> <span class="c-time">${timeAgo}</span></div>
+                            <div class="c-text">${c.text}</div>
+                            <div class="c-actions">
+                                <span class="c-reply-btn" onclick="prepareReply('${isReply ? c.replyTo : c.id}', '${c.user}')">Reply</span>
+                            </div>
+                        </div>
+                        <div style="display:flex; flex-direction:column; align-items:center; gap:4px; min-width:24px;">
+                            <img src="${heartSrc}" class="c-like-icon" style="filter: ${heartFilter};" onclick="toggleCommentLike(this, '${c.id}', '${item.id}', '${item.owner}', '${item.type}')">
+                            ${c.likes && c.likes.length > 0 ? `<span style="font-size:11px; color:#a8a8a8; font-weight:600;">${c.likes.length}</span>` : ''}
+                        </div>
+                    </div>`;
+                }
+
+                mainComments.forEach(c => {
+                    html += generateCommentHtml(c, false);
+                    if(repliesMap[c.id] && repliesMap[c.id].length > 0) {
+                        html += `<div style="margin-left: 48px;">
+                                    <div class="c-view-replies" onclick="toggleReplies('${c.id}')">View replies (${repliesMap[c.id].length})</div>
+                                    <div class="c-replies-container" id="replies-${c.id}" style="display:none;">`;
+                        repliesMap[c.id].forEach(rep => { html += generateCommentHtml(rep, true); });
+                        html += `   </div>
+                                 </div>`;
+                    }
+                });
+                
+                list.innerHTML = html;
+            } catch(e) {
+                console.error("Error loading comments", e);
+                list.innerHTML = '<p style="text-align:center; color:#8e8e8e; margin-top:30px;">Error loading comments</p>';
+            }
+        }
+
+        async function submitComment() {
+            if(activeCommentIndex === -1) return;
+            const input = document.getElementById("c-text-input");
+            const text = input.value.trim();
+            if(!text) return;
+            
+            // Cancel reply status if user backspaced out the "@username" tag manually
+            if(currentReplyToId && !text.startsWith('@')) {
+                currentReplyToId = null;
+            }
+            
+            const btn = document.getElementById("c-post-btn-action");
+            btn.innerText = "...";
+            
+            const item = activeFeed[activeCommentIndex];
+            const path = item.type === 'reel' ? 'reels' : 'posts';
+            const commentRef = db.collection("users").doc(item.owner).collection(path).doc(item.id).collection("comments");
+            
+            try {
+                const commentData = { user: LOG, text: text, timestamp: firebase.firestore.FieldValue.serverTimestamp() };
+                if (currentReplyToId) commentData.replyTo = currentReplyToId;
+
+                await commentRef.add(commentData);
+                
+                const newCount = (item.commentCount || 0) + 1;
+                item.commentCount = newCount;
+                await db.collection("users").doc(item.owner).collection(path).doc(item.id).update({ commentCount: newCount });
+                
+                const currentContainer = document.getElementById(`reel-cont-${item.id}`);
+                if(currentContainer) {
+                    const countSpan = currentContainer.querySelectorAll('.r-act span'); 
+                    if(countSpan) countSpan.innerText = newCount;
+                }
+                
+                input.value = "";
+                currentReplyToId = null; // reset!
+                togglePostBtn();
+                loadComments(activeCommentIndex);
+            } catch(e) { console.error("Post comment error", e); showToast("Failed to post comment"); }
+            finally { btn.innerText = "Post"; }
+        }
+
+        function calculateTimeAgo(date) {
+            const seconds = Math.floor((new Date() - date) / 1000);
+            let interval = seconds / 31536000;
+            if (interval > 1) return Math.floor(interval) + "y";
+            interval = seconds / 2592000;
+            if (interval > 1) return Math.floor(interval) + "mo";
+            interval = seconds / 86400;
+            if (interval > 1) return Math.floor(interval) + "d";
+            interval = seconds / 3600;
+            if (interval > 1) return Math.floor(interval) + "h";
+            interval = seconds / 60;
+            if (interval > 1) return Math.floor(interval) + "m";
+            return Math.floor(seconds) + "s";
+        }
+        // ==========================
 
         function copyShareLink(i) {
             const item = activeFeed[i];
@@ -535,7 +866,6 @@
             stopMedia();
             document.getElementById("reel-player-view").style.display = "none";
             
-            // This cleanly drops the user back to the random feed if they clicked a shared link
             if(window.location.search) {
                 window.history.replaceState({}, document.title, window.location.pathname);
             }
@@ -551,3 +881,4 @@
     </script>
 </body>
 </html>
+
