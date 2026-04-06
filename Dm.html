@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+    <title>Auragram | Direct Messages</title>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-tap-highlight-color:transparent}
+        /* Fix for browser address bar hiding bottom */
+        body{background:#0b0a10;color:#fff;overflow-x:hidden;position:relative;min-height:100dvh;}
+        ::-webkit-scrollbar{display:none}
+        
+        @media (min-width: 500px) {
+            body { max-width: 450px; border-left: 1px solid #262626; border-right: 1px solid #262626; margin: 0 auto; }
+            nav, .b-bar, .full-view { width: 450px !important; left: calc(50% - 225px) !important; }
+        }
+
+        nav{height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 15px;position:sticky;top:0;background:#0b0a10;z-index:1000;}
+        .nav-c{display:flex;align-items:center;gap:5px;position:absolute;left:50%;transform:translateX(-50%); font-size:16px; font-weight:700;}
+        .nav-icon{width:24px;filter:invert(1);cursor:pointer;}
+        
+        .u-row{display:flex;align-items:center;padding:10px 0;cursor:pointer;transition:background 0.2s; justify-content:space-between;}
+        .u-row:active{opacity: 0.7;}
+        .u-row img.pfp{width:56px;height:56px;border-radius:50%;object-fit:cover;margin-right:12px;background:#121212; flex-shrink:0;}
+        .u-meta{flex:1; overflow:hidden;}
+        .u-meta b{font-size:14.5px;display:block;}
+        .u-meta span{font-size:13px;color:#a8a8a8; display:flex; margin-top:2px; white-space:nowrap;}
+        .msg-preview-text {overflow:hidden; text-overflow:ellipsis; max-width: 65%;}
+        
+        .b-blue-indigo{background:#4b6afa;color:#fff;border:none;padding:7px 18px;border-radius:8px;font-weight:600;font-size:13.5px;cursor:pointer;}
+
+        .notes-scroll{display:flex; gap:18px; overflow-x:auto; padding:10px 0 20px 0;}
+        .note-item{text-align:center; width:72px; cursor:pointer; flex-shrink: 0;}
+        .note-pfp-container{position:relative; margin-bottom:5px; width:72px; height:72px;}
+        .note-pfp{width:100%; height:100%; border-radius:50%; object-fit:cover; opacity:0.8;}
+        .note-bubble{position:absolute; top:-15px; left:50%; transform:translateX(-50%); background:#262626; padding:8px 12px; border-radius:16px; font-size:11.5px; color:#fff; white-space:nowrap; max-width: 90px; overflow:hidden; text-overflow:ellipsis;}
+        .add-note-badge { position:absolute; bottom:0; right:0; background:#262626; color:#fff; border-radius:50%; width:22px; height:22px; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:bold; border:2px solid #0b0a10;}
+        
+        #create-note-view { background: #0b0a10; display: flex; flex-direction: column; justify-content: space-between; z-index: 9000; }
+        .note-edit-area { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative; margin-top:-50px; }
+        .note-input-bubble { background:#262626; color:#fff; border:none; outline:none; border-radius:24px; padding:15px 20px; font-size:16px; text-align:center; width:160px; height:70px; resize:none; margin-bottom:15px; font-family:inherit;}
+        
+        .search-bar {background:#262626; border-radius:20px; display:flex; align-items:center; padding:10px 15px; margin-bottom:20px;}
+        .search-bar input {background:transparent; border:none; color:#fff; outline:none; font-size:15px; flex:1;}
+        .search-bar img {width:16px; filter:invert(0.6); margin-right:10px;}
+
+        /* Use 100dvh for precise mobile browser height matching */
+        .full-view { position:fixed; top:0; left:0; width:100vw; height:100dvh; background:#000; z-index:7500; flex-direction:column; }
+        .e-nav{height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 15px;background:#000;}
+        
+        .msg-body { flex:1; overflow-y:auto; overflow-x:hidden; padding:0 15px 15px 15px; display:flex; flex-direction:column; gap:4px; position:relative; }
+        .chat-profile-card { text-align: center; padding: 40px 15px 30px; display: flex; flex-direction: column; align-items: center; }
+        .chat-profile-card img { width: 110px; height: 110px; border-radius: 50%; object-fit: cover; margin-bottom: 15px; }
+        .chat-profile-card h2 { font-size: 20px; font-weight: 700; margin-bottom: 2px; }
+        .chat-profile-card .uname { font-size: 15px; font-weight: 600; display: block; margin-bottom: 6px; }
+        .chat-profile-card .stats { font-size: 13.5px; color: #a8a8a8; display: block; margin-bottom: 5px; }
+        .chat-profile-card .rel { font-size: 13.5px; color: #a8a8a8; display: block; margin-bottom: 18px; }
+        .chat-profile-card button { background: #262626; color: #fff; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; }
+
+        .time-divider { text-align:center; font-size:11.5px; color:#888; margin: 18px 0 14px; font-weight:500; }
+
+        .msg-row-wrapper { position: relative; width: 100%; margin-bottom: 2px; }
+        .msg-row-inner { width: 100%; display: flex; align-items: flex-end; transition: transform 0.2s ease-out; }
+        
+        .msg-bubble { max-width:75%; padding:10px 15px; font-size:15px; line-height:1.4; word-wrap:break-word; border-radius: 22px; position:relative; }
+        .msg-sent { background:#7b30f5; color:#fff; border-bottom-right-radius:4px; margin-left:auto; }
+        .msg-recv { background:#262626; color:#fff; border-bottom-left-radius:4px; }
+        
+        .msg-img-bubble { background:transparent !important; padding:0 !important; border-radius:18px !important; overflow:hidden;}
+        .msg-img-bubble img { max-width:240px; border-radius:18px; display:block; object-fit:cover; cursor:pointer;}
+        
+        .msg-recv-pfp { width:28px; height:28px; border-radius:50%; object-fit:cover; margin-right:8px; flex-shrink:0; align-self:flex-end; }
+        .msg-exact-time { position: absolute; right: -50px; top: 50%; transform: translateY(-50%); font-size: 11px; color: #888; opacity: 0; transition: opacity 0.2s; white-space:nowrap; }
+
+        .swipe-active .msg-row-inner { transform: translateX(-60px); }
+        .swipe-active .msg-exact-time { opacity: 1; right: 10px; }
+
+        .msg-audio-bubble { width: 270px; padding: 10px 14px !important; display: flex; flex-direction: column; background: #6c40ff !important; border-radius: 22px; }
+        .msg-recv.msg-audio-bubble { background: #262626 !important; }
+        .audio-main-row { display: flex; align-items: center; gap: 8px; width: 100%; }
+        .audio-play-btn { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;}
+        .audio-waveform-track { flex: 1; height: 26px; display: flex; align-items: center; cursor: pointer; justify-content: space-between; padding: 0 4px; }
+        .wave-bar { width: 2.5px; border-radius: 1.5px; background: rgba(255,255,255,0.4); transition: background 0.1s; }
+        .audio-right-controls { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; flex-shrink: 0; width:30px; }
+        .audio-time-text { font-size: 11px; font-weight: 500; color: #fff; }
+        .audio-speed-btn { font-size: 10px; font-weight: 800; cursor: pointer; color: #fff; background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 10px;}
+        .audio-transcription { font-size: 13px; color: #fff; margin-top: 8px; opacity: 0.85; font-weight: 500; margin-left: 42px;}
+
+        /* --- EXACT INSTA INPUT PILL STYLES --- */
+        .msg-input-area { padding:10px 15px 15px; background:#000; position:relative; }
+        .msg-input-pill { background: #262626; border-radius: 30px; display: flex; align-items: center; padding: 4px; gap: 10px; width: 100%; height: 48px; }
+        
+        .pill-left-action { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; }
+        #pill-left-cam { background: #4b6afa; }
+        #pill-left-search { background: #fff; display: none; }
+        
+        .msg-input-pill input { flex: 1; background: transparent; border: none; color: #fff; outline: none; font-size: 15.5px; padding: 0 5px; }
+        .msg-input-pill input::placeholder { color:#888; }
+        
+        .pill-right-actions { display: flex; align-items: center; gap: 14px; padding-right: 10px; }
+        .pill-right-actions img { width: 22px; filter: invert(0.8); cursor: pointer; }
+        
+        #pill-right-send { display: none; padding-right: 0; }
+        .send-btn-circle { width: 40px; height: 40px; border-radius: 50%; background: #7b30f5; display: flex; align-items: center; justify-content: center; cursor: pointer; margin-right: 4px; }
+
+        /* Recording State inside Pill */
+        #msg-input-recording { display:none; flex-direction:column; width:100%; gap:10px; }
+        .rec-bubble { background: #6c40ff; border-radius: 24px; display: flex; align-items: center; padding: 0 15px; gap: 15px; width: 100%; height: 48px; }
+        .rec-stop-btn { width: 14px; height: 14px; background: #fff; border-radius: 2px; cursor: pointer; }
+        .rec-wave-dots { flex: 1; display: flex; align-items: center; gap: 6px; overflow: hidden; justify-content:center; }
+        .rec-dot { width: 4px; height: 4px; background: rgba(255,255,255,0.4); border-radius: 50%; }
+        .rec-dot.active { background: #fff; animation: pop 1s infinite alternate; }
+        @keyframes pop { 0% {transform: scale(1);} 100% {transform: scale(1.5);} }
+        .rec-timer { color: #fff; font-size: 14px; font-weight: 500; font-variant-numeric: tabular-nums; }
+        .rec-bot-row { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 0 5px; }
+        .rec-trash { cursor: pointer; }
+        .rec-center { display: flex; align-items: center; gap: 8px; color: #fff; font-size: 14px; font-weight: 600; }
+        .rec-send { width: 36px; height: 36px; border-radius: 50%; background: #4b6afa; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+
+        .b-bar{position:fixed;bottom:0;width:100%;height:46px;background:#0b0a10;border-top:.1px solid #262626;display:flex;justify-content:space-around;align-items:center;z-index:1000}
+        .b-bar img{width:24px;filter:invert(1);cursor:pointer}
+        .b-pfp{width:26px;height:26px;border-radius:50%;object-fit:cover;cursor:pointer;border:1.5px solid transparent;}
+        .cam-icon-right { width:26px; height:26px; object-fit:contain; filter:invert(0.6); cursor:pointer; flex-shrink:0; margin-left:10px;}
+
+        #img-viewer-ov { display:none; position:fixed; top:0; left:0; width:100vw; height:100dvh; background:#000; z-index:9999; flex-direction:column; }
+        .iv-top { padding:20px; display:flex; justify-content:space-between; align-items:center; }
+        .iv-bot { padding:20px; display:flex; justify-content:flex-end; align-items:center; }
+        .iv-img-wrap { flex:1; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+        .iv-img-wrap img { max-width:100%; max-height:100%; object-fit:contain; }
+        #loading-toast { position:fixed; top:50px; left:50%; transform:translateX(-50%); background:#333; color:#fff; padding:8px 16px; border-radius:20px; font-size:12px; z-index:9999; display:none; }
+    </style>
+</head>
+<body>
+
+    <div id="loading-toast">Sending...</div>
+
+    <input type="file" accept="image/*" capture="environment" id="quick-cam-input" style="display:none;" onchange="handleQuickCam(event)">
+    <input type="file" accept="image/*" id="chat-gallery-input" style="display:none;" onchange="handleChatGalleryUpload(event)">
+
+    <div id="main-dm-view">
+        <nav>
+            <img src="https://cdn-icons-png.flaticon.com/512/271/271218.png" style="width:20px; filter:invert(1); cursor:pointer;" onclick="goBack()">
+            <div class="nav-c">
+                <b id="h-uid">Loading...</b> 
+                <span style="font-size: 10px; margin-left:3px; color:#ed4956;">▼</span>
+            </div>
+            <img src="https://cdn-icons-png.flaticon.com/512/1159/1159633.png" class="nav-icon" onclick="openNewMessageMenu()">
+        </nav>
+
+        <div style="padding: 10px 15px 70px 15px;">
+            <div class="search-bar">
+                <img src="https://cdn-icons-png.flaticon.com/512/54/54481.png">
+                <input type="text" placeholder="Search or ask Meta AI">
+            </div>
+
+            <div class="notes-scroll" id="notes-container"></div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px; margin-bottom: 12px;">
+                <b style="font-size: 16px;">Messages</b>
+                <span style="color: #4b6afa; font-weight: 600; font-size: 15px; cursor:pointer;">Requests</span>
+            </div>
+            
+            <div id="active-chats-list">
+                <p style="color:#a8a8a8; font-size:13px; text-align:center; padding: 20px 0;">Loading chats...</p>
+            </div>
+            <p id="empty-state" style="color:#a8a8a8; font-size:14.5px; line-height:1.4; display:none; margin-bottom:20px;">
+                Chats will appear here after you send or receive a message. <span style="color:#4b6afa; font-weight:600; cursor:pointer;" onclick="openNewMessageMenu()">Get started</span>
+            </p>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin: 30px 0 15px 0;">
+                <b style="font-size: 15.5px;">Accounts to follow</b>
+                <span style="color: #4b6afa; font-size: 14px; font-weight: 600; cursor:pointer;">See all</span>
+            </div>
+            <div id="suggestion-list"></div>
+        </div>
+    </div>
+
+    <div id="img-viewer-ov">
+        <div class="iv-top">
+            <svg aria-label="Close" fill="none" height="30" viewBox="0 0 24 24" width="30" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="cursor:pointer;" onclick="closeImageViewer()">
+                <line x1="4" y1="4" x2="20" y2="20"></line>
+                <line x1="20" y1="4" x2="4" y2="20"></line>
+            </svg>
+        </div>
+        <div class="iv-img-wrap">
+            <img id="iv-main-img" src="">
+        </div>
+        <div class="iv-bot">
+            <svg aria-label="Download" fill="white" height="28" viewBox="0 0 24 24" width="28" style="cursor:pointer;" onclick="downloadViewerImage()">
+                <path d="M12 16L7 11l1.4-1.4 2.6 2.6V4h2v8.2l2.6-2.6L17 11l-5 5zm-6 4v-2h12v2H6z"/>
+            </svg>
+        </div>
+    </div>
+
+    <div id="create-note-view" class="full-view" style="display: none;">
+        <div style="position: absolute; top: 22px; left: 20px; z-index: 10000;">
+            <svg aria-label="Close" fill="none" height="28" viewBox="0 0 24 24" width="28" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="cursor:pointer;" onclick="closeCreateNote()">
+                <line x1="4" y1="4" x2="20" y2="20"></line>
+                <line x1="20" y1="4" x2="4" y2="20"></line>
+            </svg>
+        </div>
+        <div class="note-edit-area">
+            <textarea id="note-text-input" class="note-input-bubble" placeholder="Share a thought..." maxlength="60"></textarea>
+            <img id="cn-pfp" src="" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover;">
+            <div style="display:flex; gap:15px; margin-top:25px;">
+                <div style="background:#262626; border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center;">
+                    <img src="https://cdn-icons-png.flaticon.com/512/3208/3208754.png" style="width:16px; filter:invert(30%) sepia(100%) saturate(300%) hue-rotate(300deg);">
+                </div>
+                <div style="background:#262626; border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center;">
+                    <img src="https://cdn-icons-png.flaticon.com/512/2838/2838912.png" style="width:16px; filter:invert(50%) sepia(80%) saturate(200%) hue-rotate(250deg);">
+                </div>
+            </div>
+        </div>
+        <div style="padding: 15px 20px 30px; display: flex; justify-content: space-between; align-items: center; z-index: 9999;">
+            <span style="font-size: 14.5px; font-weight: 600; cursor:pointer;" onclick="openAudienceSheet()">👥 Share with friends &nbsp;></span>
+            <button class="b-blue-indigo" style="padding: 10px 24px; border-radius: 20px;" onclick="saveNote()">Share</button>
+        </div>
+    </div>
+
+    <div id="audience-sheet-ov" class="full-view" style="background:rgba(0,0,0,0.7); z-index:9500; display:none; justify-content:flex-end;" onclick="closeAudienceSheet()">
+        <div style="background:#262626; border-radius:16px 16px 0 0; padding:20px; text-align:center;" onclick="event.stopPropagation()">
+            <div style="width:40px; height:4px; background:#555; border-radius:2px; margin:0 auto 20px;"></div>
+            <b style="font-size:16px; display:block; margin-bottom:20px;">Share with</b>
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:15px 0; border-top:.1px solid #363636; cursor:pointer;">
+                <div style="text-align:left;">
+                    <b style="font-size:15px; display:block;">Followers you follow back</b>
+                    <span style="font-size:13px; color:#a8a8a8;">People who follow you and you follow back.</span>
+                </div>
+                <div style="width:22px; height:22px; border-radius:50%; border:6px solid #4b6afa; background:#fff;"></div>
+            </div>
+            <button class="b-blue-indigo" style="width:100%; margin-top:15px; padding:14px; border-radius:10px;" onclick="closeAudienceSheet()">Done</button>
+        </div>
+    </div>
+
+    <div id="new-msg-overlay" class="full-view" style="display: none;">
+        <div class="e-nav" style="border-bottom:none;">
+            <div style="display:flex; align-items:center;">
+                <img src="https://cdn-icons-png.flaticon.com/512/271/271218.png" style="width:20px; filter:invert(1); cursor:pointer;" onclick="closeNewMessageMenu()">
+                <b style="font-size: 18px; margin-left:25px;">New message</b>
+            </div>
+        </div>
+        <div style="padding: 10px 15px; display: flex; align-items: center; border-bottom: 0.1px solid #262626;">
+            <span style="font-weight: 600; margin-right: 15px; color:#a8a8a8;">To:</span>
+            <input type="text" id="search-users-input" placeholder="Search" style="background:transparent; border:none; color:#fff; outline:none; flex:1; font-size:15px;">
+        </div>
+        <div style="padding: 15px; overflow-y:auto; flex:1;">
+            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px; cursor:pointer;">
+                <div style="width: 44px; height: 44px; border-radius: 50%; border: 1px solid #444; display: flex; align-items: center; justify-content: center;">
+                    <img src="https://cdn-icons-png.flaticon.com/512/681/681494.png" style="width: 20px; filter: invert(1);">
+                </div>
+                <b style="font-size:15px;">Group chat</b>
+            </div>
+            <b style="font-size: 14px; color:#a8a8a8; display:block; margin-bottom:10px;">Suggested</b>
+            <div id="follower-suggestion-list"></div>
+        </div>
+    </div>
+
+    <div id="msg-view" class="full-view" style="z-index: 8000; display: none;">
+        <div class="e-nav">
+            <div style="display:flex; align-items:center;">
+                <img src="https://cdn-icons-png.flaticon.com/512/271/271218.png" style="width:22px; filter:invert(1); cursor:pointer;" onclick="closeMsg()">
+                <div style="display:flex; align-items:center; margin-left:20px; cursor:pointer;" onclick="location.href='profile.html?u='+activeChatUser">
+                    <img id="chat-pfp" src="" style="width:34px; height:34px; border-radius:50%; object-fit:cover; margin-right:12px;">
+                    <div>
+                        <b id="chat-uid" style="font-size:16px; display:block;"></b>
+                        <span style="font-size:12px; color:#a8a8a8;">Auragram</span>
+                    </div>
+                </div>
+            </div>
+            <div style="display:flex; gap:20px; align-items:center;">
+                <img src="https://cdn-icons-png.flaticon.com/512/159/159836.png" style="width:22px; filter:invert(1); cursor:pointer;">
+                <img src="https://cdn-icons-png.flaticon.com/512/3014/3014736.png" style="width:24px; filter:invert(1); cursor:pointer;">
+            </div>
+        </div>
+        
+        <div class="msg-body" id="msg-list"></div>
+        
+        <div class="msg-input-area">
+            
+            <div class="msg-input-pill" id="msg-input-default">
+                
+                <div class="pill-left-action" id="pill-left-cam" onclick="document.getElementById('quick-cam-input').click()">
+                    <img src="cam.png" style="width:22px; filter:invert(1);">
+                </div>
+                <div class="pill-left-action" id="pill-left-search" style="display:none; background:#fff;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7b30f5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                </div>
+
+                <input type="text" id="msg-input" placeholder="Message..." oninput="checkMsgInput()" onkeydown="handleEnter(event)">
+                
+                <div class="pill-right-actions" id="pill-right-icons">
+                    <img src="https://cdn-icons-png.flaticon.com/512/709/709682.png" onclick="startAudioRecording()">
+                    <img src="https://cdn-icons-png.flaticon.com/512/3342/3342137.png" onclick="document.getElementById('chat-gallery-input').click()">
+                    <img src="https://cdn-icons-png.flaticon.com/512/2660/2660086.png"> 
+                    <img src="https://cdn-icons-png.flaticon.com/512/1828/1828817.png"> 
+                </div>
+                <div class="pill-right-actions" id="pill-right-send" style="display:none;" onclick="sendMsg()">
+                    <div class="send-btn-circle">
+                        <svg aria-label="Send" fill="white" height="16" viewBox="0 0 24 24" width="16"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
+                    </div>
+                </div>
+
+            </div>
+
+            <div id="msg-input-recording">
+                <div class="rec-bubble">
+                    <div class="rec-stop-btn" onclick="cancelAudioRecording()"></div>
+                    <div class="rec-wave-dots">
+                        <div class="rec-dot active"></div><div class="rec-dot active" style="animation-delay:0.2s"></div><div class="rec-dot active" style="animation-delay:0.4s"></div><div class="rec-dot"></div><div class="rec-dot"></div><div class="rec-dot"></div><div class="rec-dot"></div><div class="rec-dot"></div><div class="rec-dot"></div><div class="rec-dot"></div>
+                    </div>
+                    <span id="recording-timer" class="rec-timer">00:00</span>
+                </div>
+                <div class="rec-bot-row">
+                    <div class="rec-trash" onclick="cancelAudioRecording()">
+                        <svg aria-label="Delete" fill="white" height="24" viewBox="0 0 24 24" width="24"><path d="M19 6h-4V5c0-1.1-.9-2-2-2h-2c-1.1 0-2 .9-2 2v1H5c-.6 0-1 .4-1 1s.4 1 1 1h14c.6 0 1-.4 1-1s-.4-1-1-1zm-8-1h2v1h-2V5zm6 15c0 1.1-.9 2-2 2H9c-1.1 0-2-.9-2-2V8h10v12z"/></svg>
+                    </div>
+                    <div class="rec-center">
+                        <svg fill="white" height="16" viewBox="0 0 24 24" width="16"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                        <span>New</span>
+                    </div>
+                    <div class="rec-send" onclick="sendAudioRecording()">
+                        <svg aria-label="Send" fill="white" height="18" viewBox="0 0 24 24" width="18"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="b-bar" id="bottom-bar"></div>
+
+    <script>
+        const CLOUD_NAME = "ditmmz5hk"; 
+        const UPLOAD_PRESET = "my_video_preset";
+
+        const config = {
+            apiKey:"AIzaSyAHjilh7jAlS0e5qDKxbDZq3nbe3pFe4nE",
+            authDomain:"instagram-e8c7a.firebaseapp.com",
+            projectId:"instagram-e8c7a",
+            storageBucket:"instagram-e8c7a.firebasestorage.app",
+            messagingSenderId:"270990839800",
+            appId:"1:270990839800:web:7f56ea2ea8d941219fd00d"
+        };
+        firebase.initializeApp(config);
+        const db = firebase.firestore();
+        const DIMG = "https://www.w3schools.com/howto/img_avatar.png";
+        
+        const LOG = localStorage.getItem("loggedUser");
+        let activeChatUser = null;
+        let activeChatPfp = null;
+        let msgUnsubscribe = null;
+        let quickCamTarget = null; 
+
+        let mediaRecorder;
+        let audioChunks = [];
+        let recordTimerInterval;
+        let recordSeconds = 0;
+
+        let swipeStartX = 0;
+        let msgList = document.getElementById('msg-list');
+
+        msgList.addEventListener('touchstart', e => { swipeStartX = e.touches[0].clientX; }, {passive: true});
+        msgList.addEventListener('touchmove', e => {
+            if(swipeStartX - e.touches[0].clientX > 30) {
+                msgList.classList.add('swipe-active');
+            }
+        }, {passive: true});
+        msgList.addEventListener('touchend', e => {
+            msgList.classList.remove('swipe-active');
+        });
+
+        async function init() {
+            if (!LOG) return location.href = "index.html";
+            document.getElementById("h-uid").innerText = LOG;
+            setupBottomBar();
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const chatTarget = urlParams.get('chat');
+            
+            await loadNotes();
+            await loadActiveChatsList(); 
+            await loadMutualSuggestions();
+
+            if (chatTarget) {
+                const pfpQuery = await db.collection("users").doc(chatTarget).get();
+                openMsg(chatTarget, pfpQuery.exists ? pfpQuery.data().profileImg : DIMG);
+            }
+        }
+
+        function setupBottomBar() {
+            document.getElementById("bottom-bar").innerHTML = `
+                <img src="https://cdn-icons-png.flaticon.com/512/1946/1946436.png" onclick="location.href='profile.html?u=${LOG}'"> 
+                <img src="https://cdn-icons-png.flaticon.com/512/122/122635.png">
+                <img src="https://cdn-icons-png.flaticon.com/512/3161/3161837.png">
+                <img src="https://cdn-icons-png.flaticon.com/512/1380/1380338.png" style="filter: invert(60%) sepia(100%) saturate(300%) hue-rotate(180deg);">
+                <img id="b-pfp-img" src="${DIMG}" class="b-pfp" onclick="location.href='profile.html?u=${LOG}'">
+            `;
+            db.collection("users").doc(LOG).get().then(doc => {
+                if(doc.exists && doc.data().profileImg) {
+                    document.getElementById("b-pfp-img").src = doc.data().profileImg;
+                    document.getElementById("cn-pfp").src = doc.data().profileImg;
+                }
+            });
+        }
+
+        function goBack() { window.history.back(); }
+        function showLoading(msg) { document.getElementById('loading-toast').innerText = msg; document.getElementById('loading-toast').style.display = 'block'; }
+        function hideLoading() { document.getElementById('loading-toast').style.display = 'none'; }
+
+        async function loadNotes() {
+            const container = document.getElementById("notes-container");
+            container.innerHTML = "";
+            const myDoc = await db.collection("users").doc(LOG).get();
+            const myData = myDoc.data();
+            const myPfp = myData.profileImg || DIMG;
+            const myNoteText = myData.note?.text || null;
+
+            container.innerHTML += `
+                <div class="note-item" onclick="openCreateNote('${myNoteText ? myNoteText.replace(/'/g, "\\'") : ''}')">
+                    <div class="note-pfp-container">
+                        <img src="${myPfp}" class="note-pfp" style="${myNoteText ? 'opacity:1;' : 'opacity:0.6;'}">
+                        ${myNoteText ? `<div class="note-bubble">${myNoteText}</div>` : `<div class="note-bubble">Note...</div><div class="add-note-badge">+</div>`}
+                    </div>
+                    <span style="font-size:12px; color:#888;">Your note</span>
+                </div>
+            `;
+
+            const following = myData.followingList || [];
+            const followers = myData.followerList || [];
+            const mutuals = following.filter(uid => followers.includes(uid) && uid !== LOG);
+
+            for(let uid of mutuals) {
+                const uDoc = await db.collection("users").doc(uid).get();
+                const uData = uDoc.data();
+                if(uData.note && uData.note.text) {
+                    container.innerHTML += `
+                        <div class="note-item" onclick="openMsg('${uid}', '${uData.profileImg || DIMG}')">
+                            <div class="note-pfp-container">
+                                <img src="${uData.profileImg || DIMG}" class="note-pfp" style="opacity:1;">
+                                <div class="note-bubble">${uData.note.text}</div>
+                            </div>
+                            <span style="font-size:12px;">${uid.length > 9 ? uid.substring(0,8)+'...' : uid}</span>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        function openCreateNote(existingText) {
+            document.getElementById("create-note-view").style.display = "flex";
+            const input = document.getElementById("note-text-input");
+            input.value = existingText || "";
+            setTimeout(() => input.focus(), 100);
+        }
+        function closeCreateNote() { document.getElementById("create-note-view").style.display = "none"; }
+        function openAudienceSheet() { document.getElementById("audience-sheet-ov").style.display = "flex"; }
+        function closeAudienceSheet() { document.getElementById("audience-sheet-ov").style.display = "none"; }
+
+        async function saveNote() {
+            const text = document.getElementById("note-text-input").value.trim();
+            await db.collection("users").doc(LOG).update({ note: { text: text, timestamp: firebase.firestore.FieldValue.serverTimestamp() } });
+            closeCreateNote();
+            loadNotes(); 
+        }
+
+        function getChatId(u1, u2) { return u1 < u2 ? u1 + "_" + u2 : u2 + "_" + u1; }
+
+        async function loadActiveChatsList() {
+            const list = document.getElementById("active-chats-list");
+            const emptyState = document.getElementById("empty-state");
+            const myDoc = await db.collection("users").doc(LOG).get();
+            const following = myDoc.data().followingList || [];
+            
+            const fetchPromises = following.map(async (uid) => {
+                if(uid === LOG) return null;
+                const chatId = getChatId(LOG, uid);
+                const chatSnap = await db.collection("chats").doc(chatId).collection("messages").orderBy("timestamp", "desc").limit(1).get();
+                if (!chatSnap.empty) {
+                    const lastMsg = chatSnap.docs[0].data();
+                    const uDoc = await db.collection("users").doc(uid).get();
+                    return { uid: uid, uData: uDoc.data(), lastMsg: lastMsg, time: lastMsg.timestamp ? lastMsg.timestamp.toMillis() : 0 };
+                }
+                return null;
+            });
+
+            let chatData = await Promise.all(fetchPromises);
+            chatData = chatData.filter(item => item !== null);
+            chatData.sort((a, b) => b.time - a.time);
+
+            list.innerHTML = "";
+            if (chatData.length === 0) {
+                emptyState.style.display = "block";
+            } else {
+                emptyState.style.display = "none";
+                chatData.forEach(chat => {
+                    const { uid, uData, lastMsg, time } = chat;
+                    let timeStr = "";
+                    if (time) {
+                        const diffSecs = Math.floor((Date.now() - time) / 1000);
+                        if (diffSecs < 60) timeStr = "now";
+                        else if (diffSecs < 3600) timeStr = Math.floor(diffSecs/60) + "m";
+                        else if (diffSecs < 86400) timeStr = Math.floor(diffSecs/3600) + "h";
+                        else timeStr = Math.floor(diffSecs/86400) + "d";
+                    }
+
+                    let rawText = lastMsg.image ? "Sent a photo" : (lastMsg.audioUrl ? "Sent a voice message" : lastMsg.text);
+                    let displayMsg = lastMsg.sender === LOG ? `You: ${rawText}` : rawText;
+                    const noteHtml = (uData.note && uData.note.text) ? `<div style="position:absolute; top:-5px; left:10px; background:#262626; padding:2px 8px; border-radius:10px; font-size:10px; border:2px solid #000; color:#fff; white-space:nowrap; max-width:60px; overflow:hidden; text-overflow:ellipsis; pointer-events:none; z-index:2;">${uData.note.text}</div>` : '';
+
+                    list.innerHTML += `
+                        <div class="u-row">
+                            <div style="display:flex; align-items:center; flex:1; overflow:hidden;" onclick="openMsg('${uid}', '${uData.profileImg || DIMG}')">
+                                <div style="position:relative;">
+                                    <img src="${uData.profileImg || DIMG}" class="pfp">
+                                    ${noteHtml}
+                                </div>
+                                <div class="u-meta">
+                                    <b>${uid}</b>
+                                    <span>
+                                        <span class="msg-preview-text">${displayMsg}</span>
+                                        ${timeStr ? `&nbsp;· ${timeStr}` : ''}
+                                    </span>
+                                </div>
+                            </div>
+                            <img src="cam.png" class="cam-icon-right" onclick="triggerQuickCam('${uid}')">
+                        </div>
+                    `;
+                });
+            }
+        }
+
+        // === AUDIO RECORDING LOGIC FIX === //
+        async function startAudioRecording() {
+            try {
+                // FIXED constraints to prevent noise cancellation cuts
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } 
+                });
+                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.start();
+                audioChunks = [];
+                mediaRecorder.addEventListener("dataavailable", event => { audioChunks.push(event.data); });
+                
+                document.getElementById('msg-input-default').style.display = 'none';
+                document.getElementById('msg-input-recording').style.display = 'flex';
+                recordSeconds = 0;
+                document.getElementById('recording-timer').innerText = "00:00";
+                
+                recordTimerInterval = setInterval(() => {
+                    recordSeconds++;
+                    let m = Math.floor(recordSeconds / 60).toString().padStart(2, '0');
+                    let s = (recordSeconds % 60).toString().padStart(2, '0');
+                    document.getElementById('recording-timer').innerText = `${m}:${s}`;
+                }, 1000);
+            } catch (err) {
+                alert("Microphone access is required to send voice messages.");
+            }
+        }
+
+        function cancelAudioRecording() {
+            if(mediaRecorder) {
+                mediaRecorder.stop();
+                mediaRecorder.stream.getTracks().forEach(track => track.stop());
+            }
+            clearInterval(recordTimerInterval);
+            document.getElementById('msg-input-default').style.display = 'flex';
+            document.getElementById('msg-input-recording').style.display = 'none';
+        }
+
+        function sendAudioRecording() {
+            if(!mediaRecorder) return;
+            showLoading("Sending audio...");
+            mediaRecorder.addEventListener("stop", async () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' }); 
+                const formData = new FormData();
+                formData.append('file', audioBlob);
+                formData.append('upload_preset', UPLOAD_PRESET);
+                try {
+                    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/video/upload`, { method: 'POST', body: formData });
+                    const data = await res.json();
+                    if(data.secure_url) {
+                        const chatId = getChatId(LOG, activeChatUser);
+                        await db.collection("chats").doc(chatId).collection("messages").add({
+                            sender: LOG, text: "", audioUrl: data.secure_url, duration: recordSeconds, timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                        loadActiveChatsList();
+                    }
+                } catch(err) { alert("Failed to upload audio."); } finally { hideLoading(); }
+            });
+            mediaRecorder.stop();
+            mediaRecorder.stream.getTracks().forEach(track => track.stop());
+            clearInterval(recordTimerInterval);
+            document.getElementById('msg-input-default').style.display = 'flex';
+            document.getElementById('msg-input-recording').style.display = 'none';
+        }
+
+        window.initAudio = function(id) {
+            const audio = document.getElementById('audio-elem-' + id);
+            const timeText = document.getElementById('audio-time-' + id);
+            if(audio && audio.duration && audio.duration !== Infinity) {
+                let s = Math.floor(audio.duration % 60);
+                timeText.innerText = `0:${s.toString().padStart(2, '0')}`;
+            }
+        }
+
+        window.updateWaveform = function(id) {
+            const track = document.getElementById('waveform-' + id);
+            const audio = document.getElementById('audio-elem-' + id);
+            const timeText = document.getElementById('audio-time-' + id);
+            const totalDur = parseFloat(timeText.getAttribute('data-duration')) || audio.duration || 1;
+            
+            const percentage = audio.currentTime / totalDur;
+            const bars = track.querySelectorAll('.wave-bar');
+            const activeIndex = Math.floor(percentage * bars.length);
+            
+            bars.forEach((bar, index) => {
+                if(index <= activeIndex) bar.style.background = '#fff';
+                else bar.style.background = 'rgba(255,255,255,0.4)';
+            });
+            
+            const rem = Math.max(0, totalDur - audio.currentTime);
+            let s = Math.floor(rem % 60);
+            timeText.innerText = `0:${s.toString().padStart(2, '0')}`;
+        }
+
+        window.seekAudio = function(e, id) {
+            const track = document.getElementById('waveform-' + id);
+            const audio = document.getElementById('audio-elem-' + id);
+            const timeText = document.getElementById('audio-time-' + id);
+            const totalDur = parseFloat(timeText.getAttribute('data-duration')) || audio.duration;
+            if(!totalDur) return;
+            
+            const rect = track.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const percentage = Math.max(0, Math.min(1, clickX / rect.width));
+            
+            audio.currentTime = percentage * totalDur;
+            window.updateWaveform(id);
+        }
+
+        function toggleAudio(id) {
+            const audioEl = document.getElementById('audio-elem-' + id);
+            const playIcon = document.getElementById('audio-play-icon-' + id);
+            document.querySelectorAll('audio').forEach(el => {
+                if(el.id !== 'audio-elem-' + id && !el.paused) {
+                    el.pause();
+                    document.getElementById('audio-play-icon-' + el.id.replace('audio-elem-','')).innerHTML = '<polygon points="8,5 20,12 8,19" fill="white"/>';
+                }
+            });
+            if (audioEl.paused) {
+                audioEl.play();
+                playIcon.innerHTML = '<rect x="6" y="5" width="4" height="14" fill="white"/><rect x="14" y="5" width="4" height="14" fill="white"/>';
+            } else {
+                audioEl.pause();
+                playIcon.innerHTML = '<polygon points="8,5 20,12 8,19" fill="white"/>';
+            }
+        }
+
+        function resetAudioUI(id) {
+            document.getElementById('audio-play-icon-' + id).innerHTML = '<polygon points="8,5 20,12 8,19" fill="white"/>';
+            const audio = document.getElementById('audio-elem-' + id);
+            audio.currentTime = 0;
+            window.updateWaveform(id);
+        }
+
+        function toggleSpeed(btn, id) {
+            const audioEl = document.getElementById('audio-elem-' + id);
+            if (audioEl.playbackRate === 1) { audioEl.playbackRate = 1.5; btn.innerText = "1.5x"; }
+            else if (audioEl.playbackRate === 1.5) { audioEl.playbackRate = 2; btn.innerText = "2x"; }
+            else { audioEl.playbackRate = 1; btn.innerText = "1x"; }
+        }
+
+        function compressImage(file, maxWidth = 800, quality = 0.6) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+                        if (width > maxWidth) { height = Math.round((height * maxWidth) / width); width = maxWidth; }
+                        canvas.width = width; canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        resolve(canvas.toDataURL('image/jpeg', quality));
+                    };
+                };
+            });
+        }
+
+        function triggerQuickCam(uid) {
+            if(event) event.stopPropagation(); 
+            quickCamTarget = uid;
+            document.getElementById("quick-cam-input").click();
+        }
+
+        async function handleQuickCam(event) {
+            const file = event.target.files[0];
+            if(!file || !quickCamTarget) return;
+            showLoading("Sending...");
+            const base64Img = await compressImage(file);
+            const chatId = getChatId(LOG, quickCamTarget);
+            await db.collection("chats").doc(chatId).collection("messages").add({
+                sender: LOG, text: "", image: base64Img, timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            quickCamTarget = null;
+            document.getElementById("quick-cam-input").value = ""; 
+            hideLoading();
+            loadActiveChatsList(); 
+        }
+
+        async function handleChatGalleryUpload(event) {
+            const file = event.target.files[0];
+            if(!file || !activeChatUser) return;
+            showLoading("Sending...");
+            const base64Img = await compressImage(file);
+            const chatId = getChatId(LOG, activeChatUser);
+            await db.collection("chats").doc(chatId).collection("messages").add({
+                sender: LOG, text: "", image: base64Img, timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            document.getElementById("chat-gallery-input").value = ""; 
+            hideLoading();
+        }
+
+        function openImageViewer(base64str) { document.getElementById('iv-main-img').src = base64str; document.getElementById('img-viewer-ov').style.display = 'flex'; }
+        function closeImageViewer() { document.getElementById('img-viewer-ov').style.display = 'none'; }
+        function downloadViewerImage() {
+            const a = document.createElement('a');
+            a.href = document.getElementById('iv-main-img').src; a.download = 'auragram_image.jpg';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        }
+
+        async function loadMutualSuggestions() {
+            const list = document.getElementById("suggestion-list");
+            try {
+                const myDoc = await db.collection("users").doc(LOG).get();
+                const myFollowing = myDoc.data().followingList || [];
+                let potentialSuggestions = {}; 
+                for(let i=0; i < Math.min(myFollowing.length, 5); i++) {
+                    const friendUid = myFollowing[i];
+                    if(friendUid === LOG) continue;
+                    const friendDoc = await db.collection("users").doc(friendUid).get();
+                    if(friendDoc.exists) {
+                        const friendFollowing = friendDoc.data().followingList || [];
+                        for(let fof of friendFollowing) {
+                            if(fof !== LOG && !myFollowing.includes(fof)) {
+                                if(!potentialSuggestions[fof]) potentialSuggestions[fof] = { count: 0, mutualName: friendUid };
+                                potentialSuggestions[fof].count++;
+                            }
+                        }
+                    }
+                }
+                let suggestionsArray = Object.keys(potentialSuggestions).map(uid => ({ uid: uid, count: potentialSuggestions[uid].count, mutualName: potentialSuggestions[uid].mutualName })).sort((a,b) => b.count - a.count).slice(0, 5);
+                if(suggestionsArray.length === 0) {
+                    const fallbackSnap = await db.collection("users").limit(10).get();
+                    fallbackSnap.forEach(doc => {
+                        if(doc.id !== LOG && !myFollowing.includes(doc.id) && suggestionsArray.length < 5) suggestionsArray.push({uid: doc.id, count: 0, mutualName: null});
+                    });
+                }
+                list.innerHTML = "";
+                if(suggestionsArray.length === 0) return list.innerHTML = "<p style='color:#555; font-size:14px;'>No accounts to follow.</p>";
+                for(let sug of suggestionsArray) {
+                    const uDoc = await db.collection("users").doc(sug.uid).get();
+                    const uData = uDoc.exists ? uDoc.data() : {};
+                    let subtext = sug.count > 1 ? `${sug.count} mutuals` : (sug.mutualName ? `Followed by ${sug.mutualName}` : (uData.name || 'Suggested for you'));
+                    list.innerHTML += `<div class="u-row"><img src="${uData.profileImg || DIMG}" class="pfp"><div class="u-meta" onclick="location.href='profile.html?u=${sug.uid}'"><b>${sug.uid}</b><span>${subtext}</span></div><button class="b-blue-indigo" onclick="alert('Follow logic connected to profile')">Follow</button><span class="x-rem">✕</span></div>`;
+                }
+            } catch(e) {}
+        }
+
+        async function openNewMessageMenu() {
+            document.getElementById("new-msg-overlay").style.display = "flex";
+            const list = document.getElementById("follower-suggestion-list");
+            list.innerHTML = "<p style='color:#555; text-align:center; padding:20px;'>Loading friends...</p>";
+            const myDoc = await db.collection("users").doc(LOG).get();
+            const myFollowing = myDoc.data().followingList || [];
+            const myFollowers = myDoc.data().followerList || [];
+            const mutualFriends = myFollowing.filter(uid => myFollowers.includes(uid) && uid !== LOG);
+            if(mutualFriends.length === 0) return list.innerHTML = "<p style='color:#555; text-align:center; padding:20px;'>No mutual followers found to message.</p>";
+            list.innerHTML = "";
+            for(let uid of mutualFriends) {
+                const uDoc = await db.collection("users").doc(uid).get();
+                const uData = uDoc.data();
+                list.innerHTML += `<div class="u-row" onclick="openMsg('${uid}', '${uData.profileImg || DIMG}')" style="padding:10px 0;"><img src="${uData.profileImg || DIMG}" class="pfp" style="width:45px; height:45px;"><div class="u-meta"><b>${uid}</b><span style="font-size: 13px; color: #888;">${uData.name || ''}</span></div><div style="width:20px; height:20px; border-radius:50%; border:1px solid #444;"></div></div>`;
+            }
+        }
+
+        function closeNewMessageMenu() { document.getElementById("new-msg-overlay").style.display = "none"; }
+
+        async function openMsg(targetUser, pfpUrl) {
+            activeChatUser = targetUser;
+            activeChatPfp = pfpUrl || DIMG; 
+            document.getElementById("chat-uid").innerText = targetUser;
+            document.getElementById("chat-pfp").src = activeChatPfp;
+            
+            const box = document.getElementById("msg-list");
+            box.innerHTML = `<div style="text-align:center; padding:50px; color:#555;">Loading...</div>`;
+            document.getElementById("msg-view").style.display = "flex";
+            closeNewMessageMenu();
+            
+            const tDoc = await db.collection("users").doc(targetUser).get();
+            const tData = tDoc.exists ? tDoc.data() : {};
+            const tFollowersCount = (tData.followerList || []).length;
+            const tPostsQuery = await db.collection("users").doc(targetUser).collection("posts").get();
+            const tPostsCount = tPostsQuery.size;
+
+            const profileCardHtml = `<div class="chat-profile-card"><img src="${activeChatPfp}"><h2>${tData.name || targetUser}</h2><span class="uname">${targetUser}</span><span class="stats">${tFollowersCount} followers · ${tPostsCount} posts</span><span class="rel">You follow each other on Auragram</span><button onclick="location.href='profile.html?u=${targetUser}'">View profile</button></div>`;
+            const chatId = getChatId(LOG, targetUser);
+            
+            msgUnsubscribe = db.collection("chats").doc(chatId).collection("messages").orderBy("timestamp", "asc").onSnapshot(snap => {
+                box.innerHTML = profileCardHtml;
+                let lastDate = null;
+
+                snap.forEach(doc => {
+                    const m = doc.data();
+                    const isMe = m.sender === LOG;
+                    let dateObj = m.timestamp ? m.timestamp.toDate() : new Date();
+                    let exactTimeStr = dateObj.toLocaleTimeString('en-US', {hour: 'numeric', minute:'2-digit'}); 
+                    
+                    if (!lastDate || (dateObj - lastDate) > 3600000) { 
+                        let dividerStr = dateObj.toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true });
+                        box.innerHTML += `<div class="time-divider">${dividerStr}</div>`;
+                    }
+                    lastDate = dateObj;
+
+                    let msgContent = "";
+                    let bubbleClass = isMe ? 'msg-sent' : 'msg-recv';
+
+                    if(m.audioUrl) {
+                        bubbleClass += ' msg-audio-bubble';
+                        const staticWave = Array.from({length: 30}).map(() => `<div class="wave-bar" style="height:${Math.random() * 60 + 20}%"></div>`).join('');
+                        let durStr = "0:00";
+                        if(m.duration) { let s = Math.floor(m.duration % 60); durStr = `0:${s.toString().padStart(2, '0')}`; }
+                        
+                        msgContent = `
+                            <div class="audio-main-row">
+                                <div class="audio-play-btn" onclick="toggleAudio('${doc.id}')">
+                                    <svg id="audio-play-icon-${doc.id}" width="20" height="20" viewBox="0 0 24 24"><polygon points="6,4 20,12 6,20" fill="white"/></svg>
+                                </div>
+                                <div class="audio-waveform-track" id="waveform-${doc.id}" onclick="seekAudio(event, '${doc.id}')">${staticWave}</div>
+                                <div class="audio-right-controls">
+                                    <span id="audio-time-${doc.id}" class="audio-time-text" data-duration="${m.duration||0}">${durStr}</span>
+                                    <span class="audio-speed-btn" onclick="toggleSpeed(this, '${doc.id}')">1x</span>
+                                </div>
+                            </div>
+                            <div class="audio-transcription">View transcription</div>
+                            <audio id="audio-elem-${doc.id}" src="${m.audioUrl}" onloadedmetadata="initAudio('${doc.id}')" ontimeupdate="updateWaveform('${doc.id}')" onended="resetAudioUI('${doc.id}')" style="display:none;"></audio>
+                        `;
+                    } else if (m.image) {
+                        bubbleClass += ' msg-img-bubble';
+                        msgContent = `<img src="${m.image}" onclick="openImageViewer('${m.image}')">`;
+                    } else {
+                        msgContent = m.text;
+                    }
+                    
+                    let pfpHtml = !isMe ? `<img src="${activeChatPfp}" class="msg-recv-pfp">` : `<div style="width:28px; margin-right:8px; flex-shrink:0;"></div>`;
+
+                    box.innerHTML += `
+                        <div class="msg-row-wrapper">
+                            <div class="msg-row-inner" style="justify-content: ${isMe ? 'flex-end' : 'flex-start'};">
+                                ${!isMe ? pfpHtml : ''}
+                                <div class="msg-bubble ${bubbleClass}">${msgContent}</div>
+                            </div>
+                            <div class="msg-exact-time">${exactTimeStr}</div>
+                        </div>
+                    `;
+                });
+                setTimeout(() => { box.scrollTop = box.scrollHeight; }, 50);
+            });
+        }
+
+        function closeMsg() {
+            document.getElementById("msg-view").style.display = "none";
+            if(msgUnsubscribe) { msgUnsubscribe(); msgUnsubscribe = null; }
+            activeChatUser = null;
+        }
+
+        // === EXACT PILL INPUT TOGGLE === //
+        function checkMsgInput() {
+            const val = document.getElementById("msg-input").value.trim();
+            if(val) {
+                document.getElementById("pill-left-cam").style.display = "none";
+                document.getElementById("pill-left-search").style.display = "flex";
+                document.getElementById("pill-right-icons").style.display = "none";
+                document.getElementById("pill-right-send").style.display = "flex";
+            } else {
+                document.getElementById("pill-left-cam").style.display = "flex";
+                document.getElementById("pill-left-search").style.display = "none";
+                document.getElementById("pill-right-icons").style.display = "flex";
+                document.getElementById("pill-right-send").style.display = "none";
+            }
+        }
+
+        function handleEnter(e) {
+            if(e.key === "Enter") { sendMsg(); }
+        }
+
+        async function sendMsg() {
+            const input = document.getElementById("msg-input");
+            const text = input.value.trim();
+            if(!text || !activeChatUser) return;
+            
+            input.value = "";
+            checkMsgInput(); // Revert back to icons immediately
+            
+            const chatId = getChatId(LOG, activeChatUser);
+            await db.collection("chats").doc(chatId).collection("messages").add({
+                sender: LOG,
+                text: text,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            loadActiveChatsList(); 
+        }
+
+        init();
+    </script>
+</body>
+</html>
