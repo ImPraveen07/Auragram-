@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -129,14 +130,93 @@
         .iv-img-wrap { flex:1; display:flex; align-items:center; justify-content:center; overflow:hidden; }
         .iv-img-wrap img { max-width:100%; max-height:100%; object-fit:contain; }
         #loading-toast { position:fixed; top:50px; left:50%; transform:translateX(-50%); background:#333; color:#fff; padding:8px 16px; border-radius:20px; font-size:12px; z-index:9999; display:none; }
+
+        /* LIVE CAMERA OVERLAY */
+        #live-cam-ov { display:none; position:fixed; top:0; left:0; width:100vw; height:100dvh; background:#000; z-index:9999; flex-direction:column; }
+        .live-cam-top { position:absolute; top:20px; left:20px; right:20px; display:flex; justify-content:space-between; z-index:10000; }
+        .live-cam-controls { position:absolute; bottom:50px; left:0; width:100%; display:flex; justify-content:center; align-items:center; gap:50px; z-index:10000; }
+        .capture-btn { width:70px; height:70px; border-radius:50%; border:4px solid #fff; background:rgba(255,255,255,0.3); cursor:pointer; }
+        .capture-btn:active { background:#fff; }
+        .cam-switch-btn { width:40px; height:40px; background:rgba(0,0,0,0.5); border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+
+        /* WEBRTC CALL OVERLAY */
+        #call-ov { display:none; position:fixed; top:0; left:0; width:100vw; height:100dvh; background:#1c1c1e; z-index:10000; flex-direction:column; overflow:hidden;}
+        #call-remote-video { position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; z-index:1; }
+        #call-local-video { position:absolute; top:20px; right:20px; width:100px; height:150px; object-fit:cover; border-radius:12px; z-index:2; background:#000; display:none; }
+        .call-info { position:absolute; top:60px; left:0; width:100%; display:flex; flex-direction:column; align-items:center; z-index:3; text-align:center; text-shadow:0 2px 5px rgba(0,0,0,0.5); }
+        .call-pfp-large { width:100px; height:100px; border-radius:50%; object-fit:cover; margin-bottom:15px; box-shadow:0 4px 10px rgba(0,0,0,0.3); }
+        .call-controls { position:absolute; bottom:50px; left:0; width:100%; display:flex; justify-content:center; gap:25px; z-index:3; }
+        .c-btn { width:60px; height:60px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; background:rgba(255,255,255,0.2); backdrop-filter:blur(10px); }
+        .c-btn-red { background:#ff3b30; }
+
+        /* INCOMING CALL NOTIFICATION */
+        #incoming-call-modal { display:none; position:fixed; top:20px; left:50%; transform:translateX(-50%); width:90%; max-width:400px; background:#262626; border-radius:20px; padding:15px; z-index:10001; align-items:center; gap:15px; box-shadow:0 10px 25px rgba(0,0,0,0.5); animation: slideDown 0.3s ease-out; }
+        @keyframes slideDown { from{top:-100px;} to{top:20px;} }
+        .inc-btns { display:flex; gap:10px; margin-left:auto; }
+        .inc-btn { width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; }
     </style>
 </head>
 <body>
 
     <div id="loading-toast">Sending...</div>
 
-    <input type="file" accept="image/*" capture="environment" id="quick-cam-input" style="display:none;" onchange="handleQuickCam(event)">
     <input type="file" accept="image/*" id="chat-gallery-input" style="display:none;" onchange="handleChatGalleryUpload(event)">
+
+    <div id="incoming-call-modal">
+        <img id="inc-call-pfp" src="" style="width:50px; height:50px; border-radius:50%; object-fit:cover;">
+        <div>
+            <b id="inc-call-name" style="font-size:15px; display:block;">User</b>
+            <span id="inc-call-type" style="font-size:13px; color:#a8a8a8;">Incoming video call...</span>
+        </div>
+        <div class="inc-btns">
+            <div class="inc-btn c-btn-red" onclick="rejectCall()">
+                <svg fill="white" width="20" height="20" viewBox="0 0 24 24"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-1.02.48-1.95 1.12-2.76 1.88-.23.23-.62.23-.85 0l-2.03-2.03c-.23-.23-.23-.62 0-.85C4.24 9.5 7.9 7.5 12 7.5s7.76 2 10.8 5.22c.23.23.23.62 0 .85l-2.03 2.03c-.23.23-.62.23-.85 0-.81-.76-1.74-1.4-2.76-1.88-.33-.16-.56-.51-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/></svg>
+            </div>
+            <div class="inc-btn" style="background:#34c759;" onclick="acceptCall()">
+                <svg fill="white" width="20" height="20" viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+            </div>
+        </div>
+    </div>
+
+    <div id="call-ov">
+        <video id="call-remote-video" autoplay playsinline></video>
+        <video id="call-local-video" autoplay playsinline muted></video>
+        
+        <div class="call-info" id="call-info-ui">
+            <img id="call-ui-pfp" class="call-pfp-large" src="">
+            <b id="call-ui-name" style="font-size:22px; margin-bottom:5px;">User</b>
+            <span id="call-ui-status" style="font-size:15px; color:#ddd;">Calling...</span>
+        </div>
+
+        <div class="call-controls">
+            <div class="c-btn" onclick="toggleCallMute()" id="btn-call-mute">
+                <img src="https://cdn-icons-png.flaticon.com/512/709/709682.png" style="width:24px; filter:invert(1);">
+            </div>
+            <div class="c-btn" onclick="toggleCallVideo()" id="btn-call-video">
+                <img src="https://cdn-icons-png.flaticon.com/512/3014/3014736.png" style="width:24px; filter:invert(1);">
+            </div>
+            <div class="c-btn c-btn-red" onclick="endCall()">
+                <svg fill="white" width="28" height="28" viewBox="0 0 24 24"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-1.02.48-1.95 1.12-2.76 1.88-.23.23-.62.23-.85 0l-2.03-2.03c-.23-.23-.23-.62 0-.85C4.24 9.5 7.9 7.5 12 7.5s7.76 2 10.8 5.22c.23.23.23.62 0 .85l-2.03 2.03c-.23.23-.62.23-.85 0-.81-.76-1.74-1.4-2.76-1.88-.33-.16-.56-.51-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/></svg>
+            </div>
+        </div>
+    </div>
+
+    <div id="live-cam-ov">
+        <video id="live-cam-video" autoplay playsinline style="width:100%; height:100%; object-fit:cover;"></video>
+        <div class="live-cam-top">
+            <svg aria-label="Close" fill="none" height="30" viewBox="0 0 24 24" width="30" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="cursor:pointer; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));" onclick="closeLiveCamera()">
+                <line x1="4" y1="4" x2="20" y2="20"></line>
+                <line x1="20" y1="4" x2="4" y2="20"></line>
+            </svg>
+        </div>
+        <div class="live-cam-controls">
+            <div style="width:40px;"></div>
+            <div class="capture-btn" onclick="captureLivePhoto()"></div>
+            <div class="cam-switch-btn" onclick="flipLiveCamera()">
+                <svg fill="white" width="20" height="20" viewBox="0 0 24 24"><path d="M12 6v3l4-4-4-4v3c-4.42 0-8 3.58-8 8 0 1.57.46 3.03 1.24 4.26L6.7 14.8c-.45-.83-.7-1.79-.7-2.8 0-3.31 2.69-6 6-6zm6.76 1.74L17.3 9.2c.44.84.7 1.79.7 2.8 0 3.31-2.69 6-6 6v-3l-4 4 4 4v-3c4.42 0 8-3.58 8-8 0-1.57-.46-3.03-1.24-4.26z"/></svg>
+            </div>
+        </div>
+    </div>
 
     <div id="main-dm-view">
         <nav>
@@ -269,8 +349,8 @@
                 </div>
             </div>
             <div style="display:flex; gap:20px; align-items:center;">
-                <img src="https://cdn-icons-png.flaticon.com/512/159/159836.png" style="width:22px; filter:invert(1); cursor:pointer;">
-                <img src="https://cdn-icons-png.flaticon.com/512/3014/3014736.png" style="width:24px; filter:invert(1); cursor:pointer;">
+                <img src="https://cdn-icons-png.flaticon.com/512/159/159836.png" style="width:22px; filter:invert(1); cursor:pointer;" onclick="startCall('audio')">
+                <img src="https://cdn-icons-png.flaticon.com/512/3014/3014736.png" style="width:24px; filter:invert(1); cursor:pointer;" onclick="startCall('video')">
             </div>
         </div>
         
@@ -279,8 +359,8 @@
         <div class="msg-input-area">
             <div class="msg-input-pill" id="msg-input-default">
                 
-                <div class="pill-left-action" id="pill-left-cam" onclick="document.getElementById('quick-cam-input').click()">
-                    <img src="cam.png" style="width:22px; filter:invert(1);">
+                <div class="pill-left-action" id="pill-left-cam" onclick="openLiveCamera(activeChatUser)">
+                    <img src="https://cdn-icons-png.flaticon.com/512/3014/3014736.png" style="width:20px; filter:invert(1);">
                 </div>
                 <div class="pill-left-action" id="pill-left-search" style="display:none; background:#fff;">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7b30f5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
@@ -345,7 +425,20 @@
         let activeChatUser = null;
         let activeChatPfp = null;
         let msgUnsubscribe = null;
-        let quickCamTarget = null; 
+        
+        // CAMERA GLOBALS
+        let liveCamStream = null;
+        let usingFrontCamera = false;
+        let liveCamTarget = null;
+
+        // WEBRTC CALL GLOBALS
+        let localCallStream = null;
+        let peerConnection = null;
+        let currentCallId = null;
+        let callUnsubscribe = null;
+        let incomingCallUnsubscribe = null;
+        let isVideoCall = true;
+        const pcConfig = { iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }] };
 
         let mediaRecorder;
         let audioChunks = [];
@@ -357,13 +450,9 @@
 
         msgList.addEventListener('touchstart', e => { swipeStartX = e.touches[0].clientX; }, {passive: true});
         msgList.addEventListener('touchmove', e => {
-            if(swipeStartX - e.touches[0].clientX > 30) {
-                msgList.classList.add('swipe-active');
-            }
+            if(swipeStartX - e.touches[0].clientX > 30) { msgList.classList.add('swipe-active'); }
         }, {passive: true});
-        msgList.addEventListener('touchend', e => {
-            msgList.classList.remove('swipe-active');
-        });
+        msgList.addEventListener('touchend', e => { msgList.classList.remove('swipe-active'); });
 
         async function init() {
             if (!LOG) return location.href = "index.html";
@@ -381,6 +470,8 @@
                 const pfpQuery = await db.collection("users").doc(chatTarget).get();
                 openMsg(chatTarget, pfpQuery.exists ? pfpQuery.data().profileImg : DIMG);
             }
+
+            listenForIncomingCalls();
         }
 
         function setupBottomBar() {
@@ -403,6 +494,222 @@
         function showLoading(msg) { document.getElementById('loading-toast').innerText = msg; document.getElementById('loading-toast').style.display = 'block'; }
         function hideLoading() { document.getElementById('loading-toast').style.display = 'none'; }
 
+        // ----- IN-APP CAMERA ENGINE -----
+        async function openLiveCamera(targetUid) {
+            if(event) event.stopPropagation();
+            liveCamTarget = targetUid;
+            document.getElementById("live-cam-ov").style.display = "flex";
+            await initCamera();
+        }
+
+        async function initCamera() {
+            if(liveCamStream) { liveCamStream.getTracks().forEach(t => t.stop()); }
+            const constraints = { video: { facingMode: usingFrontCamera ? "user" : "environment" }, audio: false };
+            try {
+                liveCamStream = await navigator.mediaDevices.getUserMedia(constraints);
+                document.getElementById('live-cam-video').srcObject = liveCamStream;
+            } catch(e) {
+                alert("Camera access denied or unavailable.");
+                closeLiveCamera();
+            }
+        }
+
+        function flipLiveCamera() {
+            usingFrontCamera = !usingFrontCamera;
+            initCamera();
+        }
+
+        function closeLiveCamera() {
+            if(liveCamStream) { liveCamStream.getTracks().forEach(t => t.stop()); liveCamStream = null; }
+            document.getElementById("live-cam-ov").style.display = "none";
+            liveCamTarget = null;
+        }
+
+        async function captureLivePhoto() {
+            if(!liveCamStream || !liveCamTarget) return;
+            const video = document.getElementById('live-cam-video');
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            const base64Img = canvas.toDataURL('image/jpeg', 0.7);
+            closeLiveCamera();
+            showLoading("Sending...");
+            
+            const chatId = getChatId(LOG, liveCamTarget);
+            await db.collection("chats").doc(chatId).collection("messages").add({
+                sender: LOG, text: "", image: base64Img, read: false, timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            hideLoading();
+            loadActiveChatsList();
+        }
+
+        // ----- WEBRTC CALL ENGINE -----
+        function listenForIncomingCalls() {
+            db.collection("calls").where("receiver", "==", LOG).where("status", "==", "calling").onSnapshot(snap => {
+                snap.docChanges().forEach(async change => {
+                    if (change.type === "added") {
+                        const callData = change.doc.data();
+                        currentCallId = change.doc.id;
+                        isVideoCall = callData.type === 'video';
+                        
+                        const callerDoc = await db.collection("users").doc(callData.caller).get();
+                        const pfp = callerDoc.exists && callerDoc.data().profileImg ? callerDoc.data().profileImg : DIMG;
+                        
+                        document.getElementById("inc-call-pfp").src = pfp;
+                        document.getElementById("inc-call-name").innerText = callData.caller;
+                        document.getElementById("inc-call-type").innerText = isVideoCall ? "Incoming video call..." : "Incoming audio call...";
+                        document.getElementById("incoming-call-modal").style.display = "flex";
+                        
+                        document.getElementById("call-ui-pfp").src = pfp;
+                        document.getElementById("call-ui-name").innerText = callData.caller;
+                    }
+                });
+            });
+        }
+
+        async function startCall(type) {
+            if(!activeChatUser) return;
+            isVideoCall = type === 'video';
+            document.getElementById("call-ov").style.display = "flex";
+            document.getElementById("call-ui-pfp").src = activeChatPfp;
+            document.getElementById("call-ui-name").innerText = activeChatUser;
+            document.getElementById("call-ui-status").innerText = "Calling...";
+            document.getElementById("call-local-video").style.display = isVideoCall ? "block" : "none";
+
+            currentCallId = db.collection("calls").doc().id;
+            
+            try {
+                localCallStream = await navigator.mediaDevices.getUserMedia({ video: isVideoCall, audio: true });
+                document.getElementById("call-local-video").srcObject = localCallStream;
+                
+                peerConnection = new RTCPeerConnection(pcConfig);
+                localCallStream.getTracks().forEach(track => peerConnection.addTrack(track, localCallStream));
+                
+                peerConnection.ontrack = (event) => {
+                    document.getElementById("call-remote-video").srcObject = event.streams[0];
+                    document.getElementById("call-info-ui").style.display = "none";
+                };
+
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                
+                await db.collection("calls").doc(currentCallId).set({
+                    caller: LOG, receiver: activeChatUser, type: type, status: 'calling', offer: { type: offer.type, sdp: offer.sdp }
+                });
+
+                peerConnection.onicecandidate = event => {
+                    if(event.candidate) db.collection("calls").doc(currentCallId).collection("callerCandidates").add(event.candidate.toJSON());
+                };
+
+                callUnsubscribe = db.collection("calls").doc(currentCallId).onSnapshot(doc => {
+                    const data = doc.data();
+                    if(data.answer && !peerConnection.currentRemoteDescription) {
+                        peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+                        document.getElementById("call-ui-status").innerText = "Connecting...";
+                    }
+                    if(data.status === 'ended') endCallLocal();
+                });
+
+                db.collection("calls").doc(currentCallId).collection("receiverCandidates").onSnapshot(snap => {
+                    snap.docChanges().forEach(change => {
+                        if(change.type === "added") peerConnection.addIceCandidate(new RTCIceCandidate(change.doc.data()));
+                    });
+                });
+            } catch(e) {
+                alert("Could not access camera/microphone.");
+                endCallLocal();
+            }
+        }
+
+        async function acceptCall() {
+            document.getElementById("incoming-call-modal").style.display = "none";
+            document.getElementById("call-ov").style.display = "flex";
+            document.getElementById("call-local-video").style.display = isVideoCall ? "block" : "none";
+            document.getElementById("call-ui-status").innerText = "Connecting...";
+
+            try {
+                localCallStream = await navigator.mediaDevices.getUserMedia({ video: isVideoCall, audio: true });
+                document.getElementById("call-local-video").srcObject = localCallStream;
+                
+                peerConnection = new RTCPeerConnection(pcConfig);
+                localCallStream.getTracks().forEach(track => peerConnection.addTrack(track, localCallStream));
+                
+                peerConnection.ontrack = (event) => {
+                    document.getElementById("call-remote-video").srcObject = event.streams[0];
+                    document.getElementById("call-info-ui").style.display = "none";
+                };
+
+                const callDoc = await db.collection("calls").doc(currentCallId).get();
+                const offer = callDoc.data().offer;
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+                await db.collection("calls").doc(currentCallId).update({ answer: { type: answer.type, sdp: answer.sdp }, status: 'connected' });
+
+                peerConnection.onicecandidate = event => {
+                    if(event.candidate) db.collection("calls").doc(currentCallId).collection("receiverCandidates").add(event.candidate.toJSON());
+                };
+
+                db.collection("calls").doc(currentCallId).collection("callerCandidates").onSnapshot(snap => {
+                    snap.docChanges().forEach(change => {
+                        if(change.type === "added") peerConnection.addIceCandidate(new RTCIceCandidate(change.doc.data()));
+                    });
+                });
+
+                callUnsubscribe = db.collection("calls").doc(currentCallId).onSnapshot(doc => {
+                    if(doc.data() && doc.data().status === 'ended') endCallLocal();
+                });
+            } catch(e) {
+                rejectCall();
+            }
+        }
+
+        async function rejectCall() {
+            document.getElementById("incoming-call-modal").style.display = "none";
+            if(currentCallId) {
+                await db.collection("calls").doc(currentCallId).update({ status: 'ended' });
+                currentCallId = null;
+            }
+        }
+
+        async function endCall() {
+            if(currentCallId) await db.collection("calls").doc(currentCallId).update({ status: 'ended' });
+            endCallLocal();
+        }
+
+        function endCallLocal() {
+            if(peerConnection) { peerConnection.close(); peerConnection = null; }
+            if(localCallStream) { localCallStream.getTracks().forEach(t => t.stop()); localCallStream = null; }
+            if(callUnsubscribe) { callUnsubscribe(); callUnsubscribe = null; }
+            document.getElementById("call-ov").style.display = "none";
+            document.getElementById("call-info-ui").style.display = "flex";
+            document.getElementById("call-remote-video").srcObject = null;
+            document.getElementById("call-local-video").srcObject = null;
+            currentCallId = null;
+        }
+
+        function toggleCallMute() {
+            if(!localCallStream) return;
+            const audioTrack = localCallStream.getAudioTracks()[0];
+            audioTrack.enabled = !audioTrack.enabled;
+            document.getElementById("btn-call-mute").style.background = audioTrack.enabled ? "rgba(255,255,255,0.2)" : "#ff3b30";
+        }
+
+        function toggleCallVideo() {
+            if(!localCallStream) return;
+            const videoTrack = localCallStream.getVideoTracks()[0];
+            if(videoTrack) {
+                videoTrack.enabled = !videoTrack.enabled;
+                document.getElementById("btn-call-video").style.background = videoTrack.enabled ? "rgba(255,255,255,0.2)" : "#ff3b30";
+            }
+        }
+
+
+        // ----- CHAT LOGIC -----
         async function loadNotes() {
             const container = document.getElementById("notes-container");
             container.innerHTML = "";
@@ -470,7 +777,6 @@
             const fetchPromises = following.map(async (uid) => {
                 if(uid === LOG) return null;
                 const chatId = getChatId(LOG, uid);
-                // Fetch up to 20 recent messages to count unreads accurately
                 const chatSnap = await db.collection("chats").doc(chatId).collection("messages").orderBy("timestamp", "desc").limit(20).get();
                 
                 if (!chatSnap.empty) {
@@ -482,7 +788,7 @@
                         const m = chatSnap.docs[i].data();
                         if (m.sender === uid && !m.read) unreadCount++;
                         else if (m.sender === uid && m.read) break; 
-                        if (m.sender === LOG) break; // Stop counting if we sent the last message
+                        if (m.sender === LOG) break; 
                     }
 
                     return { uid: uid, uData: uDoc.data(), lastMsg: lastMsg, time: lastMsg.timestamp ? lastMsg.timestamp.toMillis() : 0, unreadCount: unreadCount };
@@ -523,7 +829,7 @@
                     const noteHtml = (uData.note && uData.note.text) ? `<div style="position:absolute; top:-5px; left:10px; background:#262626; padding:2px 8px; border-radius:10px; font-size:10px; border:2px solid #000; color:#fff; white-space:nowrap; max-width:60px; overflow:hidden; text-overflow:ellipsis; pointer-events:none; z-index:2;">${uData.note.text}</div>` : '';
                     
                     let textStyle = isUnread ? `color:#fff; font-weight:600;` : `color:#a8a8a8;`;
-                    let rightIconHtml = isUnread ? `<div class="unread-dot"></div>` : `<img src="cam.png" class="cam-icon-right" onclick="triggerQuickCam('${uid}')">`;
+                    let rightIconHtml = isUnread ? `<div class="unread-dot"></div>` : `<img src="https://cdn-icons-png.flaticon.com/512/3014/3014736.png" class="cam-icon-right" onclick="openLiveCamera('${uid}')">`;
 
                     list.innerHTML += `
                         <div class="u-row">
@@ -705,27 +1011,6 @@
             });
         }
 
-        function triggerQuickCam(uid) {
-            if(event) event.stopPropagation(); 
-            quickCamTarget = uid;
-            document.getElementById("quick-cam-input").click();
-        }
-
-        async function handleQuickCam(event) {
-            const file = event.target.files[0];
-            if(!file || !quickCamTarget) return;
-            showLoading("Sending...");
-            const base64Img = await compressImage(file);
-            const chatId = getChatId(LOG, quickCamTarget);
-            await db.collection("chats").doc(chatId).collection("messages").add({
-                sender: LOG, text: "", image: base64Img, read: false, timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            quickCamTarget = null;
-            document.getElementById("quick-cam-input").value = ""; 
-            hideLoading();
-            loadActiveChatsList(); 
-        }
-
         async function handleChatGalleryUpload(event) {
             const file = event.target.files[0];
             if(!file || !activeChatUser) return;
@@ -824,7 +1109,6 @@
             const profileCardHtml = `<div class="chat-profile-card"><img src="${activeChatPfp}"><h2>${tData.name || targetUser}</h2><span class="uname">${targetUser}</span><span class="stats">${tFollowersCount} followers · ${tPostsCount} posts</span><span class="rel">You follow each other on Auragram</span><button onclick="location.href='profile.html?u=${targetUser}'">View profile</button></div>`;
             const chatId = getChatId(LOG, targetUser);
             
-            // Mark unread messages as read instantly when opening the chat
             db.collection("chats").doc(chatId).collection("messages").orderBy("timestamp", "desc").limit(20).get().then(snap => {
                 const batch = db.batch();
                 let updated = false;
@@ -903,7 +1187,6 @@
             document.getElementById("msg-view").style.display = "none";
             if(msgUnsubscribe) { msgUnsubscribe(); msgUnsubscribe = null; }
             activeChatUser = null;
-            // Refreshes the chat list to update the unread dot and return the camera
             loadActiveChatsList();
         }
 
@@ -936,10 +1219,7 @@
             
             const chatId = getChatId(LOG, activeChatUser);
             await db.collection("chats").doc(chatId).collection("messages").add({
-                sender: LOG,
-                text: text,
-                read: false,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                sender: LOG, text: text, read: false, timestamp: firebase.firestore.FieldValue.serverTimestamp()
             });
             loadActiveChatsList(); 
         }
