@@ -586,10 +586,20 @@
                 document.getElementById("call-local-video").srcObject = localCallStream;
                 
                 peerConnection = new RTCPeerConnection(pcConfig);
+                
+                // Initialize dedicated remote stream
+                const remoteStream = new MediaStream();
+                const remoteVideoElement = document.getElementById("call-remote-video");
+                remoteVideoElement.srcObject = remoteStream;
+
                 localCallStream.getTracks().forEach(track => peerConnection.addTrack(track, localCallStream));
                 
+                // FIXED VIDEO ASSIGNMENT
                 peerConnection.ontrack = (event) => {
-                    document.getElementById("call-remote-video").srcObject = event.streams[0];
+                    event.streams[0].getTracks().forEach(track => {
+                        remoteStream.addTrack(track);
+                    });
+                    remoteVideoElement.play().catch(e => console.error("Play blocked:", e));
                     document.getElementById("call-info-ui").style.display = "none";
                 };
 
@@ -606,11 +616,11 @@
 
                 callUnsubscribe = db.collection("calls").doc(currentCallId).onSnapshot(doc => {
                     const data = doc.data();
-                    if(data.answer && !peerConnection.currentRemoteDescription) {
+                    if(data && data.answer && !peerConnection.currentRemoteDescription) {
                         peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
                         document.getElementById("call-ui-status").innerText = "Connecting...";
                     }
-                    if(data.status === 'ended') endCallLocal();
+                    if(data && data.status === 'ended') endCallLocal();
                 });
 
                 db.collection("calls").doc(currentCallId).collection("receiverCandidates").onSnapshot(snap => {
@@ -635,10 +645,20 @@
                 document.getElementById("call-local-video").srcObject = localCallStream;
                 
                 peerConnection = new RTCPeerConnection(pcConfig);
+                
+                // Initialize dedicated remote stream
+                const remoteStream = new MediaStream();
+                const remoteVideoElement = document.getElementById("call-remote-video");
+                remoteVideoElement.srcObject = remoteStream;
+
                 localCallStream.getTracks().forEach(track => peerConnection.addTrack(track, localCallStream));
                 
+                // FIXED VIDEO ASSIGNMENT
                 peerConnection.ontrack = (event) => {
-                    document.getElementById("call-remote-video").srcObject = event.streams[0];
+                    event.streams[0].getTracks().forEach(track => {
+                        remoteStream.addTrack(track);
+                    });
+                    remoteVideoElement.play().catch(e => console.error("Play blocked:", e));
                     document.getElementById("call-info-ui").style.display = "none";
                 };
 
@@ -677,7 +697,15 @@
         }
 
         async function endCall() {
-            if(currentCallId) await db.collection("calls").doc(currentCallId).update({ status: 'ended' });
+            if(currentCallId) {
+                const callRef = db.collection("calls").doc(currentCallId);
+                await callRef.update({ status: 'ended' });
+                
+                // FIXED STORAGE CLEANUP
+                setTimeout(async () => {
+                    await callRef.delete().catch(e => console.error("Failed to delete call data:", e));
+                }, 2000);
+            }
             endCallLocal();
         }
 
