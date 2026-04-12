@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -45,8 +46,8 @@
         .search-bar input {background:transparent; border:none; color:#fff; outline:none; font-size:15px; flex:1;}
         .search-bar img {width:16px; filter:invert(0.6); margin-right:10px;}
 
-        .full-view { position:fixed; top:0; left:0; width:100vw; height:100dvh; background:#000; z-index:7500; flex-direction:column; }
-        .e-nav{height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 15px;background:#000;}
+        .full-view { position:fixed; top:0; left:0; width:100vw; height:100dvh; background:#000; z-index:7500; display:flex; flex-direction:column; }
+        .e-nav{height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 15px;background:#000; flex-shrink: 0;}
         
         .msg-body { flex:1; overflow-y:auto; overflow-x:hidden; padding:0 15px 15px 15px; display:flex; flex-direction:column; gap:4px; position:relative; }
         .chat-profile-card { text-align: center; padding: 40px 15px 30px; display: flex; flex-direction: column; align-items: center; }
@@ -87,7 +88,7 @@
         .audio-transcription { font-size: 13px; color: #fff; margin-top: 8px; opacity: 0.85; font-weight: 500; margin-left: 42px;}
 
         /* EXACT INSTA INPUT PILL STYLES */
-        .msg-input-area { padding:10px 15px 15px; background:#000; position:relative; }
+        .msg-input-area { padding:10px 15px 15px; background:#000; position:relative; flex-shrink:0; }
         .msg-input-pill { background: #262626; border-radius: 30px; display: flex; align-items: center; padding: 4px; gap: 10px; width: 100%; height: 48px; }
         
         .pill-left-action { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; }
@@ -124,23 +125,20 @@
         .cam-icon-right { width:26px; height:26px; object-fit:contain; filter:invert(0.6); cursor:pointer; flex-shrink:0; margin-left:10px;}
         .unread-dot { width:8px; height:8px; border-radius:50%; background:#4b6afa; flex-shrink:0; margin-left:14px; margin-right:4px;}
 
-        /* --- INSTAGRAM GIF PICKER STYLES --- */
+        /* --- 🚀 INSTA GIF PICKER STYLES (FLEX PUSH SYSTEM) --- */
         #gif-overlay {
-            position: absolute; bottom: 0; left: 0; width: 100%; background: #262626;
-            border-top-left-radius: 16px; border-top-right-radius: 16px;
+            width: 100%; background: #262626; border-top-left-radius: 16px; border-top-right-radius: 16px;
             display: flex; flex-direction: column; transition: height 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-            z-index: 8500; height: 0; overflow: hidden;
+            height: 0; overflow: hidden; flex-shrink: 0;
         }
         #gif-overlay.half { height: 380px; }
-        #gif-overlay.full { height: calc(100vh - 54px); } /* Fills screen just under top nav */
+        #gif-overlay.full { height: calc(100vh - 54px); } 
 
         .gif-drag-area { width: 100%; padding: 12px 0; cursor: pointer; }
         .gif-drag-handle { width: 36px; height: 4px; background: #555; border-radius: 4px; margin: 0 auto; }
         
         .gif-search-wrap { padding: 0 16px 12px; }
-        .gif-search-box {
-            position: relative; background: #363636; border-radius: 8px; display: flex; align-items: center; padding: 8px 12px;
-        }
+        .gif-search-box { position: relative; background: #363636; border-radius: 8px; display: flex; align-items: center; padding: 8px 12px; }
         .gif-search-box svg { width: 16px; height: 16px; stroke: #8e8e8e; margin-right: 8px; flex-shrink:0; }
         .gif-search-box input { background: transparent; border: none; color: white; font-size: 15px; width: 100%; outline: none; }
         .gif-clear-icon { stroke: #8e8e8e; stroke-width: 2; cursor: pointer; display: none; margin-left: 8px; }
@@ -150,7 +148,7 @@
             overflow: hidden; transition: max-height 0.2s ease, opacity 0.2s ease; max-height: 50px; opacity: 1; flex-shrink: 0;
         }
         .gif-categories.hidden { max-height: 0; opacity: 0; border-bottom: none; }
-        .gif-cat-icon { width: 100%; display: flex; justify-content: center; padding-bottom: 12px; cursor: pointer; border-bottom: 2px solid transparent; color: #8e8e8e; }
+        .gif-cat-icon { width: 100%; display: flex; justify-content: center; padding-bottom: 12px; cursor: pointer; border-bottom: 2px solid transparent; color: #8e8e8e; transition:color 0.2s; }
         .gif-cat-icon svg { width: 20px; height: 20px; stroke-width: 2px; }
         .gif-cat-icon.active { color: #fff; border-bottom: 2px solid #fff; }
 
@@ -250,9 +248,10 @@
             </div>
             <div id="suggestion-list"></div>
         </div>
+        <div class="b-bar" id="bottom-bar"></div>
     </div>
 
-    <div id="new-msg-overlay" class="full-view" style="display: none;">
+    <div id="new-msg-overlay" class="full-view" style="display: none; z-index: 9000;">
         <div class="e-nav" style="border-bottom:none;">
             <div style="display:flex; align-items:center;">
                 <img src="https://cdn-icons-png.flaticon.com/512/271/271218.png" style="width:20px; filter:invert(1); cursor:pointer;" onclick="closeNewMessageMenu()">
@@ -288,59 +287,11 @@
         
         <div class="msg-body" id="msg-list"></div>
         
-        <div id="gif-overlay">
-            <div class="gif-drag-area" id="gifDragHandle" onclick="shrinkGifPicker()"><div class="gif-drag-handle"></div></div>
-            
-            <div class="gif-search-wrap">
-                <div class="gif-search-box">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                    <input type="text" id="gifSearchInput" placeholder="Search GIPHY" autocomplete="off">
-                    <svg class="gif-clear-icon" id="gifClearBtn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" onclick="resetGifSearch()"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                </div>
-            </div>
-
-            <div class="gif-categories" id="gifCategoriesBox">
-                <div class="gif-cat-icon" onclick="changeGifCategory('recent', this)">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                </div>
-                <div class="gif-cat-icon" onclick="changeGifCategory('favorites', this)">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                </div>
-                <div class="gif-cat-icon active" id="gifDefaultTrend" onclick="changeGifCategory('trending', this)">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
-                </div>
-                <div class="gif-cat-icon" onclick="changeGifCategory('laugh', this)">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
-                </div>
-                <div class="gif-cat-icon" onclick="changeGifCategory('love', this)">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-                </div>
-                <div class="gif-cat-icon" onclick="changeGifCategory('sad', this)">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M16 16s-1.5-2-4-2-4 2-4 2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
-                </div>
-                <div class="gif-cat-icon" onclick="changeGifCategory('thumbs up', this)">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
-                </div>
-                <div class="gif-cat-icon" onclick="changeGifCategory('celebrate', this)">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M5.8 11.3 2 22l10.7-3.8"></path><path d="M4 3h.01M22 3h.01M16 4h.01M21 9h.01M10 2h.01M16 10l5-5M11.8 16.3l-4.5-4.5"></path></svg>
-                </div>
-            </div>
-
-            <div id="gif-api-loader"><div class="gif-spinner"></div></div>
-            
-            <div class="gif-scroll-area" id="gifScrollArea">
-                <div id="gif-msg-box"></div>
-                <div class="gif-grid" id="gifResultsGrid">
-                    <div class="gif-col" id="gifCol1"></div>
-                    <div class="gif-col" id="gifCol2"></div>
-                </div>
-            </div>
-        </div>
         <div class="msg-input-area">
             <div class="msg-input-pill" id="msg-input-default">
                 
                 <div class="pill-left-action" id="pill-left-cam" onclick="openLiveCamera(activeChatUser)">
-                    <img src="https://cdn-icons-png.flaticon.com/512/3014/3014736.png" style="width:20px; filter:invert(1);">
+                    <img src="cam.png" style="width:22px; filter:invert(1);" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3014/3014736.png'">
                 </div>
                 <div class="pill-left-action" id="pill-left-search" style="display:none; background:#fff;">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7b30f5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
@@ -382,9 +333,56 @@
                 </div>
             </div>
         </div>
-    </div>
 
-    <div class="b-bar" id="bottom-bar"></div>
+        <div id="gif-overlay">
+            <div class="gif-drag-area" id="gifDragHandle" onclick="shrinkGifPicker()"><div class="gif-drag-handle"></div></div>
+            
+            <div class="gif-search-wrap">
+                <div class="gif-search-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    <input type="text" id="gifSearchInput" placeholder="Search Klipy" autocomplete="off">
+                    <svg class="gif-clear-icon" id="gifClearBtn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" onclick="resetGifSearch()"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </div>
+            </div>
+
+            <div class="gif-categories" id="gifCategoriesBox">
+                <div class="gif-cat-icon" id="gifCatRecent" onclick="changeGifCategory('recent', this)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                </div>
+                <div class="gif-cat-icon" onclick="changeGifCategory('favorites', this)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                </div>
+                <div class="gif-cat-icon active" id="gifDefaultTrend" onclick="changeGifCategory('trending', this)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+                </div>
+                <div class="gif-cat-icon" onclick="changeGifCategory('laugh', this)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
+                </div>
+                <div class="gif-cat-icon" onclick="changeGifCategory('love', this)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                </div>
+                <div class="gif-cat-icon" onclick="changeGifCategory('sad', this)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M16 16s-1.5-2-4-2-4 2-4 2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
+                </div>
+                <div class="gif-cat-icon" onclick="changeGifCategory('thumbs up', this)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+                </div>
+                <div class="gif-cat-icon" onclick="changeGifCategory('celebrate', this)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M5.8 11.3 2 22l10.7-3.8"></path><path d="M4 3h.01M22 3h.01M16 4h.01M21 9h.01M10 2h.01M16 10l5-5M11.8 16.3l-4.5-4.5"></path></svg>
+                </div>
+            </div>
+
+            <div id="gif-api-loader"><div class="gif-spinner"></div></div>
+            
+            <div class="gif-scroll-area" id="gifScrollArea">
+                <div id="gif-msg-box"></div>
+                <div class="gif-grid" id="gifResultsGrid">
+                    <div class="gif-col" id="gifCol1"></div>
+                    <div class="gif-col" id="gifCol2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script>
         // --- YOUR SECURE FIREBASE CALL SANDBOX URL ---
@@ -409,7 +407,6 @@
         let activeChatPfp = null;
         let msgUnsubscribe = null;
         
-        // GLOBAL STATE
         let liveCamStream = null;
         let usingFrontCamera = false;
         let liveCamTarget = null;
@@ -431,6 +428,16 @@
         }, {passive: true});
         msgList.addEventListener('touchend', e => { msgList.classList.remove('swipe-active'); });
 
+        // TAP TO CLOSE GIF PICKER
+        msgList.addEventListener('click', () => {
+            if (document.getElementById('gif-overlay').className !== '') {
+                document.getElementById('gif-overlay').className = '';
+            }
+        });
+        document.getElementById('msg-input').addEventListener('focus', () => {
+            document.getElementById('gif-overlay').className = '';
+        });
+
         async function init() {
             if (!LOG) return location.href = "index.html";
             document.getElementById("h-uid").innerText = LOG;
@@ -449,8 +456,6 @@
             }
 
             listenForIncomingCalls();
-            
-            // INIT GIF PICKER CACHE
             fetchGIFs('', true, false);
         }
 
@@ -474,7 +479,7 @@
         function hideLoading() { document.getElementById('loading-toast').style.display = 'none'; }
 
         /* ================================
-           GIF ENGINE (KLIPY INTEGRATION) 
+           GIF ENGINE (FLEXBOX PUSH + RECENTS)
            ================================ */
         const gifOverlay = document.getElementById('gif-overlay');
         const gifSearchInput = document.getElementById('gifSearchInput');
@@ -497,23 +502,22 @@
         const GIF_LIMIT = 20;
 
         function toggleGifPicker() {
-            if (gifOverlay.classList.contains('half') || gifOverlay.classList.contains('full')) {
-                gifOverlay.className = ''; // Hide
+            if (gifOverlay.className !== '') {
+                gifOverlay.className = ''; 
             } else {
-                gifOverlay.className = 'half'; // Show half
-                setTimeout(() => { msgList.scrollTop = msgList.scrollHeight; }, 300);
+                gifOverlay.className = 'half'; 
+                setTimeout(() => { msgList.scrollTop = msgList.scrollHeight; }, 310);
             }
         }
 
         function shrinkGifPicker() {
             if (gifOverlay.classList.contains('full')) {
-                resetGifSearch(); // Slide back to half
+                resetGifSearch(); 
             } else {
-                gifOverlay.className = ''; // Close entirely if already half
+                gifOverlay.className = ''; 
             }
         }
 
-        // Expand to full when searching
         gifSearchInput.addEventListener('focus', () => {
             gifOverlay.className = 'full';
             gifCategoriesBox.classList.add('hidden');
@@ -541,14 +545,42 @@
             fetchGIFs('', true, false);
         }
 
+        // --- LOCAL STORAGE RECENT GIFS ---
+        function saveRecentGif(url) {
+            let recents = JSON.parse(localStorage.getItem('auragram_recent_gifs') || '[]');
+            recents = recents.filter(g => g !== url); 
+            recents.unshift(url); 
+            if(recents.length > 30) recents.pop(); 
+            localStorage.setItem('auragram_recent_gifs', JSON.stringify(recents));
+        }
+
+        function loadRecentGifs() {
+            gifMessageBox.innerHTML = ''; gifCol1.innerHTML = ''; gifCol2.innerHTML = '';
+            let recents = JSON.parse(localStorage.getItem('auragram_recent_gifs') || '[]');
+            if(recents.length === 0) {
+                gifMessageBox.innerHTML = 'No recent GIFs sent yet.';
+                return;
+            }
+            // Format fake Klipy API data to recycle our render function
+            let fakeData = recents.map(url => ({ media_formats: { gif: { url: url, dims: [200, 200] } } }));
+            renderGIFs(fakeData, false);
+        }
+
         function changeGifCategory(type, el) {
             document.querySelectorAll('.gif-cat-icon').forEach(i => i.classList.remove('active'));
             el.classList.add('active');
             gifSearchInput.value = ""; 
             gifClearBtn.style.display = 'none';
             
-            if(type === 'trending') fetchGIFs('', true, false);
-            else fetchGIFs(type, false, false); 
+            if (type === 'recent') {
+                gifIsFetching = true; // stop infinite scroll from firing
+                loadRecentGifs();
+                setTimeout(() => { gifIsFetching = false; }, 500);
+            } else if (type === 'trending') {
+                fetchGIFs('', true, false);
+            } else {
+                fetchGIFs(type, false, false); 
+            }
         }
 
         gifScrollArea.addEventListener('scroll', () => {
@@ -565,27 +597,23 @@
             gifMessageBox.innerHTML = ''; 
             
             if (!append) gifOffset = '';
-
             gifQuery = query;
             gifIsTrending = isTrending;
 
             const endpoint = isTrending ? 'featured' : 'search';
-            const finalQuery = (query === 'recent' || query === 'favorites') ? 'trending' : query;
+            const finalQuery = (query === 'recent' || query === 'favorites') ? 'trending' : query; // safety fallback
             
             let url = `${GIF_BASE_URL}/${endpoint}?key=${KLIPY_KEY}&limit=${GIF_LIMIT}&per_page=${GIF_LIMIT}`;
-            
             if (!isTrending) url += `&q=${encodeURIComponent(finalQuery)}`;
             if (append && gifOffset) url += `&pos=${gifOffset}`;
 
             const cachedData = sessionStorage.getItem(url);
-            
             if (cachedData) {
                 if (!append) { gifCol1.innerHTML = ''; gifCol2.innerHTML = ''; }
                 const parsedData = JSON.parse(cachedData);
                 renderGIFs(parsedData.results, append);
                 gifOffset = parsedData.next || ''; 
-                gifIsFetching = false;
-                gifLoader.style.display = 'none';
+                gifIsFetching = false; gifLoader.style.display = 'none';
                 return; 
             }
 
@@ -594,27 +622,22 @@
             try {
                 const response = await fetch(url);
                 const json = await response.json();
-                
                 const results = json.results || [];
                 gifOffset = json.next || '';
                 
                 sessionStorage.setItem(url, JSON.stringify({ results: results, next: json.next }));
                 renderGIFs(results, append);
-                
                 if (results.length === 0 && !append) gifMessageBox.innerHTML = 'No GIFs found.';
 
             } catch (err) {
-                console.error("Klipy Error:", err);
                 if (!append) gifMessageBox.innerHTML = '<span style="color:#ff6b6b;">Network Error.</span>';
             } finally {
-                gifLoader.style.display = 'none';
-                gifIsFetching = false;
+                gifLoader.style.display = 'none'; gifIsFetching = false;
             }
         }
 
         function renderGIFs(data, append) {
             let newCol1Html = ''; let newCol2Html = '';
-
             data.forEach((gif, index) => {
                 const media = gif.media_formats?.tinygif || gif.media_formats?.gif || gif.files?.tinygif || gif.files?.gif || gif.media?.[0]?.tinygif;
                 const width = media?.dims?.[0] || 200;
@@ -631,8 +654,7 @@
                     </div>
                 `;
 
-                if (index % 2 === 0) newCol1Html += html;
-                else newCol2Html += html;
+                if (index % 2 === 0) newCol1Html += html; else newCol2Html += html;
             });
 
             if (append) { gifCol1.innerHTML += newCol1Html; gifCol2.innerHTML += newCol2Html; } 
@@ -641,8 +663,9 @@
 
         async function sendGifUrl(gifUrl) {
             if(!activeChatUser) return;
-            gifOverlay.className = ''; // close sheet instantly
+            gifOverlay.className = ''; 
             showLoading("Sending...");
+            saveRecentGif(gifUrl); // Save to Recent local storage
             const chatId = getChatId(LOG, activeChatUser);
             await db.collection("chats").doc(chatId).collection("messages").add({
                 sender: LOG, text: "", gifUrl: gifUrl, read: false, timestamp: firebase.firestore.FieldValue.serverTimestamp()
@@ -677,15 +700,23 @@
             liveCamTarget = null;
         }
 
+        // 🚀 FIXED: Resize Image before sending to prevent Firebase Document limit errors
         async function captureLivePhoto() {
             if(!liveCamStream || !liveCamTarget) return;
             const video = document.getElementById('live-cam-video');
             const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             
-            const base64Img = canvas.toDataURL('image/jpeg', 0.7);
+            // Scale down raw 4k/HD feeds to max 800px width so it successfully sends to Firestore
+            let w = video.videoWidth;
+            let h = video.videoHeight;
+            if (w > 800) { h = Math.floor(h * (800 / w)); w = 800; }
+            
+            canvas.width = w; 
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, w, h);
+            
+            const base64Img = canvas.toDataURL('image/jpeg', 0.6); // Compress to 60% quality for speed
             closeLiveCamera();
             showLoading("Sending...");
             
@@ -818,7 +849,6 @@
                     let displayMsg = "";
                     if (unreadCount > 1) { displayMsg = `${unreadCount} new messages`; } 
                     else {
-                        // DETECT GIF TYPE FOR CHAT PREVIEW
                         let rawText = lastMsg.gifUrl ? "Sent a GIF" : (lastMsg.image ? "Sent a photo" : (lastMsg.audioUrl ? "Sent a voice message" : lastMsg.text));
                         displayMsg = lastMsg.sender === LOG ? `You: ${rawText}` : rawText;
                     }
@@ -990,6 +1020,9 @@
         function closeNewMessageMenu() { document.getElementById("new-msg-overlay").style.display = "none"; }
 
         async function openMsg(targetUser, pfpUrl) {
+            // 🚀 FIX BACKGROUND SCROLL: Hide the main DM list entirely when inside a chat
+            document.getElementById("main-dm-view").style.display = "none";
+
             activeChatUser = targetUser; activeChatPfp = pfpUrl || DIMG; 
             document.getElementById("chat-uid").innerText = targetUser; document.getElementById("chat-pfp").src = activeChatPfp;
             
@@ -1030,7 +1063,6 @@
                         bubbleClass += ' msg-img-bubble';
                         msgContent = `<img src="${m.image}" onclick="openImageViewer('${m.image}')">`;
                     } else if (m.gifUrl) {
-                        // RENDER THE GIF DIRECTLY FROM KLIPY
                         bubbleClass += ' msg-img-bubble';
                         msgContent = `<img src="${m.gifUrl}" style="border-radius:18px; max-width:220px; width:100%; height:auto;" alt="GIF">`;
                     } else {
@@ -1049,14 +1081,14 @@
                         </div>
                     `;
                 });
-                // Ensure chat stays scrolled to the bottom when new message arrives
                 setTimeout(() => { box.scrollTop = box.scrollHeight; }, 50);
             });
         }
 
         function closeMsg() {
             document.getElementById("msg-view").style.display = "none";
-            gifOverlay.className = ''; // Hide gif sheet if open
+            document.getElementById("main-dm-view").style.display = "block"; // Restore main DM list
+            gifOverlay.className = ''; 
             if(msgUnsubscribe) { msgUnsubscribe(); msgUnsubscribe = null; }
             activeChatUser = null;
             loadActiveChatsList();
