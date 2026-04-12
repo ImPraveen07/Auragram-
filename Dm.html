@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -69,10 +70,6 @@
         .msg-img-bubble { background:transparent !important; padding:0 !important; border-radius:18px !important; overflow:hidden;}
         .msg-img-bubble img { max-width:240px; border-radius:18px; display:block; object-fit:cover; cursor:pointer;}
         
-        /* NEW CALL BUBBLE CSS */
-        .msg-call-bubble { background:#262626 !important; color:#fff !important; padding:10px 16px !important; border-radius:24px !important; max-width:85% !important;}
-        .msg-sent-call { border-bottom-right-radius: 4px !important; margin-left:auto; }
-
         .msg-recv-pfp { width:28px; height:28px; border-radius:50%; object-fit:cover; margin-right:8px; flex-shrink:0; align-self:flex-end; }
         .msg-exact-time { position: absolute; right: -50px; top: 50%; transform: translateY(-50%); font-size: 11px; color: #888; opacity: 0; transition: opacity 0.2s; white-space:nowrap; }
 
@@ -142,6 +139,16 @@
         .capture-btn:active { background:#fff; }
         .cam-switch-btn { width:40px; height:40px; background:rgba(0,0,0,0.5); border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; }
 
+        /* WEBRTC CALL OVERLAY */
+        #call-ov { display:none; position:fixed; top:0; left:0; width:100vw; height:100dvh; background:#1c1c1e; z-index:10000; flex-direction:column; overflow:hidden;}
+        #call-remote-video { position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; z-index:1; }
+        #call-local-video { position:absolute; top:20px; right:20px; width:100px; height:150px; object-fit:cover; border-radius:12px; z-index:2; background:#000; display:none; }
+        .call-info { position:absolute; top:60px; left:0; width:100%; display:flex; flex-direction:column; align-items:center; z-index:3; text-align:center; text-shadow:0 2px 5px rgba(0,0,0,0.5); }
+        .call-pfp-large { width:100px; height:100px; border-radius:50%; object-fit:cover; margin-bottom:15px; box-shadow:0 4px 10px rgba(0,0,0,0.3); }
+        .call-controls { position:absolute; bottom:50px; left:0; width:100%; display:flex; justify-content:center; gap:25px; z-index:3; }
+        .c-btn { width:60px; height:60px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; background:rgba(255,255,255,0.2); backdrop-filter:blur(10px); }
+        .c-btn-red { background:#ff3b30; }
+
         /* INCOMING CALL NOTIFICATION */
         #incoming-call-modal { display:none; position:fixed; top:20px; left:50%; transform:translateX(-50%); width:90%; max-width:400px; background:#262626; border-radius:20px; padding:15px; z-index:10001; align-items:center; gap:15px; box-shadow:0 10px 25px rgba(0,0,0,0.5); animation: slideDown 0.3s ease-out; }
         @keyframes slideDown { from{top:-100px;} to{top:20px;} }
@@ -162,11 +169,34 @@
             <span id="inc-call-type" style="font-size:13px; color:#a8a8a8;">Incoming video call...</span>
         </div>
         <div class="inc-btns">
-            <div class="inc-btn" onclick="rejectCall()" style="background:#ff3b30;">
+            <div class="inc-btn c-btn-red" onclick="rejectCall()">
                 <svg fill="white" width="20" height="20" viewBox="0 0 24 24"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-1.02.48-1.95 1.12-2.76 1.88-.23.23-.62.23-.85 0l-2.03-2.03c-.23-.23-.23-.62 0-.85C4.24 9.5 7.9 7.5 12 7.5s7.76 2 10.8 5.22c.23.23.23.62 0 .85l-2.03 2.03c-.23.23-.62.23-.85 0-.81-.76-1.74-1.4-2.76-1.88-.33-.16-.56-.51-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/></svg>
             </div>
             <div class="inc-btn" style="background:#34c759;" onclick="acceptCall()">
                 <svg fill="white" width="20" height="20" viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+            </div>
+        </div>
+    </div>
+
+    <div id="call-ov">
+        <video id="call-remote-video" autoplay playsinline></video>
+        <video id="call-local-video" autoplay playsinline muted></video>
+        
+        <div class="call-info" id="call-info-ui">
+            <img id="call-ui-pfp" class="call-pfp-large" src="">
+            <b id="call-ui-name" style="font-size:22px; margin-bottom:5px;">User</b>
+            <span id="call-ui-status" style="font-size:15px; color:#ddd;">Calling...</span>
+        </div>
+
+        <div class="call-controls">
+            <div class="c-btn" onclick="toggleCallMute()" id="btn-call-mute">
+                <img src="https://cdn-icons-png.flaticon.com/512/709/709682.png" style="width:24px; filter:invert(1);">
+            </div>
+            <div class="c-btn" onclick="toggleCallVideo()" id="btn-call-video">
+                <img src="https://cdn-icons-png.flaticon.com/512/3014/3014736.png" style="width:24px; filter:invert(1);">
+            </div>
+            <div class="c-btn c-btn-red" onclick="endCall()">
+                <svg fill="white" width="28" height="28" viewBox="0 0 24 24"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-1.02.48-1.95 1.12-2.76 1.88-.23.23-.62.23-.85 0l-2.03-2.03c-.23-.23-.23-.62 0-.85C4.24 9.5 7.9 7.5 12 7.5s7.76 2 10.8 5.22c.23.23.23.62 0 .85l-2.03 2.03c-.23.23-.62.23-.85 0-.81-.76-1.74-1.4-2.76-1.88-.33-.16-.56-.51-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/></svg>
             </div>
         </div>
     </div>
@@ -203,7 +233,9 @@
                 <img src="https://cdn-icons-png.flaticon.com/512/54/54481.png">
                 <input type="text" placeholder="Search or ask Meta AI">
             </div>
+
             <div class="notes-scroll" id="notes-container"></div>
+
             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px; margin-bottom: 12px;">
                 <b style="font-size: 16px;">Messages</b>
                 <span style="color: #4b6afa; font-weight: 600; font-size: 15px; cursor:pointer;">Requests</span>
@@ -317,8 +349,8 @@
                 </div>
             </div>
             <div style="display:flex; gap:20px; align-items:center;">
-                <svg fill="white" width="24" height="24" viewBox="0 0 24 24" style="cursor:pointer;" onclick="startCall('audio')"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                <svg fill="white" width="28" height="28" viewBox="0 0 24 24" style="cursor:pointer;" onclick="startCall('video')"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+                <img src="https://cdn-icons-png.flaticon.com/512/159/159836.png" style="width:22px; filter:invert(1); cursor:pointer;" onclick="startCall('audio')">
+                <img src="https://cdn-icons-png.flaticon.com/512/3014/3014736.png" style="width:24px; filter:invert(1); cursor:pointer;" onclick="startCall('video')">
             </div>
         </div>
         
@@ -376,9 +408,6 @@
     <script>
         const CLOUD_NAME = "ditmmz5hk"; 
         const UPLOAD_PRESET = "my_video_preset";
-        
-        // --- YOUR SECURE FIREBASE CALL SANDBOX URL ---
-        const FIREBASE_HOST = "https://instagram-e8c7a.web.app";
 
         const config = {
             apiKey:"AIzaSyAHjilh7jAlS0e5qDKxbDZq3nbe3pFe4nE",
@@ -401,9 +430,16 @@
         let liveCamStream = null;
         let usingFrontCamera = false;
         let liveCamTarget = null;
-        let currentCallId = null;
 
-        // AUDIO RECORDER
+        // WEBRTC CALL GLOBALS
+        let localCallStream = null;
+        let peerConnection = null;
+        let currentCallId = null;
+        let callUnsubscribe = null;
+        let incomingCallUnsubscribe = null;
+        let isVideoCall = true;
+        const pcConfig = { iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }] };
+
         let mediaRecorder;
         let audioChunks = [];
         let recordTimerInterval;
@@ -458,7 +494,7 @@
         function showLoading(msg) { document.getElementById('loading-toast').innerText = msg; document.getElementById('loading-toast').style.display = 'block'; }
         function hideLoading() { document.getElementById('loading-toast').style.display = 'none'; }
 
-        // ----- IN-APP CAMERA ENGINE (For Photos) -----
+        // ----- IN-APP CAMERA ENGINE -----
         async function openLiveCamera(targetUid) {
             if(event) event.stopPropagation();
             liveCamTarget = targetUid;
@@ -510,72 +546,196 @@
             loadActiveChatsList();
         }
 
-        // ----- SECURE CALL REDIRECTION ENGINE -----
+        // ----- WEBRTC CALL ENGINE -----
         function listenForIncomingCalls() {
-            db.collection("calls").where("receiver", "==", LOG).where("status", "==", "ringing").onSnapshot(snap => {
+            db.collection("calls").where("receiver", "==", LOG).where("status", "==", "calling").onSnapshot(snap => {
                 snap.docChanges().forEach(async change => {
                     if (change.type === "added") {
                         const callData = change.doc.data();
                         currentCallId = change.doc.id;
+                        isVideoCall = callData.type === 'video';
                         
                         const callerDoc = await db.collection("users").doc(callData.caller).get();
                         const pfp = callerDoc.exists && callerDoc.data().profileImg ? callerDoc.data().profileImg : DIMG;
                         
                         document.getElementById("inc-call-pfp").src = pfp;
                         document.getElementById("inc-call-name").innerText = callData.caller;
-                        document.getElementById("inc-call-type").innerText = callData.type === 'video' ? "Incoming video call..." : "Incoming audio call...";
+                        document.getElementById("inc-call-type").innerText = isVideoCall ? "Incoming video call..." : "Incoming audio call...";
                         document.getElementById("incoming-call-modal").style.display = "flex";
-                    }
-                    if (change.type === "modified" && (change.doc.data().status === "ended" || change.doc.data().status === "rejected")) {
-                        document.getElementById("incoming-call-modal").style.display = "none";
-                        currentCallId = null;
+                        
+                        document.getElementById("call-ui-pfp").src = pfp;
+                        document.getElementById("call-ui-name").innerText = callData.caller;
                     }
                 });
             });
         }
 
-        window.startCall = async function(type) {
+        async function startCall(type) {
             if(!activeChatUser) return;
-            const retUrl = encodeURIComponent(window.location.href);
-            const callRef = db.collection("calls").doc();
-            const chatId = getChatId(LOG, activeChatUser);
-            
-            // 1. Write the Ringing signal for the receiver
-            await callRef.set({ 
-                caller: LOG, 
-                receiver: activeChatUser, 
-                type: type, 
-                status: 'ringing', 
-                timestamp: Date.now() 
-            });
+            isVideoCall = type === 'video';
+            document.getElementById("call-ov").style.display = "flex";
+            document.getElementById("call-ui-pfp").src = activeChatPfp;
+            document.getElementById("call-ui-name").innerText = activeChatUser;
+            document.getElementById("call-ui-status").innerText = "Calling...";
+            document.getElementById("call-local-video").style.display = isVideoCall ? "block" : "none";
 
-            // 2. Write the Chat Log to show in the UI Bubble instantly!
-            await db.collection("chats").doc(chatId).collection("messages").add({
-                sender: LOG,
-                type: 'call',
-                callType: type,
-                text: type === 'video' ? 'Video call started' : 'Audio call started',
-                read: false,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            });
+            currentCallId = db.collection("calls").doc().id;
             
-            // 3. Redirect Caller to Firebase Sandbox
-            window.location.href = `${FIREBASE_HOST}?callId=${callRef.id}&returnUrl=${retUrl}&isCaller=true`;
+            try {
+                localCallStream = await navigator.mediaDevices.getUserMedia({ video: isVideoCall, audio: true });
+                document.getElementById("call-local-video").srcObject = localCallStream;
+                
+                peerConnection = new RTCPeerConnection(pcConfig);
+                
+                // Initialize dedicated remote stream
+                const remoteStream = new MediaStream();
+                const remoteVideoElement = document.getElementById("call-remote-video");
+                remoteVideoElement.srcObject = remoteStream;
+
+                localCallStream.getTracks().forEach(track => peerConnection.addTrack(track, localCallStream));
+                
+                // FIXED VIDEO ASSIGNMENT
+                peerConnection.ontrack = (event) => {
+                    event.streams[0].getTracks().forEach(track => {
+                        remoteStream.addTrack(track);
+                    });
+                    remoteVideoElement.play().catch(e => console.error("Play blocked:", e));
+                    document.getElementById("call-info-ui").style.display = "none";
+                };
+
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                
+                await db.collection("calls").doc(currentCallId).set({
+                    caller: LOG, receiver: activeChatUser, type: type, status: 'calling', offer: { type: offer.type, sdp: offer.sdp }
+                });
+
+                peerConnection.onicecandidate = event => {
+                    if(event.candidate) db.collection("calls").doc(currentCallId).collection("callerCandidates").add(event.candidate.toJSON());
+                };
+
+                callUnsubscribe = db.collection("calls").doc(currentCallId).onSnapshot(doc => {
+                    const data = doc.data();
+                    if(data && data.answer && !peerConnection.currentRemoteDescription) {
+                        peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+                        document.getElementById("call-ui-status").innerText = "Connecting...";
+                    }
+                    if(data && data.status === 'ended') endCallLocal();
+                });
+
+                db.collection("calls").doc(currentCallId).collection("receiverCandidates").onSnapshot(snap => {
+                    snap.docChanges().forEach(change => {
+                        if(change.type === "added") peerConnection.addIceCandidate(new RTCIceCandidate(change.doc.data()));
+                    });
+                });
+            } catch(e) {
+                alert("Could not access camera/microphone.");
+                endCallLocal();
+            }
         }
 
-        window.acceptCall = function() {
-            if(!currentCallId) return;
-            const retUrl = encodeURIComponent(window.location.href);
-            window.location.href = `${FIREBASE_HOST}?callId=${currentCallId}&returnUrl=${retUrl}&isCaller=false`;
+        async function acceptCall() {
+            document.getElementById("incoming-call-modal").style.display = "none";
+            document.getElementById("call-ov").style.display = "flex";
+            document.getElementById("call-local-video").style.display = isVideoCall ? "block" : "none";
+            document.getElementById("call-ui-status").innerText = "Connecting...";
+
+            try {
+                localCallStream = await navigator.mediaDevices.getUserMedia({ video: isVideoCall, audio: true });
+                document.getElementById("call-local-video").srcObject = localCallStream;
+                
+                peerConnection = new RTCPeerConnection(pcConfig);
+                
+                // Initialize dedicated remote stream
+                const remoteStream = new MediaStream();
+                const remoteVideoElement = document.getElementById("call-remote-video");
+                remoteVideoElement.srcObject = remoteStream;
+
+                localCallStream.getTracks().forEach(track => peerConnection.addTrack(track, localCallStream));
+                
+                // FIXED VIDEO ASSIGNMENT
+                peerConnection.ontrack = (event) => {
+                    event.streams[0].getTracks().forEach(track => {
+                        remoteStream.addTrack(track);
+                    });
+                    remoteVideoElement.play().catch(e => console.error("Play blocked:", e));
+                    document.getElementById("call-info-ui").style.display = "none";
+                };
+
+                const callDoc = await db.collection("calls").doc(currentCallId).get();
+                const offer = callDoc.data().offer;
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+                await db.collection("calls").doc(currentCallId).update({ answer: { type: answer.type, sdp: answer.sdp }, status: 'connected' });
+
+                peerConnection.onicecandidate = event => {
+                    if(event.candidate) db.collection("calls").doc(currentCallId).collection("receiverCandidates").add(event.candidate.toJSON());
+                };
+
+                db.collection("calls").doc(currentCallId).collection("callerCandidates").onSnapshot(snap => {
+                    snap.docChanges().forEach(change => {
+                        if(change.type === "added") peerConnection.addIceCandidate(new RTCIceCandidate(change.doc.data()));
+                    });
+                });
+
+                callUnsubscribe = db.collection("calls").doc(currentCallId).onSnapshot(doc => {
+                    if(doc.data() && doc.data().status === 'ended') endCallLocal();
+                });
+            } catch(e) {
+                rejectCall();
+            }
         }
 
-        window.rejectCall = async function() {
+        async function rejectCall() {
             document.getElementById("incoming-call-modal").style.display = "none";
             if(currentCallId) {
-                await db.collection("calls").doc(currentCallId).update({ status: 'rejected' });
+                await db.collection("calls").doc(currentCallId).update({ status: 'ended' });
                 currentCallId = null;
             }
         }
+
+        async function endCall() {
+            if(currentCallId) {
+                const callRef = db.collection("calls").doc(currentCallId);
+                await callRef.update({ status: 'ended' });
+                
+                // FIXED STORAGE CLEANUP
+                setTimeout(async () => {
+                    await callRef.delete().catch(e => console.error("Failed to delete call data:", e));
+                }, 2000);
+            }
+            endCallLocal();
+        }
+
+        function endCallLocal() {
+            if(peerConnection) { peerConnection.close(); peerConnection = null; }
+            if(localCallStream) { localCallStream.getTracks().forEach(t => t.stop()); localCallStream = null; }
+            if(callUnsubscribe) { callUnsubscribe(); callUnsubscribe = null; }
+            document.getElementById("call-ov").style.display = "none";
+            document.getElementById("call-info-ui").style.display = "flex";
+            document.getElementById("call-remote-video").srcObject = null;
+            document.getElementById("call-local-video").srcObject = null;
+            currentCallId = null;
+        }
+
+        function toggleCallMute() {
+            if(!localCallStream) return;
+            const audioTrack = localCallStream.getAudioTracks()[0];
+            audioTrack.enabled = !audioTrack.enabled;
+            document.getElementById("btn-call-mute").style.background = audioTrack.enabled ? "rgba(255,255,255,0.2)" : "#ff3b30";
+        }
+
+        function toggleCallVideo() {
+            if(!localCallStream) return;
+            const videoTrack = localCallStream.getVideoTracks()[0];
+            if(videoTrack) {
+                videoTrack.enabled = !videoTrack.enabled;
+                document.getElementById("btn-call-video").style.background = videoTrack.enabled ? "rgba(255,255,255,0.2)" : "#ff3b30";
+            }
+        }
+
 
         // ----- CHAT LOGIC -----
         async function loadNotes() {
@@ -690,13 +850,8 @@
                     if (unreadCount > 1) {
                         displayMsg = `${unreadCount} new messages`;
                     } else {
-                        // Include our new "call" type in the chat list preview
-                        if(lastMsg.type === 'call') {
-                            displayMsg = lastMsg.text;
-                        } else {
-                            let rawText = lastMsg.image ? "Sent a photo" : (lastMsg.audioUrl ? "Sent a voice message" : lastMsg.text);
-                            displayMsg = lastMsg.sender === LOG ? `You: ${rawText}` : rawText;
-                        }
+                        let rawText = lastMsg.image ? "Sent a photo" : (lastMsg.audioUrl ? "Sent a voice message" : lastMsg.text);
+                        displayMsg = lastMsg.sender === LOG ? `You: ${rawText}` : rawText;
                     }
                     
                     const noteHtml = (uData.note && uData.note.text) ? `<div style="position:absolute; top:-5px; left:10px; background:#262626; padding:2px 8px; border-radius:10px; font-size:10px; border:2px solid #000; color:#fff; white-space:nowrap; max-width:60px; overflow:hidden; text-overflow:ellipsis; pointer-events:none; z-index:2;">${uData.note.text}</div>` : '';
@@ -726,6 +881,223 @@
             }
         }
 
+        async function startAudioRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.start();
+                audioChunks = [];
+                mediaRecorder.addEventListener("dataavailable", event => { audioChunks.push(event.data); });
+                
+                document.getElementById('msg-input-default').style.display = 'none';
+                document.getElementById('msg-input-recording').style.display = 'flex';
+                recordSeconds = 0;
+                document.getElementById('recording-timer').innerText = "00:00";
+                
+                recordTimerInterval = setInterval(() => {
+                    recordSeconds++;
+                    let m = Math.floor(recordSeconds / 60).toString().padStart(2, '0');
+                    let s = (recordSeconds % 60).toString().padStart(2, '0');
+                    document.getElementById('recording-timer').innerText = `${m}:${s}`;
+                }, 1000);
+            } catch (err) {
+                alert("Microphone access is required to send voice messages.");
+            }
+        }
+
+        function cancelAudioRecording() {
+            if(mediaRecorder) {
+                mediaRecorder.stop();
+                mediaRecorder.stream.getTracks().forEach(track => track.stop());
+            }
+            clearInterval(recordTimerInterval);
+            document.getElementById('msg-input-default').style.display = 'flex';
+            document.getElementById('msg-input-recording').style.display = 'none';
+        }
+
+        function sendAudioRecording() {
+            if(!mediaRecorder) return;
+            showLoading("Sending audio...");
+            mediaRecorder.addEventListener("stop", async () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' }); 
+                const formData = new FormData();
+                formData.append('file', audioBlob);
+                formData.append('upload_preset', UPLOAD_PRESET);
+                try {
+                    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/video/upload`, { method: 'POST', body: formData });
+                    const data = await res.json();
+                    if(data.secure_url) {
+                        const chatId = getChatId(LOG, activeChatUser);
+                        await db.collection("chats").doc(chatId).collection("messages").add({
+                            sender: LOG, text: "", audioUrl: data.secure_url, duration: recordSeconds, read: false, timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                        loadActiveChatsList();
+                    }
+                } catch(err) { alert("Failed to upload audio."); } finally { hideLoading(); }
+            });
+            mediaRecorder.stop();
+            mediaRecorder.stream.getTracks().forEach(track => track.stop());
+            clearInterval(recordTimerInterval);
+            document.getElementById('msg-input-default').style.display = 'flex';
+            document.getElementById('msg-input-recording').style.display = 'none';
+        }
+
+        window.initAudio = function(id) {
+            const audio = document.getElementById('audio-elem-' + id);
+            const timeText = document.getElementById('audio-time-' + id);
+            if(audio && audio.duration && audio.duration !== Infinity) {
+                let s = Math.floor(audio.duration % 60);
+                timeText.innerText = `0:${s.toString().padStart(2, '0')}`;
+            }
+        }
+
+        window.updateWaveform = function(id) {
+            const track = document.getElementById('waveform-' + id);
+            const audio = document.getElementById('audio-elem-' + id);
+            const timeText = document.getElementById('audio-time-' + id);
+            const totalDur = parseFloat(timeText.getAttribute('data-duration')) || audio.duration || 1;
+            
+            const percentage = audio.currentTime / totalDur;
+            const bars = track.querySelectorAll('.wave-bar');
+            const activeIndex = Math.floor(percentage * bars.length);
+            
+            bars.forEach((bar, index) => {
+                if(index <= activeIndex) bar.style.background = '#fff';
+                else bar.style.background = 'rgba(255,255,255,0.4)';
+            });
+            
+            const rem = Math.max(0, totalDur - audio.currentTime);
+            let s = Math.floor(rem % 60);
+            timeText.innerText = `0:${s.toString().padStart(2, '0')}`;
+        }
+
+        window.seekAudio = function(e, id) {
+            const track = document.getElementById('waveform-' + id);
+            const audio = document.getElementById('audio-elem-' + id);
+            const timeText = document.getElementById('audio-time-' + id);
+            const totalDur = parseFloat(timeText.getAttribute('data-duration')) || audio.duration;
+            if(!totalDur) return;
+            
+            const rect = track.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const percentage = Math.max(0, Math.min(1, clickX / rect.width));
+            
+            audio.currentTime = percentage * totalDur;
+            window.updateWaveform(id);
+        }
+
+        function toggleAudio(id) {
+            const audioEl = document.getElementById('audio-elem-' + id);
+            const playIcon = document.getElementById('audio-play-icon-' + id);
+            document.querySelectorAll('audio').forEach(el => {
+                if(el.id !== 'audio-elem-' + id && !el.paused) {
+                    el.pause();
+                    document.getElementById('audio-play-icon-' + el.id.replace('audio-elem-','')).innerHTML = '<polygon points="8,5 20,12 8,19" fill="white"/>';
+                }
+            });
+            if (audioEl.paused) {
+                audioEl.play();
+                playIcon.innerHTML = '<rect x="6" y="5" width="4" height="14" fill="white"/><rect x="14" y="5" width="4" height="14" fill="white"/>';
+            } else {
+                audioEl.pause();
+                playIcon.innerHTML = '<polygon points="8,5 20,12 8,19" fill="white"/>';
+            }
+        }
+
+        function resetAudioUI(id) {
+            document.getElementById('audio-play-icon-' + id).innerHTML = '<polygon points="8,5 20,12 8,19" fill="white"/>';
+            const audio = document.getElementById('audio-elem-' + id);
+            audio.currentTime = 0;
+            window.updateWaveform(id);
+        }
+
+        function toggleSpeed(btn, id) {
+            const audioEl = document.getElementById('audio-elem-' + id);
+            if (audioEl.playbackRate === 1) { audioEl.playbackRate = 1.5; btn.innerText = "1.5x"; }
+            else if (audioEl.playbackRate === 1.5) { audioEl.playbackRate = 2; btn.innerText = "2x"; }
+            else { audioEl.playbackRate = 1; btn.innerText = "1x"; }
+        }
+
+        function compressImage(file, maxWidth = 800, quality = 0.6) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+                        if (width > maxWidth) { height = Math.round((height * maxWidth) / width); width = maxWidth; }
+                        canvas.width = width; canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        resolve(canvas.toDataURL('image/jpeg', quality));
+                    };
+                };
+            });
+        }
+
+        async function handleChatGalleryUpload(event) {
+            const file = event.target.files[0];
+            if(!file || !activeChatUser) return;
+            showLoading("Sending...");
+            const base64Img = await compressImage(file);
+            const chatId = getChatId(LOG, activeChatUser);
+            await db.collection("chats").doc(chatId).collection("messages").add({
+                sender: LOG, text: "", image: base64Img, read: false, timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            document.getElementById("chat-gallery-input").value = ""; 
+            hideLoading();
+        }
+
+        function openImageViewer(base64str) { document.getElementById('iv-main-img').src = base64str; document.getElementById('img-viewer-ov').style.display = 'flex'; }
+        function closeImageViewer() { document.getElementById('img-viewer-ov').style.display = 'none'; }
+        function downloadViewerImage() {
+            const a = document.createElement('a');
+            a.href = document.getElementById('iv-main-img').src; a.download = 'auragram_image.jpg';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        }
+
+        async function loadMutualSuggestions() {
+            const list = document.getElementById("suggestion-list");
+            try {
+                const myDoc = await db.collection("users").doc(LOG).get();
+                const myFollowing = myDoc.data().followingList || [];
+                let potentialSuggestions = {}; 
+                for(let i=0; i < Math.min(myFollowing.length, 5); i++) {
+                    const friendUid = myFollowing[i];
+                    if(friendUid === LOG) continue;
+                    const friendDoc = await db.collection("users").doc(friendUid).get();
+                    if(friendDoc.exists) {
+                        const friendFollowing = friendDoc.data().followingList || [];
+                        for(let fof of friendFollowing) {
+                            if(fof !== LOG && !myFollowing.includes(fof)) {
+                                if(!potentialSuggestions[fof]) potentialSuggestions[fof] = { count: 0, mutualName: friendUid };
+                                potentialSuggestions[fof].count++;
+                            }
+                        }
+                    }
+                }
+                let suggestionsArray = Object.keys(potentialSuggestions).map(uid => ({ uid: uid, count: potentialSuggestions[uid].count, mutualName: potentialSuggestions[uid].mutualName })).sort((a,b) => b.count - a.count).slice(0, 5);
+                if(suggestionsArray.length === 0) {
+                    const fallbackSnap = await db.collection("users").limit(10).get();
+                    fallbackSnap.forEach(doc => {
+                        if(doc.id !== LOG && !myFollowing.includes(doc.id) && suggestionsArray.length < 5) suggestionsArray.push({uid: doc.id, count: 0, mutualName: null});
+                    });
+                }
+                list.innerHTML = "";
+                if(suggestionsArray.length === 0) return list.innerHTML = "<p style='color:#555; font-size:14px;'>No accounts to follow.</p>";
+                for(let sug of suggestionsArray) {
+                    const uDoc = await db.collection("users").doc(sug.uid).get();
+                    const uData = uDoc.exists ? uDoc.data() : {};
+                    let subtext = sug.count > 1 ? `${sug.count} mutuals` : (sug.mutualName ? `Followed by ${sug.mutualName}` : (uData.name || 'Suggested for you'));
+                    list.innerHTML += `<div class="u-row"><img src="${uData.profileImg || DIMG}" class="pfp"><div class="u-meta" onclick="location.href='profile.html?u=${sug.uid}'"><b>${sug.uid}</b><span>${subtext}</span></div><button class="b-blue-indigo" onclick="alert('Follow logic connected to profile')">Follow</button><span class="x-rem">✕</span></div>`;
+                }
+            } catch(e) {}
+        }
+
         async function openNewMessageMenu() {
             document.getElementById("new-msg-overlay").style.display = "flex";
             const list = document.getElementById("follower-suggestion-list");
@@ -745,7 +1117,6 @@
 
         function closeNewMessageMenu() { document.getElementById("new-msg-overlay").style.display = "none"; }
 
-        // --- CHAT RENDERING ENGINE ---
         async function openMsg(targetUser, pfpUrl) {
             activeChatUser = targetUser;
             activeChatPfp = pfpUrl || DIMG; 
@@ -797,40 +1168,7 @@
                     let msgContent = "";
                     let bubbleClass = isMe ? 'msg-sent' : 'msg-recv';
 
-                    // >>> THE NEW CALL BUBBLE LOGIC <<<
-                    if (m.type === 'call') {
-                        bubbleClass = 'msg-call-bubble msg-recv'; // Base is dark grey for both
-                        if(isMe) bubbleClass += ' msg-sent-call'; // Aligns right if I sent it
-                        
-                        const isVideo = m.callType === 'video';
-                        const callText = m.text || (isVideo ? "Video call" : "Audio call");
-                        
-                        // Exact SVG shapes for the Main Icon
-                        const mainIcon = isVideo 
-                            ? `<svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>`
-                            : `<svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`;
-
-                        // Tilted arrows showing Call Direction
-                        const arrowIcon = isMe 
-                            ? `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" style="position:absolute; top:-2px; right:-2px; background:#444; border-radius:50%; padding:2px;"><path d="M7 17L17 7M17 7H7M17 7V17"/></svg>` 
-                            : `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" style="position:absolute; bottom:-2px; left:-2px; background:#444; border-radius:50%; padding:2px;"><path d="M17 7L7 17M7 17H17M7 17V7"/></svg>`;
-
-                        // Embed time accurately inside bubble
-                        msgContent = `
-                            <div style="display:flex; align-items:center; gap:14px;">
-                                <div style="width:44px; height:44px; border-radius:50%; background:#444; display:flex; align-items:center; justify-content:center; position:relative; flex-shrink:0;">
-                                    ${mainIcon}
-                                    ${arrowIcon}
-                                </div>
-                                <div style="display:flex; flex-direction:column; line-height:1.3;">
-                                    <b style="font-size:15.5px; font-weight:600;">${callText}</b>
-                                    <span style="font-size:13.5px; color:#a8a8a8;">${exactTimeStr}</span>
-                                </div>
-                            </div>
-                        `;
-                    } 
-                    // AUDIO BUBBLE
-                    else if(m.audioUrl) {
+                    if(m.audioUrl) {
                         bubbleClass += ' msg-audio-bubble';
                         const staticWave = Array.from({length: 30}).map(() => `<div class="wave-bar" style="height:${Math.random() * 60 + 20}%"></div>`).join('');
                         let durStr = "0:00";
@@ -850,18 +1188,14 @@
                             <div class="audio-transcription">View transcription</div>
                             <audio id="audio-elem-${doc.id}" src="${m.audioUrl}" onloadedmetadata="initAudio('${doc.id}')" ontimeupdate="updateWaveform('${doc.id}')" onended="resetAudioUI('${doc.id}')" style="display:none;"></audio>
                         `;
-                    } 
-                    // IMAGE BUBBLE
-                    else if (m.image) {
+                    } else if (m.image) {
                         bubbleClass += ' msg-img-bubble';
                         msgContent = `<img src="${m.image}" onclick="openImageViewer('${m.image}')">`;
-                    } 
-                    // TEXT BUBBLE
-                    else {
+                    } else {
                         msgContent = m.text;
                     }
                     
-                    let pfpHtml = (!isMe && m.type !== 'call') ? `<img src="${activeChatPfp}" class="msg-recv-pfp">` : `<div style="width:28px; margin-right:8px; flex-shrink:0;"></div>`;
+                    let pfpHtml = !isMe ? `<img src="${activeChatPfp}" class="msg-recv-pfp">` : `<div style="width:28px; margin-right:8px; flex-shrink:0;"></div>`;
 
                     box.innerHTML += `
                         <div class="msg-row-wrapper">
@@ -918,165 +1252,6 @@
             loadActiveChatsList(); 
         }
 
-        // --- AUDIO RECORDING & FILE UPLOAD FUNCTIONS ---
-        // (Unchanged from original code)
-        async function startAudioRecording() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
-                mediaRecorder = new MediaRecorder(stream);
-                mediaRecorder.start();
-                audioChunks = [];
-                mediaRecorder.addEventListener("dataavailable", event => { audioChunks.push(event.data); });
-                
-                document.getElementById('msg-input-default').style.display = 'none';
-                document.getElementById('msg-input-recording').style.display = 'flex';
-                recordSeconds = 0;
-                document.getElementById('recording-timer').innerText = "00:00";
-                
-                recordTimerInterval = setInterval(() => {
-                    recordSeconds++;
-                    let m = Math.floor(recordSeconds / 60).toString().padStart(2, '0');
-                    let s = (recordSeconds % 60).toString().padStart(2, '0');
-                    document.getElementById('recording-timer').innerText = `${m}:${s}`;
-                }, 1000);
-            } catch (err) {
-                alert("Microphone access is required to send voice messages.");
-            }
-        }
-
-        function cancelAudioRecording() {
-            if(mediaRecorder) { mediaRecorder.stop(); mediaRecorder.stream.getTracks().forEach(track => track.stop()); }
-            clearInterval(recordTimerInterval);
-            document.getElementById('msg-input-default').style.display = 'flex';
-            document.getElementById('msg-input-recording').style.display = 'none';
-        }
-
-        function sendAudioRecording() {
-            if(!mediaRecorder) return;
-            showLoading("Sending audio...");
-            mediaRecorder.addEventListener("stop", async () => {
-                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' }); 
-                const formData = new FormData(); formData.append('file', audioBlob); formData.append('upload_preset', UPLOAD_PRESET);
-                try {
-                    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/video/upload`, { method: 'POST', body: formData });
-                    const data = await res.json();
-                    if(data.secure_url) {
-                        const chatId = getChatId(LOG, activeChatUser);
-                        await db.collection("chats").doc(chatId).collection("messages").add({
-                            sender: LOG, text: "", audioUrl: data.secure_url, duration: recordSeconds, read: false, timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                        });
-                        loadActiveChatsList();
-                    }
-                } catch(err) { alert("Failed to upload audio."); } finally { hideLoading(); }
-            });
-            mediaRecorder.stop(); mediaRecorder.stream.getTracks().forEach(track => track.stop());
-            clearInterval(recordTimerInterval);
-            document.getElementById('msg-input-default').style.display = 'flex';
-            document.getElementById('msg-input-recording').style.display = 'none';
-        }
-
-        window.initAudio = function(id) {
-            const audio = document.getElementById('audio-elem-' + id);
-            const timeText = document.getElementById('audio-time-' + id);
-            if(audio && audio.duration && audio.duration !== Infinity) {
-                let s = Math.floor(audio.duration % 60); timeText.innerText = `0:${s.toString().padStart(2, '0')}`;
-            }
-        }
-
-        window.updateWaveform = function(id) {
-            const track = document.getElementById('waveform-' + id);
-            const audio = document.getElementById('audio-elem-' + id);
-            const timeText = document.getElementById('audio-time-' + id);
-            const totalDur = parseFloat(timeText.getAttribute('data-duration')) || audio.duration || 1;
-            
-            const percentage = audio.currentTime / totalDur;
-            const bars = track.querySelectorAll('.wave-bar');
-            const activeIndex = Math.floor(percentage * bars.length);
-            
-            bars.forEach((bar, index) => {
-                if(index <= activeIndex) bar.style.background = '#fff';
-                else bar.style.background = 'rgba(255,255,255,0.4)';
-            });
-            
-            const rem = Math.max(0, totalDur - audio.currentTime);
-            let s = Math.floor(rem % 60); timeText.innerText = `0:${s.toString().padStart(2, '0')}`;
-        }
-
-        window.seekAudio = function(e, id) {
-            const track = document.getElementById('waveform-' + id);
-            const audio = document.getElementById('audio-elem-' + id);
-            const timeText = document.getElementById('audio-time-' + id);
-            const totalDur = parseFloat(timeText.getAttribute('data-duration')) || audio.duration;
-            if(!totalDur) return;
-            const rect = track.getBoundingClientRect();
-            const clickX = e.clientX - rect.left;
-            audio.currentTime = Math.max(0, Math.min(1, clickX / rect.width)) * totalDur;
-            window.updateWaveform(id);
-        }
-
-        function toggleAudio(id) {
-            const audioEl = document.getElementById('audio-elem-' + id);
-            const playIcon = document.getElementById('audio-play-icon-' + id);
-            document.querySelectorAll('audio').forEach(el => {
-                if(el.id !== 'audio-elem-' + id && !el.paused) {
-                    el.pause(); document.getElementById('audio-play-icon-' + el.id.replace('audio-elem-','')).innerHTML = '<polygon points="8,5 20,12 8,19" fill="white"/>';
-                }
-            });
-            if (audioEl.paused) {
-                audioEl.play(); playIcon.innerHTML = '<rect x="6" y="5" width="4" height="14" fill="white"/><rect x="14" y="5" width="4" height="14" fill="white"/>';
-            } else {
-                audioEl.pause(); playIcon.innerHTML = '<polygon points="8,5 20,12 8,19" fill="white"/>';
-            }
-        }
-
-        function resetAudioUI(id) {
-            document.getElementById('audio-play-icon-' + id).innerHTML = '<polygon points="8,5 20,12 8,19" fill="white"/>';
-            const audio = document.getElementById('audio-elem-' + id); audio.currentTime = 0; window.updateWaveform(id);
-        }
-
-        function toggleSpeed(btn, id) {
-            const audioEl = document.getElementById('audio-elem-' + id);
-            if (audioEl.playbackRate === 1) { audioEl.playbackRate = 1.5; btn.innerText = "1.5x"; }
-            else if (audioEl.playbackRate === 1.5) { audioEl.playbackRate = 2; btn.innerText = "2x"; }
-            else { audioEl.playbackRate = 1; btn.innerText = "1x"; }
-        }
-
-        function compressImage(file, maxWidth = 800, quality = 0.6) {
-            return new Promise((resolve) => {
-                const reader = new FileReader(); reader.readAsDataURL(file);
-                reader.onload = (event) => {
-                    const img = new Image(); img.src = event.target.result;
-                    img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        let width = img.width; let height = img.height;
-                        if (width > maxWidth) { height = Math.round((height * maxWidth) / width); width = maxWidth; }
-                        canvas.width = width; canvas.height = height;
-                        const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height);
-                        resolve(canvas.toDataURL('image/jpeg', quality));
-                    };
-                };
-            });
-        }
-
-        async function handleChatGalleryUpload(event) {
-            const file = event.target.files[0];
-            if(!file || !activeChatUser) return;
-            showLoading("Sending...");
-            const base64Img = await compressImage(file);
-            const chatId = getChatId(LOG, activeChatUser);
-            await db.collection("chats").doc(chatId).collection("messages").add({
-                sender: LOG, text: "", image: base64Img, read: false, timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            document.getElementById("chat-gallery-input").value = ""; 
-            hideLoading();
-        }
-
-        function openImageViewer(base64str) { document.getElementById('iv-main-img').src = base64str; document.getElementById('img-viewer-ov').style.display = 'flex'; }
-        function closeImageViewer() { document.getElementById('img-viewer-ov').style.display = 'none'; }
-        function downloadViewerImage() {
-            const a = document.createElement('a'); a.href = document.getElementById('iv-main-img').src; a.download = 'auragram_image.jpg';
-            document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        }
         init();
     </script>
 </body>
