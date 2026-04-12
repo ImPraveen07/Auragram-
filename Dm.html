@@ -97,8 +97,9 @@
         .msg-input-pill input { flex: 1; background: transparent; border: none; color: #fff; outline: none; font-size: 15.5px; padding: 0 5px; }
         .msg-input-pill input::placeholder { color:#888; }
         
-        .pill-right-actions { display: flex; align-items: center; gap: 18px; padding-right: 12px; }
-        .pill-right-actions img { width: 22px; filter: invert(0.8); cursor: pointer; }
+        .pill-right-actions { display: flex; align-items: center; gap: 15px; padding-right: 12px; }
+        .pill-right-actions svg { cursor: pointer; color: #fff; opacity: 0.8; transition: opacity 0.2s;}
+        .pill-right-actions svg:active { opacity: 0.5;}
         
         #pill-right-send { display: none; padding-right: 0; }
         .send-btn-circle { width: 40px; height: 40px; border-radius: 50%; background: #7b30f5; display: flex; align-items: center; justify-content: center; cursor: pointer; margin-right: 4px; }
@@ -123,6 +124,50 @@
         .cam-icon-right { width:26px; height:26px; object-fit:contain; filter:invert(0.6); cursor:pointer; flex-shrink:0; margin-left:10px;}
         .unread-dot { width:8px; height:8px; border-radius:50%; background:#4b6afa; flex-shrink:0; margin-left:14px; margin-right:4px;}
 
+        /* --- INSTAGRAM GIF PICKER STYLES --- */
+        #gif-overlay {
+            position: absolute; bottom: 0; left: 0; width: 100%; background: #262626;
+            border-top-left-radius: 16px; border-top-right-radius: 16px;
+            display: flex; flex-direction: column; transition: height 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            z-index: 8500; height: 0; overflow: hidden;
+        }
+        #gif-overlay.half { height: 380px; }
+        #gif-overlay.full { height: calc(100vh - 54px); } /* Fills screen just under top nav */
+
+        .gif-drag-area { width: 100%; padding: 12px 0; cursor: pointer; }
+        .gif-drag-handle { width: 36px; height: 4px; background: #555; border-radius: 4px; margin: 0 auto; }
+        
+        .gif-search-wrap { padding: 0 16px 12px; }
+        .gif-search-box {
+            position: relative; background: #363636; border-radius: 8px; display: flex; align-items: center; padding: 8px 12px;
+        }
+        .gif-search-box svg { width: 16px; height: 16px; stroke: #8e8e8e; margin-right: 8px; flex-shrink:0; }
+        .gif-search-box input { background: transparent; border: none; color: white; font-size: 15px; width: 100%; outline: none; }
+        .gif-clear-icon { stroke: #8e8e8e; stroke-width: 2; cursor: pointer; display: none; margin-left: 8px; }
+
+        .gif-categories {
+            display: flex; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid #363636;
+            overflow: hidden; transition: max-height 0.2s ease, opacity 0.2s ease; max-height: 50px; opacity: 1; flex-shrink: 0;
+        }
+        .gif-categories.hidden { max-height: 0; opacity: 0; border-bottom: none; }
+        .gif-cat-icon { width: 100%; display: flex; justify-content: center; padding-bottom: 12px; cursor: pointer; border-bottom: 2px solid transparent; color: #8e8e8e; }
+        .gif-cat-icon svg { width: 20px; height: 20px; stroke-width: 2px; }
+        .gif-cat-icon.active { color: #fff; border-bottom: 2px solid #fff; }
+
+        .gif-scroll-area { flex: 1; overflow-y: auto; padding: 8px; }
+        .gif-grid { display: flex; gap: 8px; align-items: flex-start; }
+        .gif-col { display: flex; flex-direction: column; flex: 1; gap: 8px; }
+        .gif-item-box { border-radius: 6px; background: #363636; position: relative; display: flex; justify-content: center; align-items: center; overflow: hidden; cursor: pointer; width: 100%; }
+        .gif-item-loader { position: absolute; width: 20px; height: 20px; border: 2px solid transparent; border-top: 2px solid #8e8e8e; border-left: 2px solid #8e8e8e; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        .gif-item-img { width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.2s ease-in; position: relative; z-index: 2; }
+        .gif-item-box:active { transform: scale(0.96); }
+
+        #gif-api-loader { display: none; text-align: center; padding: 20px; }
+        .gif-spinner { width: 24px; height: 24px; border: 2px solid #363636; border-top: 2px solid #8e8e8e; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto; }
+        #gif-msg-box { text-align: center; color: #8e8e8e; padding-top: 20px; font-size: 14px; }
+        /* --- END GIF STYLES --- */
+
+        /* FULL OVERLAYS (Cam, Calls, ImageViewer) */
         #img-viewer-ov { display:none; position:fixed; top:0; left:0; width:100vw; height:100dvh; background:#000; z-index:9999; flex-direction:column; }
         .iv-top { padding:20px; display:flex; justify-content:space-between; align-items:center; }
         .iv-bot { padding:20px; display:flex; justify-content:flex-end; align-items:center; }
@@ -130,7 +175,6 @@
         .iv-img-wrap img { max-width:100%; max-height:100%; object-fit:contain; }
         #loading-toast { position:fixed; top:50px; left:50%; transform:translateX(-50%); background:#333; color:#fff; padding:8px 16px; border-radius:20px; font-size:12px; z-index:9999; display:none; }
 
-        /* LIVE CAMERA OVERLAY */
         #live-cam-ov { display:none; position:fixed; top:0; left:0; width:100vw; height:100dvh; background:#000; z-index:9999; flex-direction:column; }
         .live-cam-top { position:absolute; top:20px; left:20px; right:20px; display:flex; justify-content:space-between; z-index:10000; }
         .live-cam-controls { position:absolute; bottom:50px; left:0; width:100%; display:flex; justify-content:center; align-items:center; gap:50px; z-index:10000; }
@@ -138,7 +182,6 @@
         .capture-btn:active { background:#fff; }
         .cam-switch-btn { width:40px; height:40px; background:rgba(0,0,0,0.5); border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; }
 
-        /* WEBRTC CALL OVERLAY (Kept in HTML to prevent breaking styles, but handled by Firebase Sandbox) */
         #call-ov { display:none; position:fixed; top:0; left:0; width:100vw; height:100dvh; background:#1c1c1e; z-index:10000; flex-direction:column; overflow:hidden;}
         #call-remote-video { position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; z-index:1; }
         #call-local-video { position:absolute; top:20px; right:20px; width:100px; height:150px; object-fit:cover; border-radius:12px; z-index:2; background:#000; display:none; }
@@ -148,7 +191,6 @@
         .c-btn { width:60px; height:60px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; background:rgba(255,255,255,0.2); backdrop-filter:blur(10px); }
         .c-btn-red { background:#ff3b30; }
 
-        /* INCOMING CALL NOTIFICATION */
         #incoming-call-modal { display:none; position:fixed; top:20px; left:50%; transform:translateX(-50%); width:90%; max-width:400px; background:#262626; border-radius:20px; padding:15px; z-index:10001; align-items:center; gap:15px; box-shadow:0 10px 25px rgba(0,0,0,0.5); animation: slideDown 0.3s ease-out; }
         @keyframes slideDown { from{top:-100px;} to{top:20px;} }
         .inc-btns { display:flex; gap:10px; margin-left:auto; }
@@ -158,7 +200,6 @@
 <body>
 
     <div id="loading-toast">Sending...</div>
-
     <input type="file" accept="image/*" id="chat-gallery-input" style="display:none;" onchange="handleChatGalleryUpload(event)">
 
     <div id="incoming-call-modal">
@@ -173,34 +214,6 @@
             </div>
             <div class="inc-btn" style="background:#34c759;" onclick="acceptCall()">
                 <svg fill="white" width="20" height="20" viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
-            </div>
-        </div>
-    </div>
-
-    <div id="call-ov">
-        <video id="call-remote-video" autoplay playsinline></video>
-        <video id="call-local-video" autoplay playsinline muted></video>
-        <div class="call-info" id="call-info-ui">
-            <img id="call-ui-pfp" class="call-pfp-large" src="">
-            <b id="call-ui-name" style="font-size:22px; margin-bottom:5px;">User</b>
-            <span id="call-ui-status" style="font-size:15px; color:#ddd;">Calling...</span>
-        </div>
-        <div class="call-controls"></div>
-    </div>
-
-    <div id="live-cam-ov">
-        <video id="live-cam-video" autoplay playsinline style="width:100%; height:100%; object-fit:cover;"></video>
-        <div class="live-cam-top">
-            <svg aria-label="Close" fill="none" height="30" viewBox="0 0 24 24" width="30" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="cursor:pointer; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));" onclick="closeLiveCamera()">
-                <line x1="4" y1="4" x2="20" y2="20"></line>
-                <line x1="20" y1="4" x2="4" y2="20"></line>
-            </svg>
-        </div>
-        <div class="live-cam-controls">
-            <div style="width:40px;"></div>
-            <div class="capture-btn" onclick="captureLivePhoto()"></div>
-            <div class="cam-switch-btn" onclick="flipLiveCamera()">
-                <svg fill="white" width="20" height="20" viewBox="0 0 24 24"><path d="M12 6v3l4-4-4-4v3c-4.42 0-8 3.58-8 8 0 1.57.46 3.03 1.24 4.26L6.7 14.8c-.45-.83-.7-1.79-.7-2.8 0-3.31 2.69-6 6-6zm6.76 1.74L17.3 9.2c.44.84.7 1.79.7 2.8 0 3.31-2.69 6-6 6v-3l-4 4 4 4v-3c4.42 0 8-3.58 8-8 0-1.57-.46-3.03-1.24-4.26z"/></svg>
             </div>
         </div>
     </div>
@@ -228,75 +241,14 @@
                 <span style="color: #4b6afa; font-weight: 600; font-size: 15px; cursor:pointer;">Requests</span>
             </div>
             
-            <div id="active-chats-list">
-                <p style="color:#a8a8a8; font-size:13px; text-align:center; padding: 20px 0;">Loading chats...</p>
-            </div>
-            <p id="empty-state" style="color:#a8a8a8; font-size:14.5px; line-height:1.4; display:none; margin-bottom:20px;">
-                Chats will appear here after you send or receive a message. <span style="color:#4b6afa; font-weight:600; cursor:pointer;" onclick="openNewMessageMenu()">Get started</span>
-            </p>
+            <div id="active-chats-list"><p style="color:#a8a8a8; font-size:13px; text-align:center; padding: 20px 0;">Loading chats...</p></div>
+            <p id="empty-state" style="display:none; margin-bottom:20px;">Chats will appear here after you send or receive a message.</p>
 
             <div style="display: flex; justify-content: space-between; align-items: center; margin: 30px 0 15px 0;">
                 <b style="font-size: 15.5px;">Accounts to follow</b>
                 <span style="color: #4b6afa; font-size: 14px; font-weight: 600; cursor:pointer;">See all</span>
             </div>
             <div id="suggestion-list"></div>
-        </div>
-    </div>
-
-    <div id="img-viewer-ov">
-        <div class="iv-top">
-            <svg aria-label="Close" fill="none" height="30" viewBox="0 0 24 24" width="30" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="cursor:pointer;" onclick="closeImageViewer()">
-                <line x1="4" y1="4" x2="20" y2="20"></line>
-                <line x1="20" y1="4" x2="4" y2="20"></line>
-            </svg>
-        </div>
-        <div class="iv-img-wrap">
-            <img id="iv-main-img" src="">
-        </div>
-        <div class="iv-bot">
-            <svg aria-label="Download" fill="white" height="28" viewBox="0 0 24 24" width="28" style="cursor:pointer;" onclick="downloadViewerImage()">
-                <path d="M12 16L7 11l1.4-1.4 2.6 2.6V4h2v8.2l2.6-2.6L17 11l-5 5zm-6 4v-2h12v2H6z"/>
-            </svg>
-        </div>
-    </div>
-
-    <div id="create-note-view" class="full-view" style="display: none;">
-        <div style="position: absolute; top: 22px; left: 20px; z-index: 10000;">
-            <svg aria-label="Close" fill="none" height="28" viewBox="0 0 24 24" width="28" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="cursor:pointer;" onclick="closeCreateNote()">
-                <line x1="4" y1="4" x2="20" y2="20"></line>
-                <line x1="20" y1="4" x2="4" y2="20"></line>
-            </svg>
-        </div>
-        <div class="note-edit-area">
-            <textarea id="note-text-input" class="note-input-bubble" placeholder="Share a thought..." maxlength="60"></textarea>
-            <img id="cn-pfp" src="" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover;">
-            <div style="display:flex; gap:15px; margin-top:25px;">
-                <div style="background:#262626; border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center;">
-                    <img src="https://cdn-icons-png.flaticon.com/512/3208/3208754.png" style="width:16px; filter:invert(30%) sepia(100%) saturate(300%) hue-rotate(300deg);">
-                </div>
-                <div style="background:#262626; border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center;">
-                    <img src="https://cdn-icons-png.flaticon.com/512/2838/2838912.png" style="width:16px; filter:invert(50%) sepia(80%) saturate(200%) hue-rotate(250deg);">
-                </div>
-            </div>
-        </div>
-        <div style="padding: 15px 20px 30px; display: flex; justify-content: space-between; align-items: center; z-index: 9999;">
-            <span style="font-size: 14.5px; font-weight: 600; cursor:pointer;" onclick="openAudienceSheet()">👥 Share with friends &nbsp;></span>
-            <button class="b-blue-indigo" style="padding: 10px 24px; border-radius: 20px;" onclick="saveNote()">Share</button>
-        </div>
-    </div>
-
-    <div id="audience-sheet-ov" class="full-view" style="background:rgba(0,0,0,0.7); z-index:9500; display:none; justify-content:flex-end;" onclick="closeAudienceSheet()">
-        <div style="background:#262626; border-radius:16px 16px 0 0; padding:20px; text-align:center;" onclick="event.stopPropagation()">
-            <div style="width:40px; height:4px; background:#555; border-radius:2px; margin:0 auto 20px;"></div>
-            <b style="font-size:16px; display:block; margin-bottom:20px;">Share with</b>
-            <div style="display:flex; justify-content:space-between; align-items:center; padding:15px 0; border-top:.1px solid #363636; cursor:pointer;">
-                <div style="text-align:left;">
-                    <b style="font-size:15px; display:block;">Followers you follow back</b>
-                    <span style="font-size:13px; color:#a8a8a8;">People who follow you and you follow back.</span>
-                </div>
-                <div style="width:22px; height:22px; border-radius:50%; border:6px solid #4b6afa; background:#fff;"></div>
-            </div>
-            <button class="b-blue-indigo" style="width:100%; margin-top:15px; padding:14px; border-radius:10px;" onclick="closeAudienceSheet()">Done</button>
         </div>
     </div>
 
@@ -312,13 +264,6 @@
             <input type="text" id="search-users-input" placeholder="Search" style="background:transparent; border:none; color:#fff; outline:none; flex:1; font-size:15px;">
         </div>
         <div style="padding: 15px; overflow-y:auto; flex:1;">
-            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px; cursor:pointer;">
-                <div style="width: 44px; height: 44px; border-radius: 50%; border: 1px solid #444; display: flex; align-items: center; justify-content: center;">
-                    <img src="https://cdn-icons-png.flaticon.com/512/681/681494.png" style="width: 20px; filter: invert(1);">
-                </div>
-                <b style="font-size:15px;">Group chat</b>
-            </div>
-            <b style="font-size: 14px; color:#a8a8a8; display:block; margin-bottom:10px;">Suggested</b>
             <div id="follower-suggestion-list"></div>
         </div>
     </div>
@@ -343,6 +288,54 @@
         
         <div class="msg-body" id="msg-list"></div>
         
+        <div id="gif-overlay">
+            <div class="gif-drag-area" id="gifDragHandle" onclick="shrinkGifPicker()"><div class="gif-drag-handle"></div></div>
+            
+            <div class="gif-search-wrap">
+                <div class="gif-search-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    <input type="text" id="gifSearchInput" placeholder="Search GIPHY" autocomplete="off">
+                    <svg class="gif-clear-icon" id="gifClearBtn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" onclick="resetGifSearch()"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </div>
+            </div>
+
+            <div class="gif-categories" id="gifCategoriesBox">
+                <div class="gif-cat-icon" onclick="changeGifCategory('recent', this)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                </div>
+                <div class="gif-cat-icon" onclick="changeGifCategory('favorites', this)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                </div>
+                <div class="gif-cat-icon active" id="gifDefaultTrend" onclick="changeGifCategory('trending', this)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+                </div>
+                <div class="gif-cat-icon" onclick="changeGifCategory('laugh', this)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
+                </div>
+                <div class="gif-cat-icon" onclick="changeGifCategory('love', this)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                </div>
+                <div class="gif-cat-icon" onclick="changeGifCategory('sad', this)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M16 16s-1.5-2-4-2-4 2-4 2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
+                </div>
+                <div class="gif-cat-icon" onclick="changeGifCategory('thumbs up', this)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+                </div>
+                <div class="gif-cat-icon" onclick="changeGifCategory('celebrate', this)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M5.8 11.3 2 22l10.7-3.8"></path><path d="M4 3h.01M22 3h.01M16 4h.01M21 9h.01M10 2h.01M16 10l5-5M11.8 16.3l-4.5-4.5"></path></svg>
+                </div>
+            </div>
+
+            <div id="gif-api-loader"><div class="gif-spinner"></div></div>
+            
+            <div class="gif-scroll-area" id="gifScrollArea">
+                <div id="gif-msg-box"></div>
+                <div class="gif-grid" id="gifResultsGrid">
+                    <div class="gif-col" id="gifCol1"></div>
+                    <div class="gif-col" id="gifCol2"></div>
+                </div>
+            </div>
+        </div>
         <div class="msg-input-area">
             <div class="msg-input-pill" id="msg-input-default">
                 
@@ -356,8 +349,9 @@
                 <input type="text" id="msg-input" placeholder="Message..." oninput="checkMsgInput()" onkeydown="handleEnter(event)">
                 
                 <div class="pill-right-actions" id="pill-right-icons">
-                    <img src="https://cdn-icons-png.flaticon.com/512/709/709682.png" onclick="startAudioRecording()">
-                    <img src="https://cdn-icons-png.flaticon.com/512/3342/3342137.png" onclick="document.getElementById('chat-gallery-input').click()">
+                    <svg onclick="startAudioRecording()" aria-label="Voice" fill="currentColor" height="24" viewBox="0 0 24 24" width="24"><path d="M12 15.5c2.2 0 4-1.8 4-4v-5c0-2.2-1.8-4-4-4s-4 1.8-4 4v5c0 2.2 1.8 4 4 4zm-2-9c0-1.1.9-2 2-2s2 .9 2 2v5c0 1.1-.9 2-2 2s-2-.9-2-2v-5zm10 5v-1h-2v1c0 3.3-2.7 6-6 6s-6-2.7-6-6v-1H4v1c0 4 3 7.3 6.9 7.9v2.1H9v2h6v-2h-1.9v-2.1c3.9-.6 6.9-3.9 6.9-7.9z"></path></svg>
+                    <svg onclick="document.getElementById('chat-gallery-input').click()" aria-label="Photo" fill="currentColor" height="24" viewBox="0 0 24 24" width="24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-5.04-6.71l-2.75 3.54-1.96-2.36L6.5 17h11l-3.54-4.71zM11 9c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2z"></path></svg>
+                    <svg onclick="toggleGifPicker()" aria-label="Sticker" fill="currentColor" height="24" viewBox="0 0 24 24" width="24"><path d="M12.003 2.001a10 10 0 1 0 10 10 10.011 10.011 0 0 0-10-10Zm0 18a8 8 0 1 1 8-8 8.009 8.009 0 0 1-8 8Zm-3.5-9a1.5 1.5 0 1 1 1.5-1.5 1.5 1.5 0 0 1-1.5 1.5Zm7 0a1.5 1.5 0 1 1 1.5-1.5 1.5 1.5 0 0 1-1.5 1.5Zm-7.468 3.308a.998.998 0 0 0-.256 1.389 4.965 4.965 0 0 0 8.448 0 .998.998 0 1 0-1.684-1.063 2.973 2.973 0 0 1-5.119 0 .999.999 0 0 0-1.389-.326Z"></path></svg>
                 </div>
                 <div class="pill-right-actions" id="pill-right-send" style="display:none;" onclick="sendMsg()">
                     <div class="send-btn-circle">
@@ -393,11 +387,10 @@
     <div class="b-bar" id="bottom-bar"></div>
 
     <script>
-        const CLOUD_NAME = "ditmmz5hk"; 
-        const UPLOAD_PRESET = "my_video_preset";
-        
         // --- YOUR SECURE FIREBASE CALL SANDBOX URL ---
         const FIREBASE_HOST = "https://instagram-e8c7a.web.app";
+        const CLOUD_NAME = "ditmmz5hk"; 
+        const UPLOAD_PRESET = "my_video_preset";
 
         const config = {
             apiKey:"AIzaSyAHjilh7jAlS0e5qDKxbDZq3nbe3pFe4nE",
@@ -407,7 +400,7 @@
             messagingSenderId:"270990839800",
             appId:"1:270990839800:web:7f56ea2ea8d941219fd00d"
         };
-        firebase.initializeApp(config);
+        if (!firebase.apps.length) firebase.initializeApp(config);
         const db = firebase.firestore();
         const DIMG = "https://www.w3schools.com/howto/img_avatar.png";
         
@@ -416,14 +409,13 @@
         let activeChatPfp = null;
         let msgUnsubscribe = null;
         
-        // CALL & CAMERA GLOBALS
+        // GLOBAL STATE
         let liveCamStream = null;
         let usingFrontCamera = false;
         let liveCamTarget = null;
         let currentCallId = null;
         let isVideoCall = true;
 
-        // AUDIO RECORDER
         let mediaRecorder;
         let audioChunks = [];
         let recordTimerInterval;
@@ -432,6 +424,7 @@
         let swipeStartX = 0;
         let msgList = document.getElementById('msg-list');
 
+        // SWIPE TO REPLY LOGIC
         msgList.addEventListener('touchstart', e => { swipeStartX = e.touches[0].clientX; }, {passive: true});
         msgList.addEventListener('touchmove', e => {
             if(swipeStartX - e.touches[0].clientX > 30) { msgList.classList.add('swipe-active'); }
@@ -456,6 +449,9 @@
             }
 
             listenForIncomingCalls();
+            
+            // INIT GIF PICKER CACHE
+            fetchGIFs('', true, false);
         }
 
         function setupBottomBar() {
@@ -469,7 +465,6 @@
             db.collection("users").doc(LOG).get().then(doc => {
                 if(doc.exists && doc.data().profileImg) {
                     document.getElementById("b-pfp-img").src = doc.data().profileImg;
-                    document.getElementById("cn-pfp").src = doc.data().profileImg;
                 }
             });
         }
@@ -478,15 +473,191 @@
         function showLoading(msg) { document.getElementById('loading-toast').innerText = msg; document.getElementById('loading-toast').style.display = 'block'; }
         function hideLoading() { document.getElementById('loading-toast').style.display = 'none'; }
 
-        // ----- IN-APP CAMERA ENGINE (For Photos) -----
+        /* ================================
+           GIF ENGINE (KLIPY INTEGRATION) 
+           ================================ */
+        const gifOverlay = document.getElementById('gif-overlay');
+        const gifSearchInput = document.getElementById('gifSearchInput');
+        const gifClearBtn = document.getElementById('gifClearBtn');
+        const gifCategoriesBox = document.getElementById('gifCategoriesBox');
+        const gifCol1 = document.getElementById('gifCol1');
+        const gifCol2 = document.getElementById('gifCol2');
+        const gifMessageBox = document.getElementById('gif-msg-box');
+        const gifLoader = document.getElementById('gif-api-loader');
+        const gifScrollArea = document.getElementById('gifScrollArea');
+
+        const KLIPY_KEY = "9kgwujswREy0l8wCtJs0CqJHsWJoRWUv2ush8lNXsQp6TN5oiJFIfFDMW2vG7vVJ"; 
+        const GIF_BASE_URL = "https://api.klipy.com/v2"; 
+        
+        let gifTypingTimer;
+        let gifOffset = '';
+        let gifQuery = '';
+        let gifIsTrending = true;
+        let gifIsFetching = false;
+        const GIF_LIMIT = 20;
+
+        function toggleGifPicker() {
+            if (gifOverlay.classList.contains('half') || gifOverlay.classList.contains('full')) {
+                gifOverlay.className = ''; // Hide
+            } else {
+                gifOverlay.className = 'half'; // Show half
+                setTimeout(() => { msgList.scrollTop = msgList.scrollHeight; }, 300);
+            }
+        }
+
+        function shrinkGifPicker() {
+            if (gifOverlay.classList.contains('full')) {
+                resetGifSearch(); // Slide back to half
+            } else {
+                gifOverlay.className = ''; // Close entirely if already half
+            }
+        }
+
+        // Expand to full when searching
+        gifSearchInput.addEventListener('focus', () => {
+            gifOverlay.className = 'full';
+            gifCategoriesBox.classList.add('hidden');
+        });
+
+        gifSearchInput.addEventListener('input', () => {
+            clearTimeout(gifTypingTimer);
+            const query = gifSearchInput.value.trim();
+            gifClearBtn.style.display = query.length > 0 ? 'block' : 'none';
+
+            gifTypingTimer = setTimeout(() => {
+                if (query) fetchGIFs(query, false, false);
+                else fetchGIFs('', true, false);
+            }, 400); 
+        });
+
+        function resetGifSearch() {
+            gifSearchInput.value = '';
+            gifClearBtn.style.display = 'none';
+            gifCategoriesBox.classList.remove('hidden');
+            gifSearchInput.blur(); 
+            document.querySelectorAll('.gif-cat-icon').forEach(i => i.classList.remove('active'));
+            document.getElementById('gifDefaultTrend').classList.add('active');
+            gifOverlay.className = 'half';
+            fetchGIFs('', true, false);
+        }
+
+        function changeGifCategory(type, el) {
+            document.querySelectorAll('.gif-cat-icon').forEach(i => i.classList.remove('active'));
+            el.classList.add('active');
+            gifSearchInput.value = ""; 
+            gifClearBtn.style.display = 'none';
+            
+            if(type === 'trending') fetchGIFs('', true, false);
+            else fetchGIFs(type, false, false); 
+        }
+
+        gifScrollArea.addEventListener('scroll', () => {
+            if (gifScrollArea.scrollTop + gifScrollArea.clientHeight >= gifScrollArea.scrollHeight - 100) {
+                if (!gifIsFetching && gifOffset) {
+                    fetchGIFs(gifQuery, gifIsTrending, true); 
+                }
+            }
+        });
+
+        async function fetchGIFs(query, isTrending, append = false) {
+            if (gifIsFetching) return;
+            gifIsFetching = true;
+            gifMessageBox.innerHTML = ''; 
+            
+            if (!append) gifOffset = '';
+
+            gifQuery = query;
+            gifIsTrending = isTrending;
+
+            const endpoint = isTrending ? 'featured' : 'search';
+            const finalQuery = (query === 'recent' || query === 'favorites') ? 'trending' : query;
+            
+            let url = `${GIF_BASE_URL}/${endpoint}?key=${KLIPY_KEY}&limit=${GIF_LIMIT}&per_page=${GIF_LIMIT}`;
+            
+            if (!isTrending) url += `&q=${encodeURIComponent(finalQuery)}`;
+            if (append && gifOffset) url += `&pos=${gifOffset}`;
+
+            const cachedData = sessionStorage.getItem(url);
+            
+            if (cachedData) {
+                if (!append) { gifCol1.innerHTML = ''; gifCol2.innerHTML = ''; }
+                const parsedData = JSON.parse(cachedData);
+                renderGIFs(parsedData.results, append);
+                gifOffset = parsedData.next || ''; 
+                gifIsFetching = false;
+                gifLoader.style.display = 'none';
+                return; 
+            }
+
+            if (!append) { gifLoader.style.display = 'block'; gifCol1.innerHTML = ''; gifCol2.innerHTML = ''; }
+
+            try {
+                const response = await fetch(url);
+                const json = await response.json();
+                
+                const results = json.results || [];
+                gifOffset = json.next || '';
+                
+                sessionStorage.setItem(url, JSON.stringify({ results: results, next: json.next }));
+                renderGIFs(results, append);
+                
+                if (results.length === 0 && !append) gifMessageBox.innerHTML = 'No GIFs found.';
+
+            } catch (err) {
+                console.error("Klipy Error:", err);
+                if (!append) gifMessageBox.innerHTML = '<span style="color:#ff6b6b;">Network Error.</span>';
+            } finally {
+                gifLoader.style.display = 'none';
+                gifIsFetching = false;
+            }
+        }
+
+        function renderGIFs(data, append) {
+            let newCol1Html = ''; let newCol2Html = '';
+
+            data.forEach((gif, index) => {
+                const media = gif.media_formats?.tinygif || gif.media_formats?.gif || gif.files?.tinygif || gif.files?.gif || gif.media?.[0]?.tinygif;
+                const width = media?.dims?.[0] || 200;
+                const height = media?.dims?.[1] || 200;
+                const imgUrl = media?.url || '';
+
+                if (!imgUrl) return;
+
+                const loadStrategy = (index < 6 && !append) ? 'loading="eager"' : 'loading="lazy"';
+                const html = `
+                    <div class="gif-item-box" style="aspect-ratio: ${width} / ${height};" onclick="sendGifUrl('${imgUrl}')">
+                        <div class="gif-item-loader"></div>
+                        <img src="${imgUrl}" class="gif-item-img" ${loadStrategy} onload="this.style.opacity=1; this.previousElementSibling.style.display='none'">
+                    </div>
+                `;
+
+                if (index % 2 === 0) newCol1Html += html;
+                else newCol2Html += html;
+            });
+
+            if (append) { gifCol1.innerHTML += newCol1Html; gifCol2.innerHTML += newCol2Html; } 
+            else { gifCol1.innerHTML = newCol1Html; gifCol2.innerHTML = newCol2Html; }
+        }
+
+        async function sendGifUrl(gifUrl) {
+            if(!activeChatUser) return;
+            gifOverlay.className = ''; // close sheet instantly
+            showLoading("Sending...");
+            const chatId = getChatId(LOG, activeChatUser);
+            await db.collection("chats").doc(chatId).collection("messages").add({
+                sender: LOG, text: "", gifUrl: gifUrl, read: false, timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            hideLoading();
+            loadActiveChatsList(); 
+        }
+
+        /* ================================
+           CALLS & CAMERA ENGINE 
+           ================================ */
         async function openLiveCamera(targetUid) {
             if(event) event.stopPropagation();
             liveCamTarget = targetUid;
             document.getElementById("live-cam-ov").style.display = "flex";
-            await initCamera();
-        }
-
-        async function initCamera() {
             if(liveCamStream) { liveCamStream.getTracks().forEach(t => t.stop()); }
             const constraints = { video: { facingMode: usingFrontCamera ? "user" : "environment" }, audio: false };
             try {
@@ -498,10 +669,7 @@
             }
         }
 
-        function flipLiveCamera() {
-            usingFrontCamera = !usingFrontCamera;
-            initCamera();
-        }
+        function flipLiveCamera() { usingFrontCamera = !usingFrontCamera; openLiveCamera(liveCamTarget); }
 
         function closeLiveCamera() {
             if(liveCamStream) { liveCamStream.getTracks().forEach(t => t.stop()); liveCamStream = null; }
@@ -513,8 +681,7 @@
             if(!liveCamStream || !liveCamTarget) return;
             const video = document.getElementById('live-cam-video');
             const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
+            canvas.width = video.videoWidth; canvas.height = video.videoHeight;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             
@@ -530,7 +697,6 @@
             loadActiveChatsList();
         }
 
-        // ----- SECURE CALL REDIRECTION ENGINE -----
         function listenForIncomingCalls() {
             db.collection("calls").where("receiver", "==", LOG).where("status", "==", "ringing").onSnapshot(snap => {
                 snap.docChanges().forEach(async change => {
@@ -538,10 +704,8 @@
                         const callData = change.doc.data();
                         currentCallId = change.doc.id;
                         isVideoCall = callData.type === 'video';
-                        
                         const callerDoc = await db.collection("users").doc(callData.caller).get();
                         const pfp = callerDoc.exists && callerDoc.data().profileImg ? callerDoc.data().profileImg : DIMG;
-                        
                         document.getElementById("inc-call-pfp").src = pfp;
                         document.getElementById("inc-call-name").innerText = callData.caller;
                         document.getElementById("inc-call-type").innerText = isVideoCall ? "Incoming video call..." : "Incoming audio call...";
@@ -559,55 +723,30 @@
             if(!activeChatUser) return;
             const retUrl = encodeURIComponent(window.location.href);
             const callRef = db.collection("calls").doc();
-            
-            // Write the Ringing signal
-            await callRef.set({ 
-                caller: LOG, 
-                receiver: activeChatUser, 
-                type: type, 
-                status: 'ringing', 
-                timestamp: Date.now() 
-            });
-            
-            // Redirect Caller to Firebase Sandbox
+            await callRef.set({ caller: LOG, receiver: activeChatUser, type: type, status: 'ringing', timestamp: Date.now() });
             window.location.href = `${FIREBASE_HOST}?callId=${callRef.id}&returnUrl=${retUrl}&isCaller=true`;
         }
-
         window.acceptCall = function() {
             if(!currentCallId) return;
             const retUrl = encodeURIComponent(window.location.href);
-            
-            // Redirect Receiver to Firebase Sandbox
             window.location.href = `${FIREBASE_HOST}?callId=${currentCallId}&returnUrl=${retUrl}&isCaller=false`;
         }
-
         window.rejectCall = async function() {
             document.getElementById("incoming-call-modal").style.display = "none";
-            if(currentCallId) {
-                await db.collection("calls").doc(currentCallId).update({ status: 'rejected' });
-                currentCallId = null;
-            }
+            if(currentCallId) { await db.collection("calls").doc(currentCallId).update({ status: 'rejected' }); currentCallId = null; }
         }
 
-        // ----- CHAT LOGIC -----
+        /* ================================
+           CORE CHAT LOGIC 
+           ================================ */
+        function getChatId(u1, u2) { return u1 < u2 ? u1 + "_" + u2 : u2 + "_" + u1; }
+
         async function loadNotes() {
             const container = document.getElementById("notes-container");
             container.innerHTML = "";
             const myDoc = await db.collection("users").doc(LOG).get();
             const myData = myDoc.data();
-            const myPfp = myData.profileImg || DIMG;
-            const myNoteText = myData.note?.text || null;
-
-            container.innerHTML += `
-                <div class="note-item" onclick="openCreateNote('${myNoteText ? myNoteText.replace(/'/g, "\\'") : ''}')">
-                    <div class="note-pfp-container">
-                        <img src="${myPfp}" class="note-pfp" style="${myNoteText ? 'opacity:1;' : 'opacity:0.6;'}">
-                        ${myNoteText ? `<div class="note-bubble">${myNoteText}</div>` : `<div class="note-bubble">Note...</div><div class="add-note-badge">+</div>`}
-                    </div>
-                    <span style="font-size:12px; color:#888;">Your note</span>
-                </div>
-            `;
-
+            
             const following = myData.followingList || [];
             const followers = myData.followerList || [];
             const mutuals = following.filter(uid => followers.includes(uid) && uid !== LOG);
@@ -628,25 +767,6 @@
                 }
             }
         }
-
-        function openCreateNote(existingText) {
-            document.getElementById("create-note-view").style.display = "flex";
-            const input = document.getElementById("note-text-input");
-            input.value = existingText || "";
-            setTimeout(() => input.focus(), 100);
-        }
-        function closeCreateNote() { document.getElementById("create-note-view").style.display = "none"; }
-        function openAudienceSheet() { document.getElementById("audience-sheet-ov").style.display = "flex"; }
-        function closeAudienceSheet() { document.getElementById("audience-sheet-ov").style.display = "none"; }
-
-        async function saveNote() {
-            const text = document.getElementById("note-text-input").value.trim();
-            await db.collection("users").doc(LOG).update({ note: { text: text, timestamp: firebase.firestore.FieldValue.serverTimestamp() } });
-            closeCreateNote();
-            loadNotes(); 
-        }
-
-        function getChatId(u1, u2) { return u1 < u2 ? u1 + "_" + u2 : u2 + "_" + u1; }
 
         async function loadActiveChatsList() {
             const list = document.getElementById("active-chats-list");
@@ -670,15 +790,13 @@
                         else if (m.sender === uid && m.read) break; 
                         if (m.sender === LOG) break; 
                     }
-
                     return { uid: uid, uData: uDoc.data(), lastMsg: lastMsg, time: lastMsg.timestamp ? lastMsg.timestamp.toMillis() : 0, unreadCount: unreadCount };
                 }
                 return null;
             });
 
             let chatData = await Promise.all(fetchPromises);
-            chatData = chatData.filter(item => item !== null);
-            chatData.sort((a, b) => b.time - a.time);
+            chatData = chatData.filter(item => item !== null).sort((a, b) => b.time - a.time);
 
             list.innerHTML = "";
             if (chatData.length === 0) {
@@ -698,32 +816,24 @@
 
                     let isUnread = unreadCount > 0;
                     let displayMsg = "";
-                    
-                    if (unreadCount > 1) {
-                        displayMsg = `${unreadCount} new messages`;
-                    } else {
-                        let rawText = lastMsg.image ? "Sent a photo" : (lastMsg.audioUrl ? "Sent a voice message" : lastMsg.text);
+                    if (unreadCount > 1) { displayMsg = `${unreadCount} new messages`; } 
+                    else {
+                        // DETECT GIF TYPE FOR CHAT PREVIEW
+                        let rawText = lastMsg.gifUrl ? "Sent a GIF" : (lastMsg.image ? "Sent a photo" : (lastMsg.audioUrl ? "Sent a voice message" : lastMsg.text));
                         displayMsg = lastMsg.sender === LOG ? `You: ${rawText}` : rawText;
                     }
                     
                     const noteHtml = (uData.note && uData.note.text) ? `<div style="position:absolute; top:-5px; left:10px; background:#262626; padding:2px 8px; border-radius:10px; font-size:10px; border:2px solid #000; color:#fff; white-space:nowrap; max-width:60px; overflow:hidden; text-overflow:ellipsis; pointer-events:none; z-index:2;">${uData.note.text}</div>` : '';
-                    
                     let textStyle = isUnread ? `color:#fff; font-weight:600;` : `color:#a8a8a8;`;
                     let rightIconHtml = isUnread ? `<div class="unread-dot"></div>` : `<img src="https://cdn-icons-png.flaticon.com/512/3014/3014736.png" class="cam-icon-right" onclick="openLiveCamera('${uid}')">`;
 
                     list.innerHTML += `
                         <div class="u-row">
                             <div style="display:flex; align-items:center; flex:1; overflow:hidden;" onclick="openMsg('${uid}', '${uData.profileImg || DIMG}')">
-                                <div style="position:relative;">
-                                    <img src="${uData.profileImg || DIMG}" class="pfp">
-                                    ${noteHtml}
-                                </div>
+                                <div style="position:relative;"><img src="${uData.profileImg || DIMG}" class="pfp">${noteHtml}</div>
                                 <div class="u-meta">
                                     <b style="${isUnread ? 'font-weight:700;' : ''}">${uid}</b>
-                                    <span style="${textStyle}">
-                                        <span class="msg-preview-text">${displayMsg}</span>
-                                        ${timeStr ? `&nbsp;· ${timeStr}` : ''}
-                                    </span>
+                                    <span style="${textStyle}"><span class="msg-preview-text">${displayMsg}</span>${timeStr ? `&nbsp;· ${timeStr}` : ''}</span>
                                 </div>
                             </div>
                             ${rightIconHtml}
@@ -743,8 +853,7 @@
                 
                 document.getElementById('msg-input-default').style.display = 'none';
                 document.getElementById('msg-input-recording').style.display = 'flex';
-                recordSeconds = 0;
-                document.getElementById('recording-timer').innerText = "00:00";
+                recordSeconds = 0; document.getElementById('recording-timer').innerText = "00:00";
                 
                 recordTimerInterval = setInterval(() => {
                     recordSeconds++;
@@ -752,19 +861,13 @@
                     let s = (recordSeconds % 60).toString().padStart(2, '0');
                     document.getElementById('recording-timer').innerText = `${m}:${s}`;
                 }, 1000);
-            } catch (err) {
-                alert("Microphone access is required to send voice messages.");
-            }
+            } catch (err) { alert("Microphone access is required to send voice messages."); }
         }
 
         function cancelAudioRecording() {
-            if(mediaRecorder) {
-                mediaRecorder.stop();
-                mediaRecorder.stream.getTracks().forEach(track => track.stop());
-            }
+            if(mediaRecorder) { mediaRecorder.stop(); mediaRecorder.stream.getTracks().forEach(track => track.stop()); }
             clearInterval(recordTimerInterval);
-            document.getElementById('msg-input-default').style.display = 'flex';
-            document.getElementById('msg-input-recording').style.display = 'none';
+            document.getElementById('msg-input-default').style.display = 'flex'; document.getElementById('msg-input-recording').style.display = 'none';
         }
 
         function sendAudioRecording() {
@@ -772,9 +875,7 @@
             showLoading("Sending audio...");
             mediaRecorder.addEventListener("stop", async () => {
                 const audioBlob = new Blob(audioChunks, { type: 'audio/webm' }); 
-                const formData = new FormData();
-                formData.append('file', audioBlob);
-                formData.append('upload_preset', UPLOAD_PRESET);
+                const formData = new FormData(); formData.append('file', audioBlob); formData.append('upload_preset', UPLOAD_PRESET);
                 try {
                     const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/video/upload`, { method: 'POST', body: formData });
                     const data = await res.json();
@@ -787,165 +888,86 @@
                     }
                 } catch(err) { alert("Failed to upload audio."); } finally { hideLoading(); }
             });
-            mediaRecorder.stop();
-            mediaRecorder.stream.getTracks().forEach(track => track.stop());
+            mediaRecorder.stop(); mediaRecorder.stream.getTracks().forEach(track => track.stop());
             clearInterval(recordTimerInterval);
-            document.getElementById('msg-input-default').style.display = 'flex';
-            document.getElementById('msg-input-recording').style.display = 'none';
+            document.getElementById('msg-input-default').style.display = 'flex'; document.getElementById('msg-input-recording').style.display = 'none';
         }
 
         window.initAudio = function(id) {
             const audio = document.getElementById('audio-elem-' + id);
             const timeText = document.getElementById('audio-time-' + id);
             if(audio && audio.duration && audio.duration !== Infinity) {
-                let s = Math.floor(audio.duration % 60);
-                timeText.innerText = `0:${s.toString().padStart(2, '0')}`;
+                let s = Math.floor(audio.duration % 60); timeText.innerText = `0:${s.toString().padStart(2, '0')}`;
             }
         }
 
         window.updateWaveform = function(id) {
-            const track = document.getElementById('waveform-' + id);
-            const audio = document.getElementById('audio-elem-' + id);
-            const timeText = document.getElementById('audio-time-' + id);
+            const track = document.getElementById('waveform-' + id); const audio = document.getElementById('audio-elem-' + id); const timeText = document.getElementById('audio-time-' + id);
             const totalDur = parseFloat(timeText.getAttribute('data-duration')) || audio.duration || 1;
-            
             const percentage = audio.currentTime / totalDur;
-            const bars = track.querySelectorAll('.wave-bar');
-            const activeIndex = Math.floor(percentage * bars.length);
-            
-            bars.forEach((bar, index) => {
-                if(index <= activeIndex) bar.style.background = '#fff';
-                else bar.style.background = 'rgba(255,255,255,0.4)';
-            });
-            
-            const rem = Math.max(0, totalDur - audio.currentTime);
-            let s = Math.floor(rem % 60);
-            timeText.innerText = `0:${s.toString().padStart(2, '0')}`;
+            const bars = track.querySelectorAll('.wave-bar'); const activeIndex = Math.floor(percentage * bars.length);
+            bars.forEach((bar, index) => { bar.style.background = (index <= activeIndex) ? '#fff' : 'rgba(255,255,255,0.4)'; });
+            const rem = Math.max(0, totalDur - audio.currentTime); let s = Math.floor(rem % 60); timeText.innerText = `0:${s.toString().padStart(2, '0')}`;
         }
 
         window.seekAudio = function(e, id) {
-            const track = document.getElementById('waveform-' + id);
-            const audio = document.getElementById('audio-elem-' + id);
-            const timeText = document.getElementById('audio-time-' + id);
-            const totalDur = parseFloat(timeText.getAttribute('data-duration')) || audio.duration;
-            if(!totalDur) return;
-            
-            const rect = track.getBoundingClientRect();
-            const clickX = e.clientX - rect.left;
-            const percentage = Math.max(0, Math.min(1, clickX / rect.width));
-            
-            audio.currentTime = percentage * totalDur;
-            window.updateWaveform(id);
+            const track = document.getElementById('waveform-' + id); const audio = document.getElementById('audio-elem-' + id); const timeText = document.getElementById('audio-time-' + id);
+            const totalDur = parseFloat(timeText.getAttribute('data-duration')) || audio.duration; if(!totalDur) return;
+            const rect = track.getBoundingClientRect(); const clickX = e.clientX - rect.left; const percentage = Math.max(0, Math.min(1, clickX / rect.width));
+            audio.currentTime = percentage * totalDur; window.updateWaveform(id);
         }
 
         function toggleAudio(id) {
-            const audioEl = document.getElementById('audio-elem-' + id);
-            const playIcon = document.getElementById('audio-play-icon-' + id);
+            const audioEl = document.getElementById('audio-elem-' + id); const playIcon = document.getElementById('audio-play-icon-' + id);
             document.querySelectorAll('audio').forEach(el => {
-                if(el.id !== 'audio-elem-' + id && !el.paused) {
-                    el.pause();
-                    document.getElementById('audio-play-icon-' + el.id.replace('audio-elem-','')).innerHTML = '<polygon points="8,5 20,12 8,19" fill="white"/>';
-                }
+                if(el.id !== 'audio-elem-' + id && !el.paused) { el.pause(); document.getElementById('audio-play-icon-' + el.id.replace('audio-elem-','')).innerHTML = '<polygon points="8,5 20,12 8,19" fill="white"/>'; }
             });
-            if (audioEl.paused) {
-                audioEl.play();
-                playIcon.innerHTML = '<rect x="6" y="5" width="4" height="14" fill="white"/><rect x="14" y="5" width="4" height="14" fill="white"/>';
-            } else {
-                audioEl.pause();
-                playIcon.innerHTML = '<polygon points="8,5 20,12 8,19" fill="white"/>';
-            }
+            if (audioEl.paused) { audioEl.play(); playIcon.innerHTML = '<rect x="6" y="5" width="4" height="14" fill="white"/><rect x="14" y="5" width="4" height="14" fill="white"/>'; } 
+            else { audioEl.pause(); playIcon.innerHTML = '<polygon points="8,5 20,12 8,19" fill="white"/>'; }
         }
 
-        function resetAudioUI(id) {
-            document.getElementById('audio-play-icon-' + id).innerHTML = '<polygon points="8,5 20,12 8,19" fill="white"/>';
-            const audio = document.getElementById('audio-elem-' + id);
-            audio.currentTime = 0;
-            window.updateWaveform(id);
-        }
-
-        function toggleSpeed(btn, id) {
-            const audioEl = document.getElementById('audio-elem-' + id);
-            if (audioEl.playbackRate === 1) { audioEl.playbackRate = 1.5; btn.innerText = "1.5x"; }
-            else if (audioEl.playbackRate === 1.5) { audioEl.playbackRate = 2; btn.innerText = "2x"; }
-            else { audioEl.playbackRate = 1; btn.innerText = "1x"; }
-        }
+        function resetAudioUI(id) { document.getElementById('audio-play-icon-' + id).innerHTML = '<polygon points="8,5 20,12 8,19" fill="white"/>'; document.getElementById('audio-elem-' + id).currentTime = 0; window.updateWaveform(id); }
+        function toggleSpeed(btn, id) { const audioEl = document.getElementById('audio-elem-' + id); if (audioEl.playbackRate === 1) { audioEl.playbackRate = 1.5; btn.innerText = "1.5x"; } else if (audioEl.playbackRate === 1.5) { audioEl.playbackRate = 2; btn.innerText = "2x"; } else { audioEl.playbackRate = 1; btn.innerText = "1x"; } }
 
         function compressImage(file, maxWidth = 800, quality = 0.6) {
             return new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
+                const reader = new FileReader(); reader.readAsDataURL(file);
                 reader.onload = (event) => {
-                    const img = new Image();
-                    img.src = event.target.result;
+                    const img = new Image(); img.src = event.target.result;
                     img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        let width = img.width;
-                        let height = img.height;
+                        const canvas = document.createElement('canvas'); let width = img.width; let height = img.height;
                         if (width > maxWidth) { height = Math.round((height * maxWidth) / width); width = maxWidth; }
-                        canvas.width = width; canvas.height = height;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, width, height);
-                        resolve(canvas.toDataURL('image/jpeg', quality));
+                        canvas.width = width; canvas.height = height; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height); resolve(canvas.toDataURL('image/jpeg', quality));
                     };
                 };
             });
         }
 
         async function handleChatGalleryUpload(event) {
-            const file = event.target.files[0];
-            if(!file || !activeChatUser) return;
+            const file = event.target.files[0]; if(!file || !activeChatUser) return;
             showLoading("Sending...");
-            const base64Img = await compressImage(file);
-            const chatId = getChatId(LOG, activeChatUser);
-            await db.collection("chats").doc(chatId).collection("messages").add({
-                sender: LOG, text: "", image: base64Img, read: false, timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            document.getElementById("chat-gallery-input").value = ""; 
-            hideLoading();
+            const base64Img = await compressImage(file); const chatId = getChatId(LOG, activeChatUser);
+            await db.collection("chats").doc(chatId).collection("messages").add({ sender: LOG, text: "", image: base64Img, read: false, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+            document.getElementById("chat-gallery-input").value = ""; hideLoading();
         }
 
         function openImageViewer(base64str) { document.getElementById('iv-main-img').src = base64str; document.getElementById('img-viewer-ov').style.display = 'flex'; }
         function closeImageViewer() { document.getElementById('img-viewer-ov').style.display = 'none'; }
-        function downloadViewerImage() {
-            const a = document.createElement('a');
-            a.href = document.getElementById('iv-main-img').src; a.download = 'auragram_image.jpg';
-            document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        }
+        function downloadViewerImage() { const a = document.createElement('a'); a.href = document.getElementById('iv-main-img').src; a.download = 'auragram_image.jpg'; document.body.appendChild(a); a.click(); document.body.removeChild(a); }
 
         async function loadMutualSuggestions() {
             const list = document.getElementById("suggestion-list");
             try {
                 const myDoc = await db.collection("users").doc(LOG).get();
                 const myFollowing = myDoc.data().followingList || [];
-                let potentialSuggestions = {}; 
-                for(let i=0; i < Math.min(myFollowing.length, 5); i++) {
-                    const friendUid = myFollowing[i];
-                    if(friendUid === LOG) continue;
-                    const friendDoc = await db.collection("users").doc(friendUid).get();
-                    if(friendDoc.exists) {
-                        const friendFollowing = friendDoc.data().followingList || [];
-                        for(let fof of friendFollowing) {
-                            if(fof !== LOG && !myFollowing.includes(fof)) {
-                                if(!potentialSuggestions[fof]) potentialSuggestions[fof] = { count: 0, mutualName: friendUid };
-                                potentialSuggestions[fof].count++;
-                            }
-                        }
-                    }
-                }
-                let suggestionsArray = Object.keys(potentialSuggestions).map(uid => ({ uid: uid, count: potentialSuggestions[uid].count, mutualName: potentialSuggestions[uid].mutualName })).sort((a,b) => b.count - a.count).slice(0, 5);
-                if(suggestionsArray.length === 0) {
-                    const fallbackSnap = await db.collection("users").limit(10).get();
-                    fallbackSnap.forEach(doc => {
-                        if(doc.id !== LOG && !myFollowing.includes(doc.id) && suggestionsArray.length < 5) suggestionsArray.push({uid: doc.id, count: 0, mutualName: null});
-                    });
-                }
+                let suggestionsArray = [];
+                const fallbackSnap = await db.collection("users").limit(10).get();
+                fallbackSnap.forEach(doc => { if(doc.id !== LOG && !myFollowing.includes(doc.id) && suggestionsArray.length < 5) suggestionsArray.push({uid: doc.id, count: 0, mutualName: null}); });
                 list.innerHTML = "";
                 if(suggestionsArray.length === 0) return list.innerHTML = "<p style='color:#555; font-size:14px;'>No accounts to follow.</p>";
                 for(let sug of suggestionsArray) {
-                    const uDoc = await db.collection("users").doc(sug.uid).get();
-                    const uData = uDoc.exists ? uDoc.data() : {};
-                    let subtext = sug.count > 1 ? `${sug.count} mutuals` : (sug.mutualName ? `Followed by ${sug.mutualName}` : (uData.name || 'Suggested for you'));
-                    list.innerHTML += `<div class="u-row"><img src="${uData.profileImg || DIMG}" class="pfp"><div class="u-meta" onclick="location.href='profile.html?u=${sug.uid}'"><b>${sug.uid}</b><span>${subtext}</span></div><button class="b-blue-indigo" onclick="alert('Follow logic connected to profile')">Follow</button><span class="x-rem">✕</span></div>`;
+                    const uDoc = await db.collection("users").doc(sug.uid).get(); const uData = uDoc.exists ? uDoc.data() : {};
+                    list.innerHTML += `<div class="u-row"><img src="${uData.profileImg || DIMG}" class="pfp"><div class="u-meta" onclick="location.href='profile.html?u=${sug.uid}'"><b>${sug.uid}</b><span>Suggested for you</span></div><button class="b-blue-indigo" onclick="alert('Follow logic connected to profile')">Follow</button></div>`;
                 }
             } catch(e) {}
         }
@@ -955,14 +977,12 @@
             const list = document.getElementById("follower-suggestion-list");
             list.innerHTML = "<p style='color:#555; text-align:center; padding:20px;'>Loading friends...</p>";
             const myDoc = await db.collection("users").doc(LOG).get();
-            const myFollowing = myDoc.data().followingList || [];
-            const myFollowers = myDoc.data().followerList || [];
+            const myFollowing = myDoc.data().followingList || []; const myFollowers = myDoc.data().followerList || [];
             const mutualFriends = myFollowing.filter(uid => myFollowers.includes(uid) && uid !== LOG);
             if(mutualFriends.length === 0) return list.innerHTML = "<p style='color:#555; text-align:center; padding:20px;'>No mutual followers found to message.</p>";
             list.innerHTML = "";
             for(let uid of mutualFriends) {
-                const uDoc = await db.collection("users").doc(uid).get();
-                const uData = uDoc.data();
+                const uDoc = await db.collection("users").doc(uid).get(); const uData = uDoc.data();
                 list.innerHTML += `<div class="u-row" onclick="openMsg('${uid}', '${uData.profileImg || DIMG}')" style="padding:10px 0;"><img src="${uData.profileImg || DIMG}" class="pfp" style="width:45px; height:45px;"><div class="u-meta"><b>${uid}</b><span style="font-size: 13px; color: #888;">${uData.name || ''}</span></div><div style="width:20px; height:20px; border-radius:50%; border:1px solid #444;"></div></div>`;
             }
         }
@@ -970,79 +990,49 @@
         function closeNewMessageMenu() { document.getElementById("new-msg-overlay").style.display = "none"; }
 
         async function openMsg(targetUser, pfpUrl) {
-            activeChatUser = targetUser;
-            activeChatPfp = pfpUrl || DIMG; 
-            document.getElementById("chat-uid").innerText = targetUser;
-            document.getElementById("chat-pfp").src = activeChatPfp;
+            activeChatUser = targetUser; activeChatPfp = pfpUrl || DIMG; 
+            document.getElementById("chat-uid").innerText = targetUser; document.getElementById("chat-pfp").src = activeChatPfp;
             
             const box = document.getElementById("msg-list");
             box.innerHTML = `<div style="text-align:center; padding:50px; color:#555;">Loading...</div>`;
-            document.getElementById("msg-view").style.display = "flex";
-            closeNewMessageMenu();
+            document.getElementById("msg-view").style.display = "flex"; closeNewMessageMenu();
             
-            const tDoc = await db.collection("users").doc(targetUser).get();
-            const tData = tDoc.exists ? tDoc.data() : {};
-            const tFollowersCount = (tData.followerList || []).length;
-            const tPostsQuery = await db.collection("users").doc(targetUser).collection("posts").get();
-            const tPostsCount = tPostsQuery.size;
-
-            const profileCardHtml = `<div class="chat-profile-card"><img src="${activeChatPfp}"><h2>${tData.name || targetUser}</h2><span class="uname">${targetUser}</span><span class="stats">${tFollowersCount} followers · ${tPostsCount} posts</span><span class="rel">You follow each other on Auragram</span><button onclick="location.href='profile.html?u=${targetUser}'">View profile</button></div>`;
+            const tDoc = await db.collection("users").doc(targetUser).get(); const tData = tDoc.exists ? tDoc.data() : {};
+            const profileCardHtml = `<div class="chat-profile-card"><img src="${activeChatPfp}"><h2>${tData.name || targetUser}</h2><span class="uname">${targetUser}</span><span class="rel">You follow each other on Auragram</span><button onclick="location.href='profile.html?u=${targetUser}'">View profile</button></div>`;
             const chatId = getChatId(LOG, targetUser);
             
             db.collection("chats").doc(chatId).collection("messages").orderBy("timestamp", "desc").limit(20).get().then(snap => {
-                const batch = db.batch();
-                let updated = false;
-                snap.forEach(doc => {
-                    if(doc.data().sender === targetUser && doc.data().read !== true) {
-                        batch.update(doc.ref, {read: true});
-                        updated = true;
-                    }
-                });
+                const batch = db.batch(); let updated = false;
+                snap.forEach(doc => { if(doc.data().sender === targetUser && doc.data().read !== true) { batch.update(doc.ref, {read: true}); updated = true; } });
                 if(updated) batch.commit();
             });
             
             msgUnsubscribe = db.collection("chats").doc(chatId).collection("messages").orderBy("timestamp", "asc").onSnapshot(snap => {
-                box.innerHTML = profileCardHtml;
-                let lastDate = null;
-
+                box.innerHTML = profileCardHtml; let lastDate = null;
                 snap.forEach(doc => {
-                    const m = doc.data();
-                    const isMe = m.sender === LOG;
+                    const m = doc.data(); const isMe = m.sender === LOG;
                     let dateObj = m.timestamp ? m.timestamp.toDate() : new Date();
                     let exactTimeStr = dateObj.toLocaleTimeString('en-US', {hour: 'numeric', minute:'2-digit'}); 
                     
                     if (!lastDate || (dateObj - lastDate) > 3600000) { 
                         let dividerStr = dateObj.toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true });
                         box.innerHTML += `<div class="time-divider">${dividerStr}</div>`;
-                    }
-                    lastDate = dateObj;
+                    } lastDate = dateObj;
 
-                    let msgContent = "";
-                    let bubbleClass = isMe ? 'msg-sent' : 'msg-recv';
+                    let msgContent = ""; let bubbleClass = isMe ? 'msg-sent' : 'msg-recv';
 
                     if(m.audioUrl) {
                         bubbleClass += ' msg-audio-bubble';
                         const staticWave = Array.from({length: 30}).map(() => `<div class="wave-bar" style="height:${Math.random() * 60 + 20}%"></div>`).join('');
-                        let durStr = "0:00";
-                        if(m.duration) { let s = Math.floor(m.duration % 60); durStr = `0:${s.toString().padStart(2, '0')}`; }
-                        
-                        msgContent = `
-                            <div class="audio-main-row">
-                                <div class="audio-play-btn" onclick="toggleAudio('${doc.id}')">
-                                    <svg id="audio-play-icon-${doc.id}" width="20" height="20" viewBox="0 0 24 24"><polygon points="6,4 20,12 6,20" fill="white"/></svg>
-                                </div>
-                                <div class="audio-waveform-track" id="waveform-${doc.id}" onclick="seekAudio(event, '${doc.id}')">${staticWave}</div>
-                                <div class="audio-right-controls">
-                                    <span id="audio-time-${doc.id}" class="audio-time-text" data-duration="${m.duration||0}">${durStr}</span>
-                                    <span class="audio-speed-btn" onclick="toggleSpeed(this, '${doc.id}')">1x</span>
-                                </div>
-                            </div>
-                            <div class="audio-transcription">View transcription</div>
-                            <audio id="audio-elem-${doc.id}" src="${m.audioUrl}" onloadedmetadata="initAudio('${doc.id}')" ontimeupdate="updateWaveform('${doc.id}')" onended="resetAudioUI('${doc.id}')" style="display:none;"></audio>
-                        `;
+                        let durStr = "0:00"; if(m.duration) { let s = Math.floor(m.duration % 60); durStr = `0:${s.toString().padStart(2, '0')}`; }
+                        msgContent = `<div class="audio-main-row"><div class="audio-play-btn" onclick="toggleAudio('${doc.id}')"><svg id="audio-play-icon-${doc.id}" width="20" height="20" viewBox="0 0 24 24"><polygon points="6,4 20,12 6,20" fill="white"/></svg></div><div class="audio-waveform-track" id="waveform-${doc.id}" onclick="seekAudio(event, '${doc.id}')">${staticWave}</div><div class="audio-right-controls"><span id="audio-time-${doc.id}" class="audio-time-text" data-duration="${m.duration||0}">${durStr}</span><span class="audio-speed-btn" onclick="toggleSpeed(this, '${doc.id}')">1x</span></div></div><audio id="audio-elem-${doc.id}" src="${m.audioUrl}" onloadedmetadata="initAudio('${doc.id}')" ontimeupdate="updateWaveform('${doc.id}')" onended="resetAudioUI('${doc.id}')" style="display:none;"></audio>`;
                     } else if (m.image) {
                         bubbleClass += ' msg-img-bubble';
                         msgContent = `<img src="${m.image}" onclick="openImageViewer('${m.image}')">`;
+                    } else if (m.gifUrl) {
+                        // RENDER THE GIF DIRECTLY FROM KLIPY
+                        bubbleClass += ' msg-img-bubble';
+                        msgContent = `<img src="${m.gifUrl}" style="border-radius:18px; max-width:220px; width:100%; height:auto;" alt="GIF">`;
                     } else {
                         msgContent = m.text;
                     }
@@ -1059,12 +1049,14 @@
                         </div>
                     `;
                 });
+                // Ensure chat stays scrolled to the bottom when new message arrives
                 setTimeout(() => { box.scrollTop = box.scrollHeight; }, 50);
             });
         }
 
         function closeMsg() {
             document.getElementById("msg-view").style.display = "none";
+            gifOverlay.className = ''; // Hide gif sheet if open
             if(msgUnsubscribe) { msgUnsubscribe(); msgUnsubscribe = null; }
             activeChatUser = null;
             loadActiveChatsList();
@@ -1073,30 +1065,20 @@
         function checkMsgInput() {
             const val = document.getElementById("msg-input").value.trim();
             if(val) {
-                document.getElementById("pill-left-cam").style.display = "none";
-                document.getElementById("pill-left-search").style.display = "flex";
-                document.getElementById("pill-right-icons").style.display = "none";
-                document.getElementById("pill-right-send").style.display = "flex";
+                document.getElementById("pill-left-cam").style.display = "none"; document.getElementById("pill-left-search").style.display = "flex";
+                document.getElementById("pill-right-icons").style.display = "none"; document.getElementById("pill-right-send").style.display = "flex";
             } else {
-                document.getElementById("pill-left-cam").style.display = "flex";
-                document.getElementById("pill-left-search").style.display = "none";
-                document.getElementById("pill-right-icons").style.display = "flex";
-                document.getElementById("pill-right-send").style.display = "none";
+                document.getElementById("pill-left-cam").style.display = "flex"; document.getElementById("pill-left-search").style.display = "none";
+                document.getElementById("pill-right-icons").style.display = "flex"; document.getElementById("pill-right-send").style.display = "none";
             }
         }
 
-        function handleEnter(e) {
-            if(e.key === "Enter") { sendMsg(); }
-        }
+        function handleEnter(e) { if(e.key === "Enter") sendMsg(); }
 
         async function sendMsg() {
-            const input = document.getElementById("msg-input");
-            const text = input.value.trim();
+            const input = document.getElementById("msg-input"); const text = input.value.trim();
             if(!text || !activeChatUser) return;
-            
-            input.value = "";
-            checkMsgInput(); 
-            
+            input.value = ""; checkMsgInput(); 
             const chatId = getChatId(LOG, activeChatUser);
             await db.collection("chats").doc(chatId).collection("messages").add({
                 sender: LOG, text: text, read: false, timestamp: firebase.firestore.FieldValue.serverTimestamp()
