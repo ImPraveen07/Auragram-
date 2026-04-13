@@ -61,6 +61,12 @@
         .r-act img { width: 28px; filter: invert(1); }
         .r-act span { font-size: 12px; font-weight: 600; text-shadow: 1px 1px 2px #000; }
 
+        /* SAVE ICON ANIMATION */
+        .save-icon { width: 26px; height: 26px; cursor: pointer; transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .save-icon path { stroke: #fff; stroke-width: 2; fill: transparent; transition: fill 0.2s ease, stroke 0.2s ease; }
+        .save-icon.saved { transform: scale(1.1); }
+        .save-icon.saved path { fill: #fff; stroke: #fff; }
+
         .r-info { position:absolute; bottom:40px; left:15px; z-index:80; width: 75%; display: flex; flex-direction: column; }
         .r-user { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
         .r-pfp { width:34px; height:34px; border-radius:50%; object-fit:cover; border: 1.5px solid #fff; }
@@ -282,11 +288,15 @@
         if(!firebase.apps.length) firebase.initializeApp(config);
         const db = firebase.firestore(), DIMG = "https://www.w3schools.com/howto/img_avatar.png";
 
-        let exploreFeed = [], activeFeed = [], allUsers = [], ytPlayers = {}, tapTimer = null;
+        let exploreFeed = [], activeFeed = [], allUsers = [], ytPlayers = {};
         let loadObserver, playObserver, isMuted = false; 
         let unloadTimeouts = {}; 
         let activeCommentIndex = -1; 
         let currentReplyToId = null;
+
+        // TAP LOGIC TIMERS
+        let lastTapTime = 0;
+        let singleTapTimeout = null;
 
         function showToast(msg) {
             const t = document.getElementById("toast"); t.innerText = msg;
@@ -423,6 +433,7 @@
             
             cont.innerHTML = activeFeed.map((item, i) => {
                 const isLiked = (item.likes || []).includes(LOG);
+                const isSaved = (item.saves || []).includes(LOG);
                 const hasCaption = item.caption && item.caption.trim().length > 0;
                 return `
                 <div class="reel-item" id="reel-cont-${item.id}" data-idx="${i}" data-id="${item.id}">
@@ -440,6 +451,11 @@
                         </div>
                         <div class="r-act" onclick="copyShareLink(${i})">
                             <img src="https://cdn-icons-png.flaticon.com/512/2099/2099085.png"><span>Share</span>
+                        </div>
+                        <div class="r-act" onclick="processSave(${i})">
+                            <svg id="save-icon-${i}" class="save-icon ${isSaved ? 'saved' : ''}" viewBox="0 0 24 24">
+                                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                            </svg>
                         </div>
                     </div>
                     <div class="r-info">
@@ -572,37 +588,71 @@
             const btn = document.getElementById(`play-btn-${idx}`); if (btn) btn.style.display = 'none';
         }
 
-        // 🚀 FIXED: Double Tap to Like / Single Tap to Mute
+        // =========================================
+        // REALTIME USER ACTION LOGGING (SE7EN EMOTIONS)
+        // =========================================
+        async function logUserAction(reelId, reelOwner, actionType, isAdding) {
+            if (!LOG) return;
+            const userRef = db.collection("users").doc(LOG).collection("interactions").doc(reelId);
+            
+            try {
+                if (isAdding) {
+                    await userRef.set({
+                        reelId: reelId,
+                        reelOwner: reelOwner,
+                        [actionType]: true,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
+                } else {
+                    await userRef.update({
+                        [actionType]: firebase.firestore.FieldValue.delete()
+                    });
+                }
+            } catch(e) { console.error("Error logging user action:", e); }
+        }
+
+        // =========================================
+        // TAP CONTROLS & INTERACTIONS
+        // =========================================
         function handlePlayerTap(i, event) {
             const cap = document.getElementById(`cap-${i}`);
             if (cap && cap.classList.contains('expanded')) { toggleCaption(i); return; }
 
-            if (!tapTimer) {
-                // First tap -> Start a timer. If it fires, it was a single tap.
-                tapTimer = setTimeout(() => {
-                    isMuted = !isMuted;
-                    const hint = document.getElementById('vol-hint'), icon = document.getElementById('vol-icon'), unmuteToast = document.getElementById('unmute-toast-msg');
-                    if (!isMuted && unmuteToast) unmuteToast.classList.remove('show');
-                    
-                    icon.src = isMuted ? "https://cdn-icons-png.flaticon.com/512/3127/3127501.png" : "https://cdn-icons-png.flaticon.com/512/727/727269.png";
-                    hint.style.display = "block";
-                    clearTimeout(window.volTimeout); window.volTimeout = setTimeout(() => { hint.style.display = "none"; }, 800);
+            const currentTime = new Date().getTime();
+            const tapLength = currentTime - lastTapTime;
 
-                    const currentVid = document.querySelector(`[data-idx="${i}"] video`);
-                    if(currentVid) currentVid.muted = isMuted;
-
-                    Object.values(ytPlayers).forEach(p => { 
-                        if(p && typeof p.unMute === 'function') { if (isMuted) p.mute(); else p.unMute(); }
-                    });
-                    
-                    tapTimer = null;
-                }, 250); // 250ms is the standard threshold to prevent misclicks
+            if (tapLength < 300 && tapLength > 0) {
+                // DOUBLE TAP DETECTED
+                clearTimeout(singleTapTimeout); 
+                processLike(i, true, event);    
             } else {
-                // Second tap happened before timer fired! Cancel the mute action and trigger LIKE
-                clearTimeout(tapTimer); 
-                tapTimer = null;
-                processLike(i, true, event); 
+                // SINGLE TAP DETECTED
+                singleTapTimeout = setTimeout(() => {
+                    toggleMute(i);
+                }, 300); 
             }
+            lastTapTime = currentTime;
+        }
+
+        function toggleMute(i) {
+            isMuted = !isMuted;
+            const hint = document.getElementById('vol-hint'), 
+                  icon = document.getElementById('vol-icon'), 
+                  unmuteToast = document.getElementById('unmute-toast-msg');
+                  
+            if (!isMuted && unmuteToast) unmuteToast.classList.remove('show');
+            
+            icon.src = isMuted ? "https://cdn-icons-png.flaticon.com/512/3127/3127501.png" : "https://cdn-icons-png.flaticon.com/512/727/727269.png";
+            hint.style.display = "block";
+            clearTimeout(window.volTimeout); 
+            window.volTimeout = setTimeout(() => { hint.style.display = "none"; }, 800);
+
+            const currentVid = document.querySelector(`[data-idx="${i}"] video`);
+            if(currentVid) currentVid.muted = isMuted;
+
+            Object.values(ytPlayers).forEach(p => { 
+                if(p && typeof p.unMute === 'function') { if (isMuted) p.mute(); else p.unMute(); }
+            });
         }
 
         async function processLike(i, force = false, event = null) {
@@ -639,8 +689,52 @@
                 document.getElementById(`like-icon-${i}`).style.filter = "invert(1)";
             }
 
+            // Update UI count instantly
             document.getElementById(`like-count-${i}`).innerText = item.likes.length;
-            await db.collection("users").doc(item.owner).collection(item.type==='reel'?'reels':'posts').doc(item.id).update({likes: item.likes});
+            
+            // Background Database Updates
+            const reelRef = db.collection("users").doc(item.owner).collection(item.type==='reel'?'reels':'posts').doc(item.id);
+            
+            if (item.likes.includes(LOG)) {
+                await reelRef.update({ likes: firebase.firestore.FieldValue.arrayUnion(LOG) });
+                await logUserAction(item.id, item.owner, 'liked', true);
+            } else {
+                await reelRef.update({ likes: firebase.firestore.FieldValue.arrayRemove(LOG) });
+                await logUserAction(item.id, item.owner, 'liked', false);
+            }
+        }
+
+        async function processSave(i) {
+            if (!LOG) { checkGuestAction(); return; }
+            
+            const item = activeFeed[i]; 
+            item.saves = item.saves || [];
+            const icon = document.getElementById(`save-icon-${i}`);
+            
+            const alreadySaved = item.saves.includes(LOG);
+
+            if (!alreadySaved) {
+                // Optimistic UI update
+                item.saves.push(LOG);
+                icon.classList.add('saved');
+                
+                // Background DB updates
+                await db.collection("users").doc(item.owner).collection(item.type==='reel'?'reels':'posts').doc(item.id).update({
+                    saves: firebase.firestore.FieldValue.arrayUnion(LOG)
+                });
+                await logUserAction(item.id, item.owner, 'saved', true);
+                
+            } else {
+                // Optimistic UI update
+                item.saves = item.saves.filter(u => u !== LOG);
+                icon.classList.remove('saved');
+                
+                // Background DB updates
+                await db.collection("users").doc(item.owner).collection(item.type==='reel'?'reels':'posts').doc(item.id).update({
+                    saves: firebase.firestore.FieldValue.arrayRemove(LOG)
+                });
+                await logUserAction(item.id, item.owner, 'saved', false);
+            }
         }
 
         // =========================================
@@ -688,15 +782,14 @@
             togglePostBtn();
         }
 
-        // GIF PICKER TOGGLE LOGIC
         const commentGifPicker = document.getElementById('comment-gif-picker');
         
         function toggleGifPicker() {
             if (commentGifPicker.style.height === '40dvh') {
                 closeGifPicker();
             } else {
-                commentGifPicker.style.height = '40dvh'; // Expand inside the comment sheet
-                document.getElementById("c-text-input").blur(); // drop keyboard
+                commentGifPicker.style.height = '40dvh'; 
+                document.getElementById("c-text-input").blur(); 
                 if (!gifIsFetching) fetchGIFs('', true, false);
             }
         }
@@ -840,7 +933,6 @@
             else { document.getElementById('gifCol1').innerHTML = newCol1Html; document.getElementById('gifCol2').innerHTML = newCol2Html; }
         }
 
-        // SEND GIF COMMENT TO FIREBASE
         async function sendGifComment(gifUrl) {
             if(activeCommentIndex === -1) return;
             
@@ -860,6 +952,7 @@
                 const newCount = (item.commentCount || 0) + 1;
                 item.commentCount = newCount;
                 await db.collection("users").doc(item.owner).collection(path).doc(item.id).update({ commentCount: newCount });
+                await logUserAction(item.id, item.owner, 'commented', true);
                 
                 const currentContainer = document.getElementById(`reel-cont-${item.id}`);
                 if(currentContainer) {
@@ -930,7 +1023,6 @@
                     const heartSrc = isLiked ? "https://cdn-icons-png.flaticon.com/512/833/833472.png" : "https://cdn-icons-png.flaticon.com/512/1077/1077035.png";
                     const heartFilter = isLiked ? "invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%)" : "invert(0.6)";
                     
-                    // IF GIF RENDER GIF, ELSE RENDER TEXT
                     const commentBody = c.gifUrl 
                         ? `<img src="${c.gifUrl}" style="border-radius:12px; width:160px; margin-top:4px; object-fit:cover;" alt="GIF">`
                         : `<div class="c-text">${c.text}</div>`;
@@ -965,7 +1057,7 @@
                 });
                 
                 list.innerHTML = html;
-                setTimeout(() => list.scrollTop = list.scrollHeight, 100); // Auto scroll down
+                setTimeout(() => list.scrollTop = list.scrollHeight, 100); 
             } catch(e) {
                 console.error("Error loading comments", e);
                 list.innerHTML = '<p style="text-align:center; color:#8e8e8e; margin-top:30px;">Error loading comments</p>';
@@ -996,6 +1088,7 @@
                 const newCount = (item.commentCount || 0) + 1;
                 item.commentCount = newCount;
                 await db.collection("users").doc(item.owner).collection(path).doc(item.id).update({ commentCount: newCount });
+                await logUserAction(item.id, item.owner, 'commented', true);
                 
                 const currentContainer = document.getElementById(`reel-cont-${item.id}`);
                 if(currentContainer) {
@@ -1021,7 +1114,9 @@
         function copyShareLink(i) {
             const item = activeFeed[i]; const base = window.location.origin + window.location.pathname;
             const link = `${base}?u=${item.owner}&p=${item.id}&t=${item.type}`;
-            navigator.clipboard.writeText(link); showToast("Link copied to clipboard!");
+            navigator.clipboard.writeText(link); 
+            showToast("Link copied to clipboard!");
+            logUserAction(item.id, item.owner, 'shared', true);
         }
 
         function liveSearch(val) {
