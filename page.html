@@ -393,7 +393,6 @@
                 isPulling = false;
                 const y = e.changedTouches[0].clientY;
                 if (y - ptrStartY > 80 && window.scrollY === 0) {
-                    // Trigger native-feel refresh
                     await loadGlobalExplore(); 
                     document.getElementById('ptr-spinner').style.display = 'none';
                 } else {
@@ -438,33 +437,50 @@
             } catch(e) { console.error(e); }
         }
 
+        // BUILT-IN FIX: CATCHING REJECTED PROMISES TO PREVENT "NO CONTENTS" CRASH
         async function loadGlobalExplore(excludeId = null) {
-            const usersSnap = await db.collection("users").get();
-            let feedPromises = [];
-            allUsers = []; // Reset users for refresh
-            
-            usersSnap.forEach(uDoc => {
-                const uid = uDoc.id, pfp = uDoc.data().profileImg || DIMG;
-                if(uid === LOG) document.getElementById("b-pfp-img").src = pfp;
-                allUsers.push({ id: uid, ...uDoc.data() });
+            try {
+                const usersSnap = await db.collection("users").get();
+                let feedPromises = [];
+                allUsers = []; 
                 
-                feedPromises.push(db.collection("users").doc(uid).collection("posts").get().then(s => s.docs.map(d => ({...d.data(), id:d.id, owner:uid, pfp, type:'post'}))));
-                feedPromises.push(db.collection("users").doc(uid).collection("reels").get().then(s => s.docs.map(d => ({...d.data(), id:d.id, owner:uid, pfp, type:'reel'}))));
-            });
+                usersSnap.forEach(uDoc => {
+                    const uid = uDoc.id, data = uDoc.data();
+                    const pfp = data.profileImg || DIMG;
+                    if(uid === LOG) {
+                        const dpEl = document.getElementById("b-pfp-img");
+                        if(dpEl) dpEl.src = pfp;
+                    }
+                    allUsers.push({ id: uid, ...data });
+                    
+                    feedPromises.push(
+                        db.collection("users").doc(uid).collection("posts").get()
+                        .then(s => s.docs.map(d => ({...d.data(), id:d.id, owner:uid, pfp, type:'post'})))
+                        .catch(e => { console.warn("Failed loading posts for", uid); return []; })
+                    );
+                    feedPromises.push(
+                        db.collection("users").doc(uid).collection("reels").get()
+                        .then(s => s.docs.map(d => ({...d.data(), id:d.id, owner:uid, pfp, type:'reel'})))
+                        .catch(e => { console.warn("Failed loading reels for", uid); return []; })
+                    );
+                });
 
-            const results = await Promise.all(feedPromises);
-            // Randomly shuffle to guarantee fresh order every pull-to-refresh
-            let combined = results.flat().filter(item => item.id !== excludeId).sort(() => Math.random() - 0.5);
-            
-            if (excludeId) { exploreFeed = [...exploreFeed, ...combined]; renderExploreGrid(); } 
-            else { exploreFeed = combined; renderExploreGrid(); }
+                const results = await Promise.all(feedPromises);
+                let combined = [].concat(...results).filter(item => item.id !== excludeId).sort(() => Math.random() - 0.5);
+                
+                if (excludeId) { exploreFeed = [...exploreFeed, ...combined]; renderExploreGrid(); } 
+                else { exploreFeed = combined; renderExploreGrid(); }
+            } catch (error) {
+                console.error("Global explore fetch error:", error);
+                showToast("Failed to load feed. Check connection or DB rules.");
+            }
         }
 
         function renderExploreGrid() {
             const grid = document.getElementById("explore-grid");
             grid.innerHTML = exploreFeed.map((item, idx) => {
-                const views = item.viewers ? item.viewers.length : 0;
-                const viewTag = item.type === 'reel' ? `<div class="g-views"><img src="https://cdn-icons-png.flaticon.com/512/159/159604.png">${formatCount(views)}</div>` : '';
+                const viewersArr = Array.isArray(item.viewers) ? item.viewers : [];
+                const viewTag = item.type === 'reel' ? `<div class="g-views"><img src="https://cdn-icons-png.flaticon.com/512/159/159604.png">${formatCount(viewersArr.length)}</div>` : '';
                 return `
                 <div class="g-item" onclick="handleGridClick(${idx})">
                     <img src="${item.type==='reel' ? (item.thumbnail || item.videoUrl || 'https://i.imgur.com/YqN60nI.png') : item.image}" loading="lazy">
@@ -477,6 +493,7 @@
             isMuted = false; openFullFeed(idx, exploreFeed);
         }
 
+        // BUILT-IN FIX: ARRAY VERIFICATION PREVENTS BLACK SCREEN CRASH
         function openFullFeed(startIdx, source) {
             stopMedia();
             activeFeed = source;
@@ -484,9 +501,12 @@
             const cont = document.getElementById("explore-scroll-container");
             
             cont.innerHTML = activeFeed.map((item, i) => {
-                const isLiked = (item.likes || []).includes(LOG);
-                const isSaved = (item.saves || []).includes(LOG);
+                const likesArr = Array.isArray(item.likes) ? item.likes : [];
+                const savesArr = Array.isArray(item.saves) ? item.saves : [];
+                const isLiked = likesArr.includes(LOG);
+                const isSaved = savesArr.includes(LOG);
                 const hasCaption = item.caption && item.caption.trim().length > 0;
+                
                 return `
                 <div class="reel-item" id="reel-cont-${item.id}" data-idx="${i}" data-id="${item.id}">
                     <div class="media-box" id="media-slot-${i}" onclick="handlePlayerTap(${i}, event)">
@@ -496,10 +516,10 @@
                     <div class="r-sidebar">
                         <div class="r-act" onclick="processLike(${i})">
                             <img id="like-icon-${i}" src="https://cdn-icons-png.flaticon.com/512/${isLiked?'833/833472':'1077/1077035'}.png" style="filter:${isLiked?'invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%)':'invert(1)'}">
-                            <span id="like-count-${i}">${(item.likes||[]).length}</span>
+                            <span id="like-count-${i}">${likesArr.length}</span>
                         </div>
                         <div class="r-act" onclick="openComments(${i})">
-                            <img src="https://cdn-icons-png.flaticon.com/512/1380/1380338.png"><span id="comment-count-${item.id}">${(item.commentCount || 0)}</span>
+                            <img src="https://cdn-icons-png.flaticon.com/512/1380/1380338.png"><span id="comment-count-display-${item.id}">${(item.commentCount || 0)}</span>
                         </div>
                         <div class="r-act" onclick="copyShareLink(${i})">
                             <img src="https://cdn-icons-png.flaticon.com/512/2099/2099085.png"><span>Share</span>
@@ -508,7 +528,7 @@
                             <svg id="save-icon-${i}" class="save-icon ${isSaved ? 'saved' : ''}" viewBox="0 0 24 24">
                                 <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
                             </svg>
-                            <span id="save-count-${i}">${(item.saves||[]).length}</span>
+                            <span id="save-count-${i}">${savesArr.length}</span>
                         </div>
                     </div>
                     <div class="r-info">
@@ -587,7 +607,7 @@
 
         async function trackView(item) {
             if (!LOG || item.type !== 'reel' || item.owner === LOG) return; 
-            if (!item.viewers) item.viewers = [];
+            item.viewers = Array.isArray(item.viewers) ? item.viewers : [];
             if (!item.viewers.includes(LOG)) {
                 item.viewers.push(LOG);
                 try { await db.collection("users").doc(item.owner).collection("reels").doc(item.id).update({ viewers: firebase.firestore.FieldValue.arrayUnion(LOG) });
@@ -702,7 +722,8 @@
 
         async function processLike(i, force = false, event = null) {
             if (!LOG) { document.getElementById("action-modal").style.display = "flex"; return; }
-            const item = activeFeed[i]; item.likes = item.likes || [];
+            const item = activeFeed[i]; 
+            item.likes = Array.isArray(item.likes) ? item.likes : []; // CRITICAL FIX
             const alreadyLiked = item.likes.includes(LOG);
 
             if (!alreadyLiked || force) {
@@ -734,10 +755,7 @@
                 document.getElementById(`like-icon-${i}`).style.filter = "invert(1)";
             }
 
-            // Update UI count instantly
             document.getElementById(`like-count-${i}`).innerText = item.likes.length;
-            
-            // Background Database Updates
             const reelRef = db.collection("users").doc(item.owner).collection(item.type==='reel'?'reels':'posts').doc(item.id);
             if (item.likes.includes(LOG)) {
                 await reelRef.update({ likes: firebase.firestore.FieldValue.arrayUnion(LOG) });
@@ -751,14 +769,13 @@
         async function processSave(i) {
             if (!LOG) { checkGuestAction(); return; }
             const item = activeFeed[i]; 
-            item.saves = item.saves || [];
+            item.saves = Array.isArray(item.saves) ? item.saves : []; // CRITICAL FIX
             const icon = document.getElementById(`save-icon-${i}`);
             const countDisplay = document.getElementById(`save-count-${i}`);
             
             const alreadySaved = item.saves.includes(LOG);
 
             if (!alreadySaved) {
-                // Optimistic UI update
                 item.saves.push(LOG);
                 icon.classList.add('saved');
                 countDisplay.innerText = item.saves.length;
@@ -766,7 +783,6 @@
                 await db.collection("users").doc(item.owner).collection(item.type==='reel'?'reels':'posts').doc(item.id).update({ saves: firebase.firestore.FieldValue.arrayUnion(LOG) });
                 await logUserAction(item.id, item.owner, 'saved', true);
             } else {
-                // Optimistic UI update
                 item.saves = item.saves.filter(u => u !== LOG);
                 icon.classList.remove('saved');
                 countDisplay.innerText = item.saves.length;
@@ -790,7 +806,7 @@
         function touchEndComment() { clearTimeout(commentPressTimer); }
 
         function showCommentMenu(cId, rId) {
-            if(window.navigator && window.navigator.vibrate) window.navigator.vibrate(50); // Haptic feedback
+            if(window.navigator && window.navigator.vibrate) window.navigator.vibrate(50);
             activeActionCommentId = cId; activeActionReelId = rId;
             document.getElementById('comment-action-sheet').style.display = 'flex';
         }
@@ -805,15 +821,12 @@
 
         function initDeleteComment() {
             closeCommentMenu();
-            // Optimistic Hide
             const commentNode = document.getElementById(`comment-node-${activeActionCommentId}`);
             if(commentNode) commentNode.style.display = 'none';
             
-            // Show Undo Toast
             const ut = document.getElementById('undo-toast');
             ut.style.display = 'flex';
             
-            // Set 4 second timer to permanently delete
             pendingDeleteTimeout = setTimeout(() => {
                 commitDelete(activeActionCommentId, activeActionReelId);
                 ut.style.display = 'none';
@@ -823,7 +836,7 @@
         function undoCommentDelete() {
             clearTimeout(pendingDeleteTimeout);
             const commentNode = document.getElementById(`comment-node-${activeActionCommentId}`);
-            if(commentNode) commentNode.style.display = 'flex'; // Bring it back
+            if(commentNode) commentNode.style.display = 'flex';
             document.getElementById('undo-toast').style.display = 'none';
             activeActionCommentId = null;
         }
@@ -837,9 +850,9 @@
                 const newCount = Math.max(0, (item.commentCount || 1) - 1);
                 item.commentCount = newCount;
                 await db.collection("users").doc(item.owner).collection(path).doc(item.id).update({ commentCount: newCount });
-                await logUserAction(item.id, item.owner, 'commented', false); // Optional: remove comment log
+                await logUserAction(item.id, item.owner, 'commented', false);
                 
-                const countSpan = document.getElementById(`comment-count-${item.id}`);
+                const countSpan = document.getElementById(`comment-count-display-${item.id}`);
                 if(countSpan) countSpan.innerText = newCount;
                 
             } catch(e) { console.error("Error committing delete", e); }
@@ -983,7 +996,7 @@
                 await db.collection("users").doc(item.owner).collection(path).doc(item.id).update({ commentCount: newCount });
                 await logUserAction(item.id, item.owner, 'commented', true);
                 
-                const countSpan = document.getElementById(`comment-count-${item.id}`);
+                const countSpan = document.getElementById(`comment-count-display-${item.id}`);
                 if(countSpan) countSpan.innerText = newCount;
                 
                 currentReplyToId = null; loadComments(activeCommentIndex);
@@ -1028,13 +1041,13 @@
                     const cPfp = userMatch ? (userMatch.profileImg || DIMG) : DIMG;
                     const pfpSize = isReply ? "28px" : "36px";
                     
-                    const isLiked = c.likes && c.likes.includes(LOG);
+                    const likesArr = Array.isArray(c.likes) ? c.likes : []; // CRITICAL FIX
+                    const isLiked = likesArr.includes(LOG);
                     const heartSrc = isLiked ? "https://cdn-icons-png.flaticon.com/512/833/833472.png" : "https://cdn-icons-png.flaticon.com/512/1077/1077035.png";
                     const heartFilter = isLiked ? "invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%)" : "invert(0.6)";
                     
                     const commentBody = c.gifUrl ? `<img src="${c.gifUrl}" style="border-radius:12px; width:160px; margin-top:4px; object-fit:cover;" alt="GIF">` : `<div class="c-text">${c.text}</div>`;
                     
-                    // IF LOGGED USER OWNS THE COMMENT -> ATTACH LONG PRESS EVENTS
                     const isOwner = c.user === LOG;
                     const pressEvents = isOwner ? `ontouchstart="touchStartComment(event, '${c.id}', '${item.id}')" ontouchend="touchEndComment()" oncontextmenu="showCommentMenu('${c.id}', '${item.id}'); return false;"` : '';
 
@@ -1050,7 +1063,7 @@
                         </div>
                         <div style="display:flex; flex-direction:column; align-items:center; gap:4px; min-width:24px;">
                             <img src="${heartSrc}" class="c-like-icon" style="filter: ${heartFilter};" onclick="toggleCommentLike(this, '${c.id}', '${item.id}', '${item.owner}', '${item.type}')">
-                            ${c.likes && c.likes.length > 0 ? `<span style="font-size:11px; color:#a8a8a8; font-weight:600;">${c.likes.length}</span>` : ''}
+                            ${likesArr.length > 0 ? `<span style="font-size:11px; color:#a8a8a8; font-weight:600;">${likesArr.length}</span>` : ''}
                         </div>
                     </div>`;
                 }
@@ -1086,7 +1099,7 @@
                 await db.collection("users").doc(item.owner).collection(path).doc(item.id).update({ commentCount: newCount });
                 await logUserAction(item.id, item.owner, 'commented', true);
                 
-                const countSpan = document.getElementById(`comment-count-${item.id}`);
+                const countSpan = document.getElementById(`comment-count-display-${item.id}`);
                 if(countSpan) countSpan.innerText = newCount;
                 
                 input.value = ""; currentReplyToId = null; togglePostBtn(); loadComments(activeCommentIndex);
@@ -1109,16 +1122,43 @@
             navigator.clipboard.writeText(link); showToast("Link copied to clipboard!"); logUserAction(item.id, item.owner, 'shared', true);
         }
 
+        // BUILT-IN FIX: SEARCH NOW LOOKS FOR ID AND NAME SAFELY
         function liveSearch(val) {
             const results = document.getElementById("search-results"), grid = document.getElementById("explore-grid"), close = document.getElementById("s-close");
-            if (!val) { clearSearch(); return; } close.style.display = "block"; grid.style.display = "none"; results.style.display = "block";
-            const matches = allUsers.filter(u => u.id.toLowerCase().includes(val.toLowerCase()));
-            results.innerHTML = matches.map(u => `<div class="u-row" onclick="location.href='profile.html?u=${u.id}'"><img src="${u.profileImg || DIMG}"><div class="u-info"><b>${u.id}</b><span>${u.fullName || 'Auragram User'}</span></div></div>`).join('');
+            if (!val) { clearSearch(); return; } 
+            close.style.display = "block"; grid.style.display = "none"; results.style.display = "block";
+            
+            const query = val.toLowerCase().trim();
+            const matches = allUsers.filter(u => 
+                String(u.id).toLowerCase().includes(query) || 
+                (u.name && String(u.name).toLowerCase().includes(query)) ||
+                (u.fullName && String(u.fullName).toLowerCase().includes(query))
+            );
+
+            if(matches.length === 0) {
+                results.innerHTML = '<p style="text-align:center; padding:20px; color:#8e8e8e;">No users found</p>';
+                return;
+            }
+            
+            results.innerHTML = matches.map(u => `
+                <div class="u-row" onclick="location.href='profile.html?u=${u.id}'">
+                    <img src="${u.profileImg || DIMG}">
+                    <div class="u-info"><b>${u.id}</b><span>${u.name || u.fullName || 'Auragram User'}</span></div>
+                </div>`).join('');
         }
 
         function clearSearch() { document.getElementById("s-input").value = ""; document.getElementById("s-close").style.display = "none"; document.getElementById("search-results").style.display = "none"; document.getElementById("explore-grid").style.display = "grid"; }
+        
         function closePlayer() { stopMedia(); document.getElementById("reel-player-view").style.display = "none"; if(window.location.search) window.history.replaceState({}, document.title, window.location.pathname); }
-        function openReelsOnly() { const reels = exploreFeed.filter(item => item.type === 'reel'); if(reels.length > 0) openFullFeed(0, reels); }
+        
+        // BUILT-IN FIX: PREVENTS CRASH IF NO REELS EXIST
+        function openReelsOnly() { 
+            const reels = exploreFeed.filter(item => item.type === 'reel'); 
+            if(reels.length > 0) { openFullFeed(0, reels); } 
+            else { showToast("No reels available yet"); }
+        }
+
+        init();
 
     </script>
 </body>
