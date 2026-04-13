@@ -21,7 +21,7 @@
            =========================================
         */
         * { margin:0; padding:0; box-sizing:border-box; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; -webkit-tap-highlight-color:transparent; }
-        body { background:#000; color:#fff; overflow-x:hidden; min-height:100vh; position: relative; }
+        body { background:#000; color:#fff; overflow-x:hidden; min-height:100vh; position: relative; overscroll-behavior-y: none; }
         ::-webkit-scrollbar { display:none; }
 
         /* HEADER & SEARCH */
@@ -34,6 +34,10 @@
         .u-row img { width: 44px; height: 44px; border-radius: 50%; margin-right: 12px; object-fit: cover; border: 1px solid #333;}
         .u-info b { font-size: 14px; display: block; }
         .u-info span { font-size: 12px; color: #8e8e8e; }
+
+        /* PULL TO REFRESH */
+        #ptr-spinner { position: fixed; top: 60px; left: 50%; transform: translateX(-50%); z-index: 1500; display: none; background: #262626; padding: 8px; border-radius: 50%; box-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+        .ptr-icon { width: 20px; height: 20px; border: 2px solid #8e8e8e; border-top: 2px solid #fff; border-radius: 50%; animation: spin 0.8s linear infinite; }
 
         /* EXPLORE GRID */
         #explore-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; padding: 2px; padding-bottom: 70px; }
@@ -95,15 +99,15 @@
         .c-header h3 { font-size: 16px; font-weight: 600; }
         .c-close-line { width: 40px; height: 4px; background: #555; border-radius: 2px; position: absolute; top: 8px; left: 50%; transform: translateX(-50%); cursor: pointer; }
         
-        .c-list { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 18px; }
-        .c-item { display: flex; gap: 12px; }
+        .c-list { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 18px; user-select: none; -webkit-user-select: none; }
+        .c-item { display: flex; gap: 12px; transition: background 0.2s; border-radius: 8px; padding: 4px; margin: -4px; }
         .c-item-pfp { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 1px solid #333; }
-        .c-content { flex: 1; }
+        .c-content { flex: 1; pointer-events: none; }
         .c-user-time { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
         .c-username { font-weight: 600; font-size: 13px; color: #f5f5f5; }
         .c-time { font-size: 12px; color: #a8a8a8; }
         .c-text { font-size: 14px; color: #fff; line-height: 1.4; word-wrap: break-word; }
-        .c-actions { display: flex; gap: 15px; margin-top: 6px; align-items: center; }
+        .c-actions { display: flex; gap: 15px; margin-top: 6px; align-items: center; pointer-events: auto; }
         .c-reply-btn { font-size: 12px; color: #a8a8a8; font-weight: 600; cursor: pointer; }
         
         .c-like-icon { width: 14px; height: 14px; object-fit: contain; flex-shrink: 0; filter: invert(0.6); cursor: pointer; transition: transform 0.1s; margin-top: 2px; }
@@ -112,7 +116,7 @@
         .c-view-replies::before { content: ""; display: block; width: 24px; height: 1px; background: #a8a8a8; }
         .c-replies-container { margin-top: 15px; display: flex; flex-direction: column; gap: 15px; }
 
-        /* Comment Input Bubble with inner GIF icon */
+        /* Comment Input Bubble */
         .c-input-area { background: #1a1a1a; border-top: 0.1px solid #3d3d3d; padding: 10px 15px; display: flex; align-items: center; gap: 10px; padding-bottom: max(10px, env(safe-area-inset-bottom)); flex-shrink: 0; z-index: 20; }
         .c-input-pfp { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex-shrink: 0;}
         .c-input-box { flex: 1; display: flex; align-items: center; background: #262626; border-radius: 20px; padding: 0 15px; height: 44px; border: 1px solid #363636;}
@@ -123,11 +127,8 @@
         
         .c-post-btn { color: #0095f6; font-weight: 600; font-size: 14px; cursor: pointer; display: none; margin-left: 10px;}
 
-        /* GIF Picker Bottom Extension inside the Comment Sheet */
-        #comment-gif-picker {
-            height: 0; display: flex; flex-direction: column; overflow: hidden; background: #1a1a1a;
-            transition: height 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); flex-shrink: 0; width: 100%;
-        }
+        /* GIF Picker Bottom Extension */
+        #comment-gif-picker { height: 0; display: flex; flex-direction: column; overflow: hidden; background: #1a1a1a; transition: height 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); flex-shrink: 0; width: 100%; }
         .gif-search-wrap { padding: 10px 15px; border-top: 0.1px solid #262626; }
         .gif-search-box { position: relative; background: #262626; border-radius: 8px; display: flex; align-items: center; padding: 8px 12px; }
         .gif-search-box svg { width: 16px; height: 16px; stroke: #8e8e8e; margin-right: 8px; flex-shrink:0; }
@@ -149,6 +150,19 @@
         #gif-api-loader { display: none; text-align: center; padding: 20px; }
         .gif-spinner { width: 24px; height: 24px; border: 2px solid #363636; border-top: 2px solid #8e8e8e; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto; }
         #gif-msg-box { text-align: center; color: #8e8e8e; padding-top: 20px; font-size: 14px; }
+
+        /* LONG PRESS CONTEXT MENU (DELETE / ADD TO STORY) */
+        #comment-action-sheet { position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; z-index: 20000; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); }
+        .cas-box { background: #262626; width: 250px; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .cas-btn { padding: 15px 20px; font-size: 15px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 12px; color: #fff; transition: background 0.2s; }
+        .cas-btn:active { background: #363636; }
+        .cas-btn:first-child { border-bottom: 0.1px solid #3d3d3d; }
+        .cas-btn.red { color: #ff3b30; }
+        .cas-btn svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+        /* UNDO DELETE TOAST */
+        #undo-toast { position: fixed; bottom: 85px; left: 50%; transform: translateX(-50%); background: #262626; color: #fff; padding: 12px 20px; border-radius: 8px; z-index: 25000; font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); display: none; align-items: center; justify-content: space-between; width: 90%; max-width: 350px; }
+        .undo-btn { color: #fff; font-weight: bold; cursor: pointer; background: none; border: none; font-size: 14px; outline: none; }
 
         /* GUEST RESTRICTION UI */
         #guest-restriction-banner { position: absolute; bottom: 0; left: 0; width: 100%; background: linear-gradient(transparent, rgba(0,0,0,0.95) 40%); color: #fff; text-align: center; padding: 60px 20px 30px; z-index: 9500; display: none; }
@@ -185,6 +199,8 @@
         </div>
         <div id="search-results"></div>
     </div>
+
+    <div id="ptr-spinner"><div class="ptr-icon"></div></div>
 
     <div id="explore-grid"></div>
 
@@ -231,34 +247,35 @@
                         <input type="text" id="gifSearchInput" placeholder="Search Klipy" autocomplete="off">
                     </div>
                 </div>
-
                 <div class="gif-categories" id="gifCategoriesBox">
-                    <div class="gif-cat-icon" onclick="changeGifCategory('recent', this)">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                    </div>
-                    <div class="gif-cat-icon active" id="gifDefaultTrend" onclick="changeGifCategory('trending', this)">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
-                    </div>
-                    <div class="gif-cat-icon" onclick="changeGifCategory('laugh', this)">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
-                    </div>
-                    <div class="gif-cat-icon" onclick="changeGifCategory('sad', this)">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M16 16s-1.5-2-4-2-4 2-4 2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
-                    </div>
+                    <div class="gif-cat-icon" onclick="changeGifCategory('recent', this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></div>
+                    <div class="gif-cat-icon active" id="gifDefaultTrend" onclick="changeGifCategory('trending', this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg></div>
+                    <div class="gif-cat-icon" onclick="changeGifCategory('laugh', this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg></div>
+                    <div class="gif-cat-icon" onclick="changeGifCategory('sad', this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M16 16s-1.5-2-4-2-4 2-4 2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg></div>
                 </div>
-
                 <div id="gif-api-loader"><div class="gif-spinner"></div></div>
-                
                 <div class="gif-scroll-area" id="gifScrollArea">
                     <div id="gif-msg-box"></div>
-                    <div class="gif-grid" id="gifResultsGrid">
-                        <div class="gif-col" id="gifCol1"></div>
-                        <div class="gif-col" id="gifCol2"></div>
-                    </div>
+                    <div class="gif-grid" id="gifResultsGrid"><div class="gif-col" id="gifCol1"></div><div class="gif-col" id="gifCol2"></div></div>
                 </div>
             </div>
-
         </div>
+    </div>
+
+    <div id="comment-action-sheet" onclick="closeCommentMenu()">
+        <div class="cas-box" onclick="event.stopPropagation()">
+            <div class="cas-btn" onclick="addToStorySoon()">
+                <svg><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg> Add to story
+            </div>
+            <div class="cas-btn red" onclick="initDeleteComment()">
+                <svg><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg> Delete
+            </div>
+        </div>
+    </div>
+
+    <div id="undo-toast">
+        <span>Comment deleted.</span>
+        <button class="undo-btn" onclick="undoCommentDelete()">Undo</button>
     </div>
 
     <div id="action-modal">
@@ -351,15 +368,48 @@
              if (item && ytPlayers[item.id] && ytPlayers[item.id].pauseVideo) { ytPlayers[item.id].pauseVideo(); }
         }
 
+        // PULL TO REFRESH LOGIC
+        let ptrStartY = 0;
+        let isPulling = false;
+        
+        function initPullToRefresh() {
+            document.body.addEventListener('touchstart', e => {
+                if (window.scrollY === 0 && document.getElementById('explore-grid').style.display !== 'none') {
+                    ptrStartY = e.touches[0].clientY;
+                    isPulling = true;
+                }
+            }, {passive: true});
+
+            document.body.addEventListener('touchmove', e => {
+                if (!isPulling) return;
+                const y = e.touches[0].clientY;
+                if (y - ptrStartY > 80) {
+                    document.getElementById('ptr-spinner').style.display = 'block';
+                }
+            }, {passive: true});
+
+            document.body.addEventListener('touchend', async e => {
+                if (!isPulling) return;
+                isPulling = false;
+                const y = e.changedTouches[0].clientY;
+                if (y - ptrStartY > 80 && window.scrollY === 0) {
+                    // Trigger native-feel refresh
+                    await loadGlobalExplore(); 
+                    document.getElementById('ptr-spinner').style.display = 'none';
+                } else {
+                    document.getElementById('ptr-spinner').style.display = 'none';
+                }
+            });
+        }
+
         async function init() {
             initObservers();
+            initPullToRefresh();
             if (sharedPostId) { await handleSharedContent(); } 
             else {
                 if(!LOG) { location.href = 'index.html'; return; }
                 await loadGlobalExplore();
             }
-            
-            // Pre-fetch trending GIFs for fast load
             fetchGIFs('', true, false);
         }
 
@@ -391,6 +441,7 @@
         async function loadGlobalExplore(excludeId = null) {
             const usersSnap = await db.collection("users").get();
             let feedPromises = [];
+            allUsers = []; // Reset users for refresh
             
             usersSnap.forEach(uDoc => {
                 const uid = uDoc.id, pfp = uDoc.data().profileImg || DIMG;
@@ -402,6 +453,7 @@
             });
 
             const results = await Promise.all(feedPromises);
+            // Randomly shuffle to guarantee fresh order every pull-to-refresh
             let combined = results.flat().filter(item => item.id !== excludeId).sort(() => Math.random() - 0.5);
             
             if (excludeId) { exploreFeed = [...exploreFeed, ...combined]; renderExploreGrid(); } 
@@ -447,7 +499,7 @@
                             <span id="like-count-${i}">${(item.likes||[]).length}</span>
                         </div>
                         <div class="r-act" onclick="openComments(${i})">
-                            <img src="https://cdn-icons-png.flaticon.com/512/1380/1380338.png"><span>${(item.commentCount || 0)}</span>
+                            <img src="https://cdn-icons-png.flaticon.com/512/1380/1380338.png"><span id="comment-count-${item.id}">${(item.commentCount || 0)}</span>
                         </div>
                         <div class="r-act" onclick="copyShareLink(${i})">
                             <img src="https://cdn-icons-png.flaticon.com/512/2099/2099085.png"><span>Share</span>
@@ -456,6 +508,7 @@
                             <svg id="save-icon-${i}" class="save-icon ${isSaved ? 'saved' : ''}" viewBox="0 0 24 24">
                                 <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
                             </svg>
+                            <span id="save-count-${i}">${(item.saves||[]).length}</span>
                         </div>
                     </div>
                     <div class="r-info">
@@ -594,19 +647,11 @@
         async function logUserAction(reelId, reelOwner, actionType, isAdding) {
             if (!LOG) return;
             const userRef = db.collection("users").doc(LOG).collection("interactions").doc(reelId);
-            
             try {
                 if (isAdding) {
-                    await userRef.set({
-                        reelId: reelId,
-                        reelOwner: reelOwner,
-                        [actionType]: true,
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                    }, { merge: true });
+                    await userRef.set({ reelId: reelId, reelOwner: reelOwner, [actionType]: true, timestamp: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
                 } else {
-                    await userRef.update({
-                        [actionType]: firebase.firestore.FieldValue.delete()
-                    });
+                    await userRef.update({ [actionType]: firebase.firestore.FieldValue.delete() });
                 }
             } catch(e) { console.error("Error logging user action:", e); }
         }
@@ -694,7 +739,6 @@
             
             // Background Database Updates
             const reelRef = db.collection("users").doc(item.owner).collection(item.type==='reel'?'reels':'posts').doc(item.id);
-            
             if (item.likes.includes(LOG)) {
                 await reelRef.update({ likes: firebase.firestore.FieldValue.arrayUnion(LOG) });
                 await logUserAction(item.id, item.owner, 'liked', true);
@@ -706,10 +750,10 @@
 
         async function processSave(i) {
             if (!LOG) { checkGuestAction(); return; }
-            
             const item = activeFeed[i]; 
             item.saves = item.saves || [];
             const icon = document.getElementById(`save-icon-${i}`);
+            const countDisplay = document.getElementById(`save-count-${i}`);
             
             const alreadySaved = item.saves.includes(LOG);
 
@@ -717,28 +761,94 @@
                 // Optimistic UI update
                 item.saves.push(LOG);
                 icon.classList.add('saved');
+                countDisplay.innerText = item.saves.length;
                 
-                // Background DB updates
-                await db.collection("users").doc(item.owner).collection(item.type==='reel'?'reels':'posts').doc(item.id).update({
-                    saves: firebase.firestore.FieldValue.arrayUnion(LOG)
-                });
+                await db.collection("users").doc(item.owner).collection(item.type==='reel'?'reels':'posts').doc(item.id).update({ saves: firebase.firestore.FieldValue.arrayUnion(LOG) });
                 await logUserAction(item.id, item.owner, 'saved', true);
-                
             } else {
                 // Optimistic UI update
                 item.saves = item.saves.filter(u => u !== LOG);
                 icon.classList.remove('saved');
+                countDisplay.innerText = item.saves.length;
                 
-                // Background DB updates
-                await db.collection("users").doc(item.owner).collection(item.type==='reel'?'reels':'posts').doc(item.id).update({
-                    saves: firebase.firestore.FieldValue.arrayRemove(LOG)
-                });
+                await db.collection("users").doc(item.owner).collection(item.type==='reel'?'reels':'posts').doc(item.id).update({ saves: firebase.firestore.FieldValue.arrayRemove(LOG) });
                 await logUserAction(item.id, item.owner, 'saved', false);
             }
         }
 
         // =========================================
-        // KLIPY GIF PICKER + COMMENTS LOGIC 
+        // COMMENT OPTIONS, DELETE, AND UNDO
+        // =========================================
+        let activeActionCommentId = null;
+        let activeActionReelId = null;
+        let pendingDeleteTimeout = null;
+
+        let commentPressTimer;
+        function touchStartComment(e, cId, rId) {
+            commentPressTimer = setTimeout(() => { showCommentMenu(cId, rId); }, 500);
+        }
+        function touchEndComment() { clearTimeout(commentPressTimer); }
+
+        function showCommentMenu(cId, rId) {
+            if(window.navigator && window.navigator.vibrate) window.navigator.vibrate(50); // Haptic feedback
+            activeActionCommentId = cId; activeActionReelId = rId;
+            document.getElementById('comment-action-sheet').style.display = 'flex';
+        }
+
+        function closeCommentMenu() {
+            document.getElementById('comment-action-sheet').style.display = 'none';
+        }
+
+        function addToStorySoon() {
+            closeCommentMenu(); showToast("Coming soon");
+        }
+
+        function initDeleteComment() {
+            closeCommentMenu();
+            // Optimistic Hide
+            const commentNode = document.getElementById(`comment-node-${activeActionCommentId}`);
+            if(commentNode) commentNode.style.display = 'none';
+            
+            // Show Undo Toast
+            const ut = document.getElementById('undo-toast');
+            ut.style.display = 'flex';
+            
+            // Set 4 second timer to permanently delete
+            pendingDeleteTimeout = setTimeout(() => {
+                commitDelete(activeActionCommentId, activeActionReelId);
+                ut.style.display = 'none';
+            }, 4000);
+        }
+
+        function undoCommentDelete() {
+            clearTimeout(pendingDeleteTimeout);
+            const commentNode = document.getElementById(`comment-node-${activeActionCommentId}`);
+            if(commentNode) commentNode.style.display = 'flex'; // Bring it back
+            document.getElementById('undo-toast').style.display = 'none';
+            activeActionCommentId = null;
+        }
+
+        async function commitDelete(cId, rId) {
+            if(activeCommentIndex === -1) return;
+            const item = activeFeed[activeCommentIndex];
+            const path = item.type === 'reel' ? 'reels' : 'posts';
+            try {
+                await db.collection("users").doc(item.owner).collection(path).doc(item.id).collection("comments").doc(cId).delete();
+                const newCount = Math.max(0, (item.commentCount || 1) - 1);
+                item.commentCount = newCount;
+                await db.collection("users").doc(item.owner).collection(path).doc(item.id).update({ commentCount: newCount });
+                await logUserAction(item.id, item.owner, 'commented', false); // Optional: remove comment log
+                
+                const countSpan = document.getElementById(`comment-count-${item.id}`);
+                if(countSpan) countSpan.innerText = newCount;
+                
+            } catch(e) { console.error("Error committing delete", e); }
+            activeActionCommentId = null;
+        }
+
+
+        // =========================================
+        // KLIPY GIF PICKER + COMMENTS UI
         // =========================================
         function openComments(idx) {
             if(!LOG) { checkGuestAction(); return; }
@@ -764,14 +874,8 @@
             const input = document.getElementById("c-text-input").value.trim();
             const btn = document.getElementById("c-post-btn-action");
             const gifBtn = document.getElementById("c-gif-btn");
-            
-            if(input.length > 0) {
-                btn.style.display = 'block';
-                gifBtn.style.display = 'none';
-            } else {
-                btn.style.display = 'none';
-                gifBtn.style.display = 'block';
-            }
+            if(input.length > 0) { btn.style.display = 'block'; gifBtn.style.display = 'none'; } 
+            else { btn.style.display = 'none'; gifBtn.style.display = 'block'; }
         }
 
         function prepareReply(cId, username) {
@@ -783,94 +887,52 @@
         }
 
         const commentGifPicker = document.getElementById('comment-gif-picker');
-        
         function toggleGifPicker() {
-            if (commentGifPicker.style.height === '40dvh') {
-                closeGifPicker();
-            } else {
-                commentGifPicker.style.height = '40dvh'; 
-                document.getElementById("c-text-input").blur(); 
-                if (!gifIsFetching) fetchGIFs('', true, false);
-            }
+            if (commentGifPicker.style.height === '40dvh') { closeGifPicker(); } 
+            else { commentGifPicker.style.height = '40dvh'; document.getElementById("c-text-input").blur(); if (!gifIsFetching) fetchGIFs('', true, false); }
         }
-
-        function closeGifPicker() {
-            commentGifPicker.style.height = '0px';
-        }
+        function closeGifPicker() { commentGifPicker.style.height = '0px'; }
 
         /* --- GIF API FETCHING (KLIPY) --- */
         const KLIPY_KEY = "9kgwujswREy0l8wCtJs0CqJHsWJoRWUv2ush8lNXsQp6TN5oiJFIfFDMW2vG7vVJ"; 
         const GIF_BASE_URL = "https://api.klipy.com/v2"; 
-        
-        let gifTypingTimer;
-        let gifOffset = '';
-        let gifQuery = '';
-        let gifIsTrending = true;
-        let gifIsFetching = false;
+        let gifTypingTimer, gifOffset = '', gifQuery = '', gifIsTrending = true, gifIsFetching = false;
         const GIF_LIMIT = 20;
 
         document.getElementById('gifSearchInput').addEventListener('input', (e) => {
-            clearTimeout(gifTypingTimer);
-            const query = e.target.value.trim();
-            gifTypingTimer = setTimeout(() => {
-                if (query) fetchGIFs(query, false, false);
-                else fetchGIFs('', true, false);
-            }, 400); 
+            clearTimeout(gifTypingTimer); const query = e.target.value.trim();
+            gifTypingTimer = setTimeout(() => { if (query) fetchGIFs(query, false, false); else fetchGIFs('', true, false); }, 400); 
         });
 
         function saveRecentGif(url) {
             let recents = JSON.parse(localStorage.getItem('auragram_recent_gifs') || '[]');
-            recents = recents.filter(g => g !== url); 
-            recents.unshift(url); 
-            if(recents.length > 30) recents.pop(); 
-            localStorage.setItem('auragram_recent_gifs', JSON.stringify(recents));
+            recents = recents.filter(g => g !== url); recents.unshift(url); 
+            if(recents.length > 30) recents.pop(); localStorage.setItem('auragram_recent_gifs', JSON.stringify(recents));
         }
 
         function loadRecentGifs() {
-            const msgBox = document.getElementById('gif-msg-box');
-            const col1 = document.getElementById('gifCol1');
-            const col2 = document.getElementById('gifCol2');
-            
+            const msgBox = document.getElementById('gif-msg-box'), col1 = document.getElementById('gifCol1'), col2 = document.getElementById('gifCol2');
             msgBox.innerHTML = ''; col1.innerHTML = ''; col2.innerHTML = '';
             let recents = JSON.parse(localStorage.getItem('auragram_recent_gifs') || '[]');
-            if(recents.length === 0) {
-                msgBox.innerHTML = 'No recent GIFs sent yet.';
-                return;
-            }
+            if(recents.length === 0) { msgBox.innerHTML = 'No recent GIFs sent yet.'; return; }
             let fakeData = recents.map(url => ({ media_formats: { gif: { url: url, dims: [200, 200] } } }));
             renderGIFs(fakeData, false);
         }
 
         function changeGifCategory(type, el) {
-            document.querySelectorAll('.gif-cat-icon').forEach(i => i.classList.remove('active'));
-            el.classList.add('active');
-            document.getElementById('gifSearchInput').value = ""; 
-            
-            if (type === 'recent') {
-                gifIsFetching = true; 
-                loadRecentGifs();
-                setTimeout(() => { gifIsFetching = false; }, 500);
-            } else if (type === 'trending') {
-                fetchGIFs('', true, false);
-            } else {
-                fetchGIFs(type, false, false); 
-            }
+            document.querySelectorAll('.gif-cat-icon').forEach(i => i.classList.remove('active')); el.classList.add('active'); document.getElementById('gifSearchInput').value = ""; 
+            if (type === 'recent') { gifIsFetching = true; loadRecentGifs(); setTimeout(() => { gifIsFetching = false; }, 500); } 
+            else if (type === 'trending') { fetchGIFs('', true, false); } 
+            else { fetchGIFs(type, false, false); }
         }
 
         document.getElementById('gifScrollArea').addEventListener('scroll', (e) => {
-            if (e.target.scrollTop + e.target.clientHeight >= e.target.scrollHeight - 100) {
-                if (!gifIsFetching && gifOffset) fetchGIFs(gifQuery, gifIsTrending, true); 
-            }
+            if (e.target.scrollTop + e.target.clientHeight >= e.target.scrollHeight - 100) { if (!gifIsFetching && gifOffset) fetchGIFs(gifQuery, gifIsTrending, true); }
         });
 
         async function fetchGIFs(query, isTrending, append = false) {
-            if (gifIsFetching) return;
-            gifIsFetching = true;
-            document.getElementById('gif-msg-box').innerHTML = ''; 
-            
-            if (!append) gifOffset = '';
-            gifQuery = query;
-            gifIsTrending = isTrending;
+            if (gifIsFetching) return; gifIsFetching = true; document.getElementById('gif-msg-box').innerHTML = ''; 
+            if (!append) gifOffset = ''; gifQuery = query; gifIsTrending = isTrending;
 
             const endpoint = isTrending ? 'featured' : 'search';
             const finalQuery = (query === 'recent' || query === 'favorites') ? 'trending' : query; 
@@ -882,102 +944,61 @@
             const cachedData = sessionStorage.getItem(url);
             if (cachedData) {
                 if (!append) { document.getElementById('gifCol1').innerHTML = ''; document.getElementById('gifCol2').innerHTML = ''; }
-                const parsedData = JSON.parse(cachedData);
-                renderGIFs(parsedData.results, append);
-                gifOffset = parsedData.next || ''; 
-                gifIsFetching = false; document.getElementById('gif-api-loader').style.display = 'none';
-                return; 
+                const parsedData = JSON.parse(cachedData); renderGIFs(parsedData.results, append); gifOffset = parsedData.next || ''; gifIsFetching = false; document.getElementById('gif-api-loader').style.display = 'none'; return; 
             }
 
             if (!append) { document.getElementById('gif-api-loader').style.display = 'block'; document.getElementById('gifCol1').innerHTML = ''; document.getElementById('gifCol2').innerHTML = ''; }
-
             try {
-                const response = await fetch(url);
-                const json = await response.json();
-                const results = json.results || [];
-                gifOffset = json.next || '';
-                
-                sessionStorage.setItem(url, JSON.stringify({ results: results, next: json.next }));
-                renderGIFs(results, append);
+                const response = await fetch(url); const json = await response.json(); const results = json.results || []; gifOffset = json.next || '';
+                sessionStorage.setItem(url, JSON.stringify({ results: results, next: json.next })); renderGIFs(results, append);
                 if (results.length === 0 && !append) document.getElementById('gif-msg-box').innerHTML = 'No GIFs found.';
-
-            } catch (err) {
-                if (!append) document.getElementById('gif-msg-box').innerHTML = '<span style="color:#ff6b6b;">Network Error.</span>';
-            } finally {
-                document.getElementById('gif-api-loader').style.display = 'none'; gifIsFetching = false;
-            }
+            } catch (err) { if (!append) document.getElementById('gif-msg-box').innerHTML = '<span style="color:#ff6b6b;">Network Error.</span>'; } finally { document.getElementById('gif-api-loader').style.display = 'none'; gifIsFetching = false; }
         }
 
         function renderGIFs(data, append) {
             let newCol1Html = ''; let newCol2Html = '';
             data.forEach((gif, index) => {
                 const media = gif.media_formats?.tinygif || gif.media_formats?.gif || gif.files?.tinygif || gif.files?.gif || gif.media?.[0]?.tinygif;
-                const width = media?.dims?.[0] || 200;
-                const height = media?.dims?.[1] || 200;
-                const imgUrl = media?.url || '';
-
+                const width = media?.dims?.[0] || 200, height = media?.dims?.[1] || 200, imgUrl = media?.url || '';
                 if (!imgUrl) return;
-
                 const loadStrategy = (index < 6 && !append) ? 'loading="eager"' : 'loading="lazy"';
-                const html = `
-                    <div class="gif-item-box" style="aspect-ratio: ${width} / ${height};" onclick="sendGifComment('${imgUrl}')">
-                        <div class="gif-item-loader"></div>
-                        <img src="${imgUrl}" class="gif-item-img" ${loadStrategy} onload="this.style.opacity=1; this.previousElementSibling.style.display='none'">
-                    </div>
-                `;
-
+                const html = `<div class="gif-item-box" style="aspect-ratio: ${width} / ${height};" onclick="sendGifComment('${imgUrl}')"><div class="gif-item-loader"></div><img src="${imgUrl}" class="gif-item-img" ${loadStrategy} onload="this.style.opacity=1; this.previousElementSibling.style.display='none'"></div>`;
                 if (index % 2 === 0) newCol1Html += html; else newCol2Html += html;
             });
-
             if (append) { document.getElementById('gifCol1').innerHTML += newCol1Html; document.getElementById('gifCol2').innerHTML += newCol2Html; } 
             else { document.getElementById('gifCol1').innerHTML = newCol1Html; document.getElementById('gifCol2').innerHTML = newCol2Html; }
         }
 
         async function sendGifComment(gifUrl) {
             if(activeCommentIndex === -1) return;
-            
-            saveRecentGif(gifUrl);
-            closeGifPicker();
-            
-            const item = activeFeed[activeCommentIndex];
-            const path = item.type === 'reel' ? 'reels' : 'posts';
+            saveRecentGif(gifUrl); closeGifPicker();
+            const item = activeFeed[activeCommentIndex]; const path = item.type === 'reel' ? 'reels' : 'posts';
             const commentRef = db.collection("users").doc(item.owner).collection(path).doc(item.id).collection("comments");
-            
             try {
                 const commentData = { user: LOG, text: "", gifUrl: gifUrl, timestamp: firebase.firestore.FieldValue.serverTimestamp() };
                 if (currentReplyToId) commentData.replyTo = currentReplyToId;
-
                 await commentRef.add(commentData);
                 
-                const newCount = (item.commentCount || 0) + 1;
-                item.commentCount = newCount;
+                const newCount = (item.commentCount || 0) + 1; item.commentCount = newCount;
                 await db.collection("users").doc(item.owner).collection(path).doc(item.id).update({ commentCount: newCount });
                 await logUserAction(item.id, item.owner, 'commented', true);
                 
-                const currentContainer = document.getElementById(`reel-cont-${item.id}`);
-                if(currentContainer) {
-                    const countSpan = currentContainer.querySelectorAll('.r-act span')[1]; 
-                    if(countSpan) countSpan.innerText = newCount;
-                }
+                const countSpan = document.getElementById(`comment-count-${item.id}`);
+                if(countSpan) countSpan.innerText = newCount;
                 
-                currentReplyToId = null; 
-                loadComments(activeCommentIndex);
+                currentReplyToId = null; loadComments(activeCommentIndex);
             } catch(e) { console.error("Post GIF error", e); showToast("Failed to post GIF"); }
         }
 
         /* --- COMMENT RENDERING --- */
         async function toggleCommentLike(iconEl, cId, rId, rOwner, rType) {
-            const isLiked = iconEl.src.includes('1077035');
-            const path = rType === 'reel' ? 'reels' : 'posts';
+            const isLiked = iconEl.src.includes('1077035'); const path = rType === 'reel' ? 'reels' : 'posts';
             const ref = db.collection("users").doc(rOwner).collection(path).doc(rId).collection("comments").doc(cId);
-
             if(isLiked) {
-                iconEl.src = "https://cdn-icons-png.flaticon.com/512/833/833472.png";
-                iconEl.style.filter = "invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%)";
+                iconEl.src = "https://cdn-icons-png.flaticon.com/512/833/833472.png"; iconEl.style.filter = "invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%)";
                 await ref.update({ likes: firebase.firestore.FieldValue.arrayUnion(LOG) });
             } else {
-                iconEl.src = "https://cdn-icons-png.flaticon.com/512/1077/1077035.png";
-                iconEl.style.filter = "invert(0.6)";
+                iconEl.src = "https://cdn-icons-png.flaticon.com/512/1077/1077035.png"; iconEl.style.filter = "invert(0.6)";
                 await ref.update({ likes: firebase.firestore.FieldValue.arrayRemove(LOG) });
             }
             loadComments(activeCommentIndex);
@@ -985,31 +1006,19 @@
 
         function toggleReplies(cId) {
             const box = document.getElementById(`replies-${cId}`);
-            if (box.style.display === 'none') box.style.display = 'flex';
-            else box.style.display = 'none';
+            if (box.style.display === 'none') box.style.display = 'flex'; else box.style.display = 'none';
         }
 
         async function loadComments(idx) {
-            const item = activeFeed[idx];
-            const list = document.getElementById('c-list-box');
+            const item = activeFeed[idx]; const list = document.getElementById('c-list-box');
             try {
                 const path = item.type === 'reel' ? 'reels' : 'posts';
                 const snapshot = await db.collection("users").doc(item.owner).collection(path).doc(item.id).collection("comments").orderBy("timestamp", "asc").get();
-                
-                if(snapshot.empty) {
-                    list.innerHTML = '<p style="text-align:center; color:#8e8e8e; margin-top:30px; font-size: 14px;">No comments yet. Start the conversation.</p>';
-                    return;
-                }
+                if(snapshot.empty) { list.innerHTML = '<p style="text-align:center; color:#8e8e8e; margin-top:30px; font-size: 14px;">No comments yet. Start the conversation.</p>'; return; }
 
-                let allComments = [];
-                snapshot.forEach(doc => allComments.push({id: doc.id, ...doc.data()}));
-                
-                let mainComments = allComments.filter(c => !c.replyTo);
-                let repliesMap = {};
-                allComments.filter(c => c.replyTo).forEach(c => {
-                    if(!repliesMap[c.replyTo]) repliesMap[c.replyTo] = [];
-                    repliesMap[c.replyTo].push(c);
-                });
+                let allComments = []; snapshot.forEach(doc => allComments.push({id: doc.id, ...doc.data()}));
+                let mainComments = allComments.filter(c => !c.replyTo); let repliesMap = {};
+                allComments.filter(c => c.replyTo).forEach(c => { if(!repliesMap[c.replyTo]) repliesMap[c.replyTo] = []; repliesMap[c.replyTo].push(c); });
 
                 let html = '';
                 
@@ -1023,12 +1032,14 @@
                     const heartSrc = isLiked ? "https://cdn-icons-png.flaticon.com/512/833/833472.png" : "https://cdn-icons-png.flaticon.com/512/1077/1077035.png";
                     const heartFilter = isLiked ? "invert(27%) sepia(91%) saturate(7333%) hue-rotate(345deg) brightness(98%) contrast(97%)" : "invert(0.6)";
                     
-                    const commentBody = c.gifUrl 
-                        ? `<img src="${c.gifUrl}" style="border-radius:12px; width:160px; margin-top:4px; object-fit:cover;" alt="GIF">`
-                        : `<div class="c-text">${c.text}</div>`;
+                    const commentBody = c.gifUrl ? `<img src="${c.gifUrl}" style="border-radius:12px; width:160px; margin-top:4px; object-fit:cover;" alt="GIF">` : `<div class="c-text">${c.text}</div>`;
                     
+                    // IF LOGGED USER OWNS THE COMMENT -> ATTACH LONG PRESS EVENTS
+                    const isOwner = c.user === LOG;
+                    const pressEvents = isOwner ? `ontouchstart="touchStartComment(event, '${c.id}', '${item.id}')" ontouchend="touchEndComment()" oncontextmenu="showCommentMenu('${c.id}', '${item.id}'); return false;"` : '';
+
                     return `
-                    <div class="c-item" style="${isReply ? 'margin-bottom: 5px;' : ''}">
+                    <div class="c-item" id="comment-node-${c.id}" style="${isReply ? 'margin-bottom: 5px;' : ''}" ${pressEvents}>
                         <img src="${cPfp}" class="c-item-pfp" style="width:${pfpSize}; height:${pfpSize};">
                         <div class="c-content">
                             <div class="c-user-time"><span class="c-username">${c.user}</span> <span class="c-time">${timeAgo}</span></div>
@@ -1047,58 +1058,39 @@
                 mainComments.forEach(c => {
                     html += generateCommentHtml(c, false);
                     if(repliesMap[c.id] && repliesMap[c.id].length > 0) {
-                        html += `<div style="margin-left: 48px;">
-                                    <div class="c-view-replies" onclick="toggleReplies('${c.id}')">View replies (${repliesMap[c.id].length})</div>
-                                    <div class="c-replies-container" id="replies-${c.id}" style="display:none;">`;
+                        html += `<div style="margin-left: 48px;"><div class="c-view-replies" onclick="toggleReplies('${c.id}')">View replies (${repliesMap[c.id].length})</div><div class="c-replies-container" id="replies-${c.id}" style="display:none;">`;
                         repliesMap[c.id].forEach(rep => { html += generateCommentHtml(rep, true); });
-                        html += `   </div>
-                                 </div>`;
+                        html += `</div></div>`;
                     }
                 });
                 
-                list.innerHTML = html;
-                setTimeout(() => list.scrollTop = list.scrollHeight, 100); 
-            } catch(e) {
-                console.error("Error loading comments", e);
-                list.innerHTML = '<p style="text-align:center; color:#8e8e8e; margin-top:30px;">Error loading comments</p>';
-            }
+                list.innerHTML = html; setTimeout(() => list.scrollTop = list.scrollHeight, 100); 
+            } catch(e) { console.error("Error loading comments", e); list.innerHTML = '<p style="text-align:center; color:#8e8e8e; margin-top:30px;">Error loading comments</p>'; }
         }
 
         async function submitComment() {
             if(activeCommentIndex === -1) return;
-            const input = document.getElementById("c-text-input");
-            const text = input.value.trim();
-            if(!text) return;
+            const input = document.getElementById("c-text-input"); const text = input.value.trim();
+            if(!text) return; if(currentReplyToId && !text.startsWith('@')) currentReplyToId = null;
             
-            if(currentReplyToId && !text.startsWith('@')) currentReplyToId = null;
-            
-            const btn = document.getElementById("c-post-btn-action");
-            btn.innerText = "...";
-            
-            const item = activeFeed[activeCommentIndex];
-            const path = item.type === 'reel' ? 'reels' : 'posts';
+            const btn = document.getElementById("c-post-btn-action"); btn.innerText = "...";
+            const item = activeFeed[activeCommentIndex]; const path = item.type === 'reel' ? 'reels' : 'posts';
             const commentRef = db.collection("users").doc(item.owner).collection(path).doc(item.id).collection("comments");
             
             try {
                 const commentData = { user: LOG, text: text, timestamp: firebase.firestore.FieldValue.serverTimestamp() };
                 if (currentReplyToId) commentData.replyTo = currentReplyToId;
-
                 await commentRef.add(commentData);
                 
-                const newCount = (item.commentCount || 0) + 1;
-                item.commentCount = newCount;
+                const newCount = (item.commentCount || 0) + 1; item.commentCount = newCount;
                 await db.collection("users").doc(item.owner).collection(path).doc(item.id).update({ commentCount: newCount });
                 await logUserAction(item.id, item.owner, 'commented', true);
                 
-                const currentContainer = document.getElementById(`reel-cont-${item.id}`);
-                if(currentContainer) {
-                    const countSpan = currentContainer.querySelectorAll('.r-act span')[1]; 
-                    if(countSpan) countSpan.innerText = newCount;
-                }
+                const countSpan = document.getElementById(`comment-count-${item.id}`);
+                if(countSpan) countSpan.innerText = newCount;
                 
                 input.value = ""; currentReplyToId = null; togglePostBtn(); loadComments(activeCommentIndex);
-            } catch(e) { console.error("Post comment error", e); showToast("Failed to post comment"); }
-            finally { btn.innerText = "Post"; }
+            } catch(e) { console.error("Post comment error", e); showToast("Failed to post comment"); } finally { btn.innerText = "Post"; }
         }
 
         function calculateTimeAgo(date) {
@@ -1114,40 +1106,19 @@
         function copyShareLink(i) {
             const item = activeFeed[i]; const base = window.location.origin + window.location.pathname;
             const link = `${base}?u=${item.owner}&p=${item.id}&t=${item.type}`;
-            navigator.clipboard.writeText(link); 
-            showToast("Link copied to clipboard!");
-            logUserAction(item.id, item.owner, 'shared', true);
+            navigator.clipboard.writeText(link); showToast("Link copied to clipboard!"); logUserAction(item.id, item.owner, 'shared', true);
         }
 
         function liveSearch(val) {
             const results = document.getElementById("search-results"), grid = document.getElementById("explore-grid"), close = document.getElementById("s-close");
-            if (!val) { clearSearch(); return; }
-            close.style.display = "block"; grid.style.display = "none"; results.style.display = "block";
-            
+            if (!val) { clearSearch(); return; } close.style.display = "block"; grid.style.display = "none"; results.style.display = "block";
             const matches = allUsers.filter(u => u.id.toLowerCase().includes(val.toLowerCase()));
-            results.innerHTML = matches.map(u => `
-                <div class="u-row" onclick="location.href='profile.html?u=${u.id}'">
-                    <img src="${u.profileImg || DIMG}">
-                    <div class="u-info"><b>${u.id}</b><span>${u.fullName || 'Auragram User'}</span></div>
-                </div>`).join('');
+            results.innerHTML = matches.map(u => `<div class="u-row" onclick="location.href='profile.html?u=${u.id}'"><img src="${u.profileImg || DIMG}"><div class="u-info"><b>${u.id}</b><span>${u.fullName || 'Auragram User'}</span></div></div>`).join('');
         }
 
-        function clearSearch() {
-            document.getElementById("s-input").value = ""; document.getElementById("s-close").style.display = "none";
-            document.getElementById("search-results").style.display = "none"; document.getElementById("explore-grid").style.display = "grid";
-        }
-
-        function closePlayer() {
-            stopMedia(); document.getElementById("reel-player-view").style.display = "none";
-            if(window.location.search) window.history.replaceState({}, document.title, window.location.pathname);
-        }
-
-        function openReelsOnly() {
-            const reels = exploreFeed.filter(item => item.type === 'reel');
-            if(reels.length > 0) openFullFeed(0, reels);
-        }
-
-        init();
+        function clearSearch() { document.getElementById("s-input").value = ""; document.getElementById("s-close").style.display = "none"; document.getElementById("search-results").style.display = "none"; document.getElementById("explore-grid").style.display = "grid"; }
+        function closePlayer() { stopMedia(); document.getElementById("reel-player-view").style.display = "none"; if(window.location.search) window.history.replaceState({}, document.title, window.location.pathname); }
+        function openReelsOnly() { const reels = exploreFeed.filter(item => item.type === 'reel'); if(reels.length > 0) openFullFeed(0, reels); }
 
     </script>
 </body>
